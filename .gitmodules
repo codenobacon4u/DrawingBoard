@@ -1,1 +1,11 @@
 
+[submodule "DrawingPad/vendor/imgui"]
+	path = DrawingPad/vendor/imgui
+	url = https://github.com/codenobacon4u/imgui.git
+	branch = docking
+[submodule "DrawingPad/vendor/glfw"]
+	path = DrawingPad/vendor/glfw
+	url = https://github.com/codenobacon4u/glfw.git
+[submodule "DrawingPad/vendor/glm"]
+	path = DrawingPad/vendor/glm
+	url = https://github.com/g-truc/glm.git

@@ -1,0 +1,2 @@
+C:\Users\Tim\Dev\VisualStudio\repos\DrawingPad\DrawingPad\vendor\glad\bin\Debug-windows-x86_64\GLAD\GLAD.pdb
+C:\Users\Tim\Dev\VisualStudio\repos\DrawingPad\DrawingPad\vendor\glad\bin-int\Debug-windows-x86_64\GLAD\GLAD.pdb
