@@ -22,7 +22,8 @@ IncludeDir["ImGui"] = "DrawingPad/vendor/imgui"
 IncludeDir["glm"] = "DrawingPad/vendor/glm"
 IncludeDir["spdlog"] = "DrawingPad/vendor/spdlog/include"
 IncludeDir["stb_image"] = "DrawingPad/vendor/stb_image"
-IncludeDir["Vulkan"] = "C:/VulkanSDK/1.1.114.0/Include"
+IncludeDir["Vulkan"] = "C:/VulkanSDK/1.2.176.1/Include"
+IncludeDir["SPIRV"] = "DrawingPad/vendor/spirv"
 
 group "Dependencies"
 include "DrawingPad/vendor/glfw"
@@ -49,7 +50,10 @@ files {
     "%{prj.name}/vendor/stb_image/**.h",
     "%{prj.name}/vendor/stb_image/**.cpp",
     "%{prj.name}/vendor/glm/glm/**.hpp",
-    "%{prj.name}/vendor/glm/glm/**.inl"
+    "%{prj.name}/vendor/glm/glm/**.inl",
+    "%{prj.name}/vendor/spirv/**.h",
+    "%{prj.name}/vendor/spirv/**.cpp",
+    "%{prj.name}/vendor/spirv/**.hpp",
 }
 
 
@@ -67,18 +71,19 @@ includedirs {
     "%{IncludeDir.glm}",
     "%{IncludeDir.stb_image}",
 	"%{IncludeDir.Vulkan}",
+	"%{IncludeDir.SPIRV}",
 }
 
 libdirs {
-	"C:/VulkanSDK/1.1.114.0/Lib"
+	"C:/VulkanSDK/1.2.176.1/Lib"
 }
 
 links {
     "glfw",
     "GLAD",
     "ImGui",
-	"opengl32.lib",
-	"vulkan-1.lib"
+	"vulkan-1.lib",
+    "shaderc_shared.lib"
 }
 
 filter "system:windows"
@@ -121,10 +126,18 @@ includedirs {
     "%{IncludeDir.glm}",
     "%{IncludeDir.glfw}",
     "%{IncludeDir.GLAD}",
+	"%{IncludeDir.Vulkan}",
+	"%{IncludeDir.SPIRV}",
+}
+
+libdirs {
+	"C:/VulkanSDK/1.2.176.1/Lib"
 }
 
 links {
     "DrawingPad",
+	"vulkan-1.lib",
+    "shaderc_shared.lib"
 }
 
 

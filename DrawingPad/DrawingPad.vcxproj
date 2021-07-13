@@ -73,11 +73,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pwpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;DP_BUILD_DLL;GLFW_INCLUDE_NONE;PW_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\glfw\include;vendor\glad\include;vendor\imgui;vendor\glm;vendor\stb_image;C:\VulkanSDK\1.1.114.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;PW_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\glfw\include;vendor\glad\include;vendor\imgui;vendor\glm;vendor\stb_image;C:\VulkanSDK\1.2.176.1\Include;vendor\spirv;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <MinimalRebuild>false</MinimalRebuild>
@@ -90,17 +90,17 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.1.114.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.176.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pwpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;DP_BUILD_DLL;GLFW_INCLUDE_NONE;PW_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\glfw\include;vendor\glad\include;vendor\imgui;vendor\glm;vendor\stb_image;C:\VulkanSDK\1.1.114.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;PW_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\glfw\include;vendor\glad\include;vendor\imgui;vendor\glm;vendor\stb_image;C:\VulkanSDK\1.2.176.1\Include;vendor\spirv;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -116,17 +116,17 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.1.114.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.176.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
     <ClCompile>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pwpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;DP_BUILD_DLL;GLFW_INCLUDE_NONE;PW_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\glfw\include;vendor\glad\include;vendor\imgui;vendor\glm;vendor\stb_image;C:\VulkanSDK\1.1.114.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLFW_INCLUDE_NONE;PW_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\glfw\include;vendor\glad\include;vendor\imgui;vendor\glm;vendor\stb_image;C:\VulkanSDK\1.2.176.1\Include;vendor\spirv;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -142,23 +142,44 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\VulkanSDK\1.1.114.0\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\VulkanSDK\1.2.176.1\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Vulkan\CommandListVK.h" />
     <ClInclude Include="src\Buffer.h" />
-    <ClInclude Include="src\CommandBuffer.h" />
+    <ClInclude Include="src\CommandList.h" />
     <ClInclude Include="src\DrawingPad.h" />
     <ClInclude Include="src\Framebuffer.h" />
+    <ClInclude Include="src\GraphicsContext.h" />
     <ClInclude Include="src\GraphicsDevice.h" />
-    <ClInclude Include="src\OpenGL\OpenGLCommandBuffer.h" />
-    <ClInclude Include="src\OpenGL\OpenGLGraphicsDevice.h" />
+    <ClInclude Include="src\Instrumentor.h" />
+    <ClInclude Include="src\OpenGL\GraphicsDeviceGL.h" />
     <ClInclude Include="src\Pipeline.h" />
-    <ClInclude Include="src\pwpch.h" />
-    <ClInclude Include="src\SafeQueue.h" />
+    <ClInclude Include="src\RenderPass.h" />
+    <ClInclude Include="src\RenderTarget.h" />
     <ClInclude Include="src\Shader.h" />
-    <ClInclude Include="src\Vulkan\VkGraphicsDevice.h" />
+    <ClInclude Include="src\Swapchain.h" />
+    <ClInclude Include="src\Texture.h" />
+    <ClInclude Include="src\Utils.h" />
+    <ClInclude Include="src\Vulkan\BufferVK.h" />
+    <ClInclude Include="src\Vulkan\CommandBufferVK.h" />
+    <ClInclude Include="src\Vulkan\CommandPoolVK.h" />
+    <ClInclude Include="src\Vulkan\DebugVK.h" />
+    <ClInclude Include="src\Vulkan\DescriptorSetVK.h" />
+    <ClInclude Include="src\Vulkan\FramebufferPoolVK.h" />
+    <ClInclude Include="src\Vulkan\FramebufferVK.h" />
+    <ClInclude Include="src\Vulkan\GraphicsContextVK.h" />
+    <ClInclude Include="src\Vulkan\GraphicsDeviceVK.h" />
+    <ClInclude Include="src\Vulkan\PipelineVK.h" />
+    <ClInclude Include="src\Vulkan\RenderPassPoolVK.h" />
+    <ClInclude Include="src\Vulkan\RenderPassVK.h" />
+    <ClInclude Include="src\Vulkan\ShaderVK.h" />
+    <ClInclude Include="src\Vulkan\SwapchainVK.h" />
+    <ClInclude Include="src\Vulkan\TextureVK.h" />
+    <ClInclude Include="src\Vulkan\UtilsVK.h" />
+    <ClInclude Include="src\pwpch.h" />
     <ClInclude Include="vendor\glm\glm\common.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_features.hpp" />
     <ClInclude Include="vendor\glm\glm\detail\_fixes.hpp" />
@@ -567,14 +588,62 @@
     <ClInclude Include="vendor\glm\glm\vec3.hpp" />
     <ClInclude Include="vendor\glm\glm\vec4.hpp" />
     <ClInclude Include="vendor\glm\glm\vector_relational.hpp" />
+    <ClInclude Include="vendor\spirv\GLSL.std.450.h" />
+    <ClInclude Include="vendor\spirv\spirv.h" />
+    <ClInclude Include="vendor\spirv\spirv.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cfg.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_common.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cpp.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cross.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cross_c.h" />
+    <ClInclude Include="vendor\spirv\spirv_cross_containers.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cross_error_handling.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cross_parsed_ir.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_cross_util.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_glsl.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_hlsl.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_msl.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_parser.hpp" />
+    <ClInclude Include="vendor\spirv\spirv_reflect.hpp" />
     <ClInclude Include="vendor\stb_image\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Vulkan\CommandListVK.cpp" />
+    <ClCompile Include="src\CommandList.cpp" />
     <ClCompile Include="src\GraphicsDevice.cpp" />
-    <ClCompile Include="src\OpenGL\OpenGLCommandBuffer.cpp" />
-    <ClCompile Include="src\OpenGL\OpenGLGraphicsDevice.cpp" />
-    <ClCompile Include="src\pwpch.cpp" />
-    <ClCompile Include="src\Vulkan\VkGraphicsDevice.cpp" />
+    <ClCompile Include="src\OpenGL\GraphicsDeviceGL.cpp" />
+    <ClCompile Include="src\RenderTarget.cpp" />
+    <ClCompile Include="src\Texture.cpp" />
+    <ClCompile Include="src\Vulkan\BufferVK.cpp" />
+    <ClCompile Include="src\Vulkan\CommandBufferVK.cpp" />
+    <ClCompile Include="src\Vulkan\CommandPoolVK.cpp" />
+    <ClCompile Include="src\Vulkan\DebugVK.cpp" />
+    <ClCompile Include="src\Vulkan\DescriptorSetVK.cpp" />
+    <ClCompile Include="src\Vulkan\FramebufferPoolVK.cpp" />
+    <ClCompile Include="src\Vulkan\FramebufferVK.cpp" />
+    <ClCompile Include="src\Vulkan\GraphicsContextVK.cpp" />
+    <ClCompile Include="src\Vulkan\GraphicsDeviceVK.cpp" />
+    <ClCompile Include="src\Vulkan\PipelineVK.cpp" />
+    <ClCompile Include="src\Vulkan\RenderPassPoolVK.cpp" />
+    <ClCompile Include="src\Vulkan\RenderPassVK.cpp" />
+    <ClCompile Include="src\Vulkan\ShaderVK.cpp" />
+    <ClCompile Include="src\Vulkan\SwapchainVK.cpp" />
+    <ClCompile Include="src\Vulkan\TextureVK.cpp" />
+    <ClCompile Include="src\Vulkan\UtilsVK.cpp" />
+    <ClCompile Include="src\pwpch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cfg.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_cpp.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_cross.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_cross_c.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_cross_parsed_ir.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_cross_util.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_glsl.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_hlsl.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_msl.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_parser.cpp" />
+    <ClCompile Include="vendor\spirv\spirv_reflect.cpp" />
     <ClCompile Include="vendor\stb_image\stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>

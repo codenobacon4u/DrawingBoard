@@ -7,6 +7,9 @@
     <Filter Include="src\OpenGL">
       <UniqueIdentifier>{C15FA925-AD17-EB72-161F-C4CE02F68563}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Vulkan">
+      <UniqueIdentifier>{0DC45B36-F97B-9D83-6283-76DF4E5A3874}</UniqueIdentifier>
+    </Filter>
     <Filter Include="vendor">
       <UniqueIdentifier>{B3738122-9F15-ACF8-88D0-BF4C74113349}</UniqueIdentifier>
     </Filter>
@@ -28,6 +31,9 @@
     <Filter Include="vendor\glm\glm\gtx">
       <UniqueIdentifier>{B3A6A76B-9F8A-68C1-08EB-6214F4ED5243}</UniqueIdentifier>
     </Filter>
+    <Filter Include="vendor\spirv">
+      <UniqueIdentifier>{B6DD86F1-A240-1696-4BC6-4E4C3708E218}</UniqueIdentifier>
+    </Filter>
     <Filter Include="vendor\stb_image">
       <UniqueIdentifier>{0DA0BA59-F998-D9AB-22CB-BE300E23B9B7}</UniqueIdentifier>
     </Filter>
@@ -36,31 +42,91 @@
     <ClInclude Include="src\Buffer.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\CommandBuffer.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\DrawingPad.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\Framebuffer.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\GraphicsContext.h">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="src\GraphicsDevice.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\OpenGL\OpenGLCommandBuffer.h">
-      <Filter>src\OpenGL</Filter>
+    <ClInclude Include="src\Instrumentor.h">
+      <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\OpenGL\OpenGLGraphicsDevice.h">
+    <ClInclude Include="src\OpenGL\GraphicsDeviceGL.h">
       <Filter>src\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Pipeline.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\SafeQueue.h">
+    <ClInclude Include="src\RenderPass.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RenderTarget.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\Shader.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Swapchain.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Texture.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\BufferVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\CommandBufferVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\CommandPoolVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\DebugVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\FramebufferPoolVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\FramebufferVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\GraphicsContextVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\GraphicsDeviceVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\PipelineVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\RenderPassPoolVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\RenderPassVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\ShaderVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\SwapchainVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\TextureVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\UtilsVK.h">
+      <Filter>src\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pwpch.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="vendor\glm\glm\common.hpp">
@@ -1287,26 +1353,167 @@
     <ClInclude Include="vendor\glm\glm\vector_relational.hpp">
       <Filter>vendor\glm\glm</Filter>
     </ClInclude>
+    <ClInclude Include="vendor\spirv\GLSL.std.450.h">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv.h">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cfg.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_common.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cpp.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cross.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cross_c.h">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cross_containers.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cross_error_handling.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cross_parsed_ir.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_cross_util.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_glsl.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_hlsl.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_msl.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_parser.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\spirv\spirv_reflect.hpp">
+      <Filter>vendor\spirv</Filter>
+    </ClInclude>
     <ClInclude Include="vendor\stb_image\stb_image.h">
       <Filter>vendor\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="src\pwpch.h" />
-    <ClInclude Include="src\Vulkan\VkGraphicsDevice.h" />
+    <ClInclude Include="src\Vulkan\DescriptorSetVK.h" />
+    <ClInclude Include="src\CommandList.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\CommandListVK.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\GraphicsDevice.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\OpenGL\OpenGLCommandBuffer.cpp">
+    <ClCompile Include="src\OpenGL\GraphicsDeviceGL.cpp">
       <Filter>src\OpenGL</Filter>
     </ClCompile>
-    <ClCompile Include="src\OpenGL\OpenGLGraphicsDevice.cpp">
-      <Filter>src\OpenGL</Filter>
+    <ClCompile Include="src\RenderTarget.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Texture.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\BufferVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\CommandBufferVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\CommandPoolVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\DebugVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\FramebufferPoolVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\FramebufferVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\GraphicsContextVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\GraphicsDeviceVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\PipelineVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\RenderPassPoolVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\RenderPassVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\ShaderVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\SwapchainVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\TextureVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\UtilsVK.cpp">
+      <Filter>src\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pwpch.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cfg.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cpp.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cross.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cross_c.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cross_parsed_ir.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_cross_util.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_glsl.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_hlsl.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_msl.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_parser.cpp">
+      <Filter>vendor\spirv</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\spirv\spirv_reflect.cpp">
+      <Filter>vendor\spirv</Filter>
     </ClCompile>
     <ClCompile Include="vendor\stb_image\stb_image.cpp">
       <Filter>vendor\stb_image</Filter>
     </ClCompile>
-    <ClCompile Include="src\pwpch.cpp" />
-    <ClCompile Include="src\Vulkan\VkGraphicsDevice.cpp" />
+    <ClCompile Include="src\Vulkan\DescriptorSetVK.cpp" />
+    <ClCompile Include="src\CommandList.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\CommandListVK.cpp" />
   </ItemGroup>
 </Project>
