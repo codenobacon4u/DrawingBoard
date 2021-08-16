@@ -38,23 +38,23 @@ namespace Hazel {
 			std::lock_guard lock(m_Mutex);
 			if (m_CurrentSession)
 			{
-				// If there is already a current session, then close it before beginning new one.
+				// If there is already a current session, then close it before beginning DBG_NEW one.
 				// Subsequent profiling output meant for the original session will end up in the
 				// newly opened session instead.  That's better than having badly formatted
 				// profiling output.
-				throw new std::runtime_error("Instrumentor::BeginSession when session is already open");
+				throw DBG_NEW std::runtime_error("Instrumentor::BeginSession when session is already open");
 				InternalEndSession();
 			}
 			m_OutputStream.open(filepath);
 
 			if (m_OutputStream.is_open())
 			{
-				m_CurrentSession = new InstrumentationSession({ name });
+				m_CurrentSession = DBG_NEW InstrumentationSession({ name });
 				WriteHeader();
 			}
 			else
 			{
-				throw new std::runtime_error("Instrumentor could not open results file");
+				throw DBG_NEW std::runtime_error("Instrumentor could not open results file");
 			}
 		}
 

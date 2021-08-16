@@ -3,12 +3,11 @@
 
 #include "GraphicsDeviceVK.h"
 #include "RenderPassPoolVK.h"
-#include "ShaderVK.h"
 
 namespace VkAPI
 {
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& desc, RenderPass* renderPass)
-		: m_Device(device), m_Pipeline(VK_NULL_HANDLE)
+		: Pipeline(desc), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
 	{
 		if (renderPass == nullptr)
 		{
@@ -73,7 +72,7 @@ namespace VkAPI
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationState.lineWidth = 1.0f;
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizationState.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
@@ -120,8 +119,8 @@ namespace VkAPI
 		for (uint32_t i = 0; i < desc.ShaderCount; i++)
 			stages.emplace_back(static_cast<ShaderVK*>(desc.Shaders[i])->GetStage());
 
-		ShaderProgramVK* program = new ShaderProgramVK(m_Device, static_cast<ShaderVK*>(desc.Shaders[0]), static_cast<ShaderVK*>(desc.Shaders[1]));
-
+		m_Program = DBG_NEW ShaderProgramVK(m_Device, static_cast<ShaderVK*>(desc.Shaders[0]), static_cast<ShaderVK*>(desc.Shaders[1]));
+		m_Program->Build();
 		VkGraphicsPipelineCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		createInfo.stageCount = static_cast<uint32_t>(stages.size());
@@ -132,7 +131,7 @@ namespace VkAPI
 		createInfo.pRasterizationState = &rasterizationState;
 		createInfo.pMultisampleState = &multisampleState;
 		createInfo.pColorBlendState = &colorBlendState;
-		createInfo.layout = program->GetLayout();
+		createInfo.layout = m_Program->GetPipelineLayout();
 		createInfo.renderPass = renderpass;
 		createInfo.subpass = 0;
 		createInfo.pDynamicState = &dynamicState;
@@ -144,15 +143,18 @@ namespace VkAPI
 	}
 
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& createInfo)
+		: Pipeline(createInfo)
 	{
 	}
 
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo)
+		: Pipeline(createInfo)
 	{
 	}
 
 	PipelineVK::~PipelineVK()
 	{
 		vkDestroyPipeline(m_Device->Get(), m_Pipeline, nullptr);
+		delete m_Program;
 	}
 }

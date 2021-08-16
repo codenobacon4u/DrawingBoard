@@ -65,8 +65,12 @@ public:
 		: m_Desc(desc), m_Data(data)
 	{}
 
+	virtual ~Buffer() {}
+
 	virtual void BeginStaging() = 0;
 	virtual void EndStaging() = 0;
+
+	BufferDesc GetDesc() const { return m_Desc; }
 
 	uint32_t GetStride() { return m_Desc.Stride; }
 	uint32_t GetSize() { return m_Desc.Size; }

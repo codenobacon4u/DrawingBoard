@@ -18,6 +18,9 @@ enum class API {
 class GraphicsDevice 
 {
 public:
+
+	virtual ~GraphicsDevice() {}
+
 	void SwapBuffers();
 	
 	//virtual void Submit(const CommandList* cb) = 0;
@@ -31,7 +34,7 @@ public:
 	virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) = 0;
 	virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
 	virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) = 0;
-	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) = 0;
+	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window) = 0;
 	virtual Shader* CreateShader(const ShaderDesc& desc) = 0;
 
 	virtual void OnWindowResize(int width, int height)
@@ -53,7 +56,7 @@ protected:
 	Framebuffer* m_SwapFB;
 	Swapchain* m_MainSwap;
 
-	std::vector<GraphicsContext*> m_ImmediateContexts;
+	//std::vector<GraphicsContext*> m_ImmediateContexts;
 
 private:
 	static API s_API;

@@ -52,8 +52,8 @@ files {
     "%{prj.name}/vendor/glm/glm/**.hpp",
     "%{prj.name}/vendor/glm/glm/**.inl",
     "%{prj.name}/vendor/spirv/**.h",
-    "%{prj.name}/vendor/spirv/**.cpp",
     "%{prj.name}/vendor/spirv/**.hpp",
+    "%{prj.name}/vendor/spirv/**.cpp",
 }
 
 
@@ -83,7 +83,7 @@ links {
     "GLAD",
     "ImGui",
 	"vulkan-1.lib",
-    "shaderc_shared.lib"
+    "shaderc_shared.lib",
 }
 
 filter "system:windows"
@@ -137,7 +137,7 @@ libdirs {
 links {
     "DrawingPad",
 	"vulkan-1.lib",
-    "shaderc_shared.lib"
+    "shaderc_shared.lib",
 }
 
 
@@ -147,6 +147,7 @@ pic "on"
 links {
 	"glfw",
 	"GLAD",
+    "SPIRV",
     "Xrandr",
     "Xi",
     "GL",

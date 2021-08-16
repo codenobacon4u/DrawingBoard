@@ -2,6 +2,7 @@
 #include "Pipeline.h"
 
 #include "RenderPass.h"
+#include "ShaderVK.h"
 
 #include <vulkan/vulkan.h>
 
@@ -17,9 +18,12 @@ namespace VkAPI
         ~PipelineVK();
 
         VkPipeline Get() { return m_Pipeline; }
+        ShaderProgramVK* GetProgram() { return m_Program; }
 
     private:
         VkPipeline m_Pipeline;
         GraphicsDeviceVK* m_Device;
+
+        ShaderProgramVK* m_Program;
     };
 }

@@ -11,7 +11,7 @@ namespace VkAPI {
 		VkRenderPassCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		createInfo.flags = 0;
-		
+
 		std::vector<VkAttachmentDescription> attachments(desc.AttachmentCount);
 		for (uint32_t i = 0; i < desc.AttachmentCount; i++)
 		{
@@ -58,7 +58,7 @@ namespace VkAPI {
 			{
 				subpasses[i].colorAttachmentCount = subpass.ColorAttachmentCount;
 				subpasses[i].pColorAttachments = ConvertAttachRefs(subpass.ColorAttachmentCount, subpass.ColorAttachments, &attachs, &currAttachment);
-				
+
 				if (subpass.ResolveAttachments != nullptr)
 				{
 					subpasses[i].pResolveAttachments = ConvertAttachRefs(subpass.ColorAttachmentCount, subpass.ResolveAttachments, &attachs, &currAttachment);
@@ -94,72 +94,12 @@ namespace VkAPI {
 		createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		createInfo.pDependencies = dependencies.data();
 
-		vkCreateRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), &createInfo, nullptr, &m_Pass);
+		if (vkCreateRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), &createInfo, nullptr, &m_Pass) != VK_SUCCESS)
+			throw std::runtime_error("Failed to create RenderPass!");
 	}
 
-	RenderPassDesc RenderPassVK::GetDefaultDesc(uint32_t numTargets, const TextureFormat* colorFormats, TextureFormat depthFormat, SampleCount samples, std::array<RenderPassAttachmentDesc, 9> attachments, std::array<AttachmentReference, 9> refs, SubpassDesc subpass)
-	//RenderPassDesc RenderPassVK::GetDefaultDesc(uint32_t numTargets, const TextureFormat* colorFormats, TextureFormat depthFormat, SampleCount samples)
+	RenderPassVK::~RenderPassVK()
 	{
-		RenderPassDesc desc;
-		//std::array<RenderPassAttachmentDesc, 9> attachments;
-		//std::array<AttachmentReference, 9> refs;
-		//SubpassDesc subpass;
-
-		uint32_t attachIdx = 0;
-		AttachmentReference* depthAttachRef = nullptr;
-		if (depthFormat != TextureFormat::Unknown)
-		{
-			auto& depth = attachments[0];
-			depth.Format = depthFormat;
-			depth.Samples = samples;
-			depth.LoadOp = AttachmentLoadOp::Clear;
-			depth.StoreOp = AttachmentStoreOp::Store;
-			depth.StencilLoadOp = AttachmentLoadOp::Clear;
-			depth.StencilStoreOp = AttachmentStoreOp::Store;
-			depth.InitialLayout = ImageLayout::DepthAttachOptimal;
-			depth.FinalLayout = ImageLayout::DepthAttachOptimal;
-			depthAttachRef = &refs[0];
-			depthAttachRef->Attachment = 0;
-			depthAttachRef->Layout = ImageLayout::DepthAttachOptimal;
-
-			attachIdx++;
-		}
-
-		AttachmentReference* colorAttachRefs = &refs[attachIdx];
-		if (numTargets == 0)
-			colorAttachRefs = nullptr;
-
-		desc.AttachmentCount = numTargets + attachIdx;
-		for (uint32_t i = 0; i < desc.AttachmentCount; i++, attachIdx++) {
-			auto& color = attachments[attachIdx];
-			color.Format = colorFormats[i];
-			color.Samples = samples;
-			color.LoadOp = AttachmentLoadOp::Clear;
-			color.StoreOp = AttachmentStoreOp::Store;
-			color.StencilLoadOp = AttachmentLoadOp::Discard;
-			color.StencilStoreOp = AttachmentStoreOp::Discard;
-			color.InitialLayout = ImageLayout::Undefined;
-			color.FinalLayout = ImageLayout::PresentSrcKHR;
-			auto& colorRef = refs[attachIdx];
-			colorRef.Attachment = attachIdx;
-			colorRef.Layout = ImageLayout::ColorAttachOptimal;
-		}
-
-		desc.Attachments = attachments.data();
-		desc.SubpassCount = 1;
-		desc.Subpasses = &subpass;
-		desc.DependencyCount = 0;
-		desc.Dependencies = nullptr;
-
-		subpass.InputAttachmentCount = 0;
-		subpass.InputAttachments = nullptr;
-		subpass.ColorAttachmentCount = numTargets;
-		subpass.ColorAttachments = colorAttachRefs;
-		subpass.ResolveAttachments = nullptr;
-		subpass.DepthStencilAttachment = depthAttachRef;
-		subpass.PreserveAttachmentCount = 0;
-		subpass.PreserveAttachments = nullptr;
-
-		return desc;
+		vkDestroyRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), m_Pass, nullptr);
 	}
 }

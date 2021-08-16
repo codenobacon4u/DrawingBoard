@@ -6,6 +6,225 @@
 #include <shaderc/shaderc.hpp>
 
 namespace VkAPI {
+
+	template<ResourceBindingType T>
+	inline void ReadResource(const spirv_cross::Compiler &compiler, ShaderType stage, std::vector<ResourceBinding> &resources, uint32_t* maxSet) {
+		
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::Input>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().stage_inputs;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::Input;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			// VecSize
+			res.VecSize = type.vecsize;
+			res.Columns = type.columns;
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::InputAttachment>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().subpass_inputs;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::InputAttachment;
+			res.Stages = ShaderType::Fragment;
+			res.Name = resource.name;
+
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			res.InputAttachIndex = compiler.get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::Output>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().stage_outputs;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::Output;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			// VecSize
+			res.VecSize = type.vecsize;
+			res.Columns = type.columns;
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::Image>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().separate_images;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::Image;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::ImageSampler>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().sampled_images;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::ImageSampler;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::ImageStorage>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().storage_images;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::ImageStorage;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			// NonRead/Write
+			res.Qualifiers = 1 | 2;
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::Sampler>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().separate_samplers;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::Sampler;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::UniformBuffer>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().uniform_buffers;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::UniformBuffer;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			res.Size = compiler.get_declared_struct_size_runtime_array(type, 0);
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
+	template <>
+	inline void ReadResource<ResourceBindingType::StorageBuffer>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
+		auto cResources = compiler.get_shader_resources().storage_buffers;
+		for (auto& resource : cResources)
+		{
+			const auto& type = compiler.get_type_from_variable(resource.id);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::StorageBuffer;
+			res.Stages = stage;
+			res.Name = resource.name;
+
+			res.Size = compiler.get_declared_struct_size_runtime_array(type, 0);
+			// ArraySize
+			res.ArraySize = type.array.size() ? type.array[0] : 1;
+			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			res.Binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			res.Qualifiers = 1 | 2;
+
+			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
+
+			resources.push_back(res);
+		}
+	}
+
 	ShaderVK::ShaderVK(GraphicsDeviceVK* device, const ShaderDesc& desc)
 		: Shader(desc), m_Device(device)
 	{
@@ -25,7 +244,11 @@ namespace VkAPI {
 			m_Stage.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		m_Stage.module = m_Module;
 		m_Stage.pName = desc.EntryPoint.c_str();
-		//CreatePipelineLayout();
+	}
+
+	ShaderVK::~ShaderVK()
+	{
+		vkDestroyShaderModule(m_Device->Get(), m_Module, nullptr);
 	}
 
 	bool ShaderVK::LoadShaderFromFile(const std::string& path)
@@ -127,7 +350,7 @@ namespace VkAPI {
 			return false;
 		}
 		// Get shader resources for reflection
-		std::vector<uint32_t> spirv = { result.cbegin(), result.cend() };
+		std::vector<uint32_t> spirv = { result.cbegin(), result.cend() };\
 		Reflect(spirv);
 
 		VkShaderModuleCreateInfo createInfo = {};
@@ -140,220 +363,92 @@ namespace VkAPI {
 
 		return true;
 	}
+
 	void ShaderVK::Reflect(std::vector<uint32_t> spirv)
 	{
 		// Get shader resources for reflection
 		spirv_cross::Compiler comp(spirv);
-		spirv_cross::ShaderResources resources = comp.get_shader_resources();
+		uint32_t sets = 0;
+		ReadResource<ResourceBindingType::Input>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::Output>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::InputAttachment>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::Image>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::ImageSampler>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::ImageStorage>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::Sampler>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::UniformBuffer>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::StorageBuffer>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		
+		auto push_constants = comp.get_shader_resources().push_constant_buffers;
 
-		for (auto& res : resources.sampled_images)
+		for (auto &resource : push_constants)
 		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorType = DescType::SampledImage;
-			descBind.DescriptorCount = 1;
-			descBind.IsFloat = comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			if (type.image.dim == spv::DimBuffer)
+			const auto& type = comp.get_type_from_variable(resource.id);
+			uint32_t offset = UINT32_MAX;
+			for (auto i = 0; i < type.member_types.size(); i++)
+				offset = std::min(offset, comp.get_member_decoration(type.self, i, spv::DecorationOffset));
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::PushConstant;
+			res.Stages = m_Desc.Type;
+			res.Name = resource.name;
+			res.Offset = offset;
+
+			res.Size = comp.get_declared_struct_size_runtime_array(type, 0);
+
+			res.Size -= res.Offset;
+
+			m_Layout.Resources.push_back(res);
+		}
+
+		auto special_constants = comp.get_specialization_constants();
+
+		for (auto& resource : special_constants)
+		{
+			auto& value = comp.get_constant(resource.id);
+			auto& type = comp.get_type(value.constant_type);
+
+			ResourceBinding res = {};
+			res.Type = ResourceBindingType::SpecialConstant;
+			res.Stages = m_Desc.Type;
+			res.Name = comp.get_name(resource.id);
+			res.Offset = 0;
+			res.ConstantId = resource.constant_id;
+
+			switch (type.basetype)
 			{
-				m_Layout.Sets[set].SampledBuffers.emplace_back(std::move(descBind));
-				m_Layout.Sets[set].SampledBufferCount += 1;
-			}
-			else
-			{
-				m_Layout.Sets[set].SampledImages.emplace_back(std::move(descBind));
-				m_Layout.Sets[set].SampledImageCount += 1;
-			}
-
-			//if (comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float)
-			//	m_Layout.Sets[set].Floats |= 1 << binding;
-			test(type, set, binding);
-
-		}
-
-		for (auto& res : resources.subpass_inputs)
-		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorCount = 1;
-			descBind.DescriptorType = DescType::InputAttachment;
-			descBind.IsFloat = comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			m_Layout.Sets[set].InputAttachments.emplace_back(std::move(descBind));
-			m_Layout.Sets[set].InputAttachmentCount += 1;
-			//if (comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float)
-			//	m_Layout.Sets[set].Floats |= 1 << binding;
-			test(type, set, binding);
-		}
-
-		for (auto& res : resources.separate_images)
-		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorCount = 1;
-			descBind.DescriptorType = DescType::SampledImage;
-			descBind.IsFloat = comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			if (type.image.dim == spv::DimBuffer)
-			{
-				m_Layout.Sets[set].SampledBuffers.emplace_back(std::move(descBind));
-				m_Layout.Sets[set].SampledBufferCount += 1;
-			}
-			else
-			{
-				m_Layout.Sets[set].SampledImages.emplace_back(std::move(descBind));
-				m_Layout.Sets[set].SampledImageCount += 1;
+			case spirv_cross::SPIRType::BaseType::Boolean:
+			case spirv_cross::SPIRType::BaseType::Char:
+			case spirv_cross::SPIRType::BaseType::Int:
+			case spirv_cross::SPIRType::BaseType::UInt:
+			case spirv_cross::SPIRType::BaseType::Float:
+				res.Size = 4;
+				break;
+			case spirv_cross::SPIRType::BaseType::Int64:
+			case spirv_cross::SPIRType::BaseType::UInt64:
+			case spirv_cross::SPIRType::BaseType::Double:
+				res.Size = 8;
+				break;
+			default:
+				res.Size = 0;
+				break;
 			}
 
-			//if (comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float)
-			//	m_Layout.Sets[set].Floats |= 1 << binding;
-			test(type, set, binding);
+			m_Layout.Resources.push_back(res);
 		}
-
-		for (auto& res : resources.separate_samplers)
-		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorCount = 1;
-			descBind.DescriptorType = DescType::Sampler;
-			descBind.IsFloat = comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			m_Layout.Sets[set].Samplers.emplace_back(std::move(descBind));
-			m_Layout.Sets[set].SamplerCount += 1;
-			test(type, set, binding);
-		}
-
-		for (auto& res : resources.storage_images)
-		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorCount = 1;
-			descBind.DescriptorType = DescType::StorageImage;
-			descBind.IsFloat = comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			m_Layout.Sets[set].StorageImages.emplace_back(std::move(descBind));
-			m_Layout.Sets[set].StorageImageCount += 1;
-			//if (comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float)
-			//	m_Layout.Sets[set].Floats |= 1 << binding;
-			test(type, set, binding);
-		}
-
-		for (auto& res : resources.uniform_buffers)
-		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorCount = 1;
-			descBind.DescriptorType = DescType::UniformBuffer;
-			descBind.IsFloat = true;//comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			m_Layout.Sets[set].UniformBuffers.emplace_back(std::move(descBind));
-			m_Layout.Sets[set].UniformBufferCount += 1;
-			test(type, set, binding);
-		}
-
-		for (auto& res : resources.storage_buffers)
-		{
-			uint32_t set = comp.get_decoration(res.id, spv::DecorationDescriptorSet);
-			uint32_t binding = comp.get_decoration(res.id, spv::DecorationBinding);
-			auto& type = comp.get_type(res.type_id);
-			DescriptorBinding descBind = {};
-			descBind.Binding = binding;
-			descBind.DescriptorCount = 1;
-			descBind.DescriptorType = DescType::StorageBuffer;
-			descBind.IsFloat = comp.get_type(type.image.type).basetype == spirv_cross::SPIRType::BaseType::Float;
-			m_Layout.Sets[set].StorageBuffers.emplace_back(std::move(descBind));
-			m_Layout.Sets[set].StorageBufferCount += 1;
-			test(type, set, binding);
-		}
-
-		for (auto& res : resources.stage_inputs)
-		{
-			uint32_t location = comp.get_decoration(res.id, spv::DecorationLocation);
-			m_Layout.Inputs |= 1 << location;
-		}
-
-		for (auto& res : resources.stage_outputs)
-		{
-			uint32_t location = comp.get_decoration(res.id, spv::DecorationLocation);
-			m_Layout.Outputs |= 1 << location;
-		}
-
-		if (!resources.push_constant_buffers.empty())
-		{
-			m_Layout.PushConstantSize = static_cast<uint32_t>(comp.get_declared_struct_size(comp.get_type(resources.push_constant_buffers.front().base_type_id)));
-		}
-
-		for (auto& res : comp.get_specialization_constants())
-			m_Layout.SpecConstants |= 1 << res.constant_id;
-	}
-
-	void ShaderVK::test(const spirv_cross::SPIRType& type, uint32_t set, uint32_t binding)
-	{
-		uint32_t size;
-		if (!type.array.empty())
-		{
-			if (type.array.size() != 1)
-				std::cerr << "Array dim must be 1" << std::endl;
-			else if (!type.array_size_literal.front())
-				std::cerr << "Array dim must be literal" << std::endl;
-			else
-			{
-				if (type.array.front() == 0)
-				{
-					if (binding != 0)
-						std::cerr << "Bindless textures can only be used with binding = 0 in a set" << std::endl;
-					if (type.basetype != spirv_cross::SPIRType::Image || type.image.dim == spv::DimBuffer)
-						std::cerr << "Can only use bindless for sampled images" << std::endl;
-					else
-						m_Layout.BindlessSets |= 1 << set;
-					size = 0xff;
-				}
-				else
-					size = type.array.front();
-			}
-		}
-		else
-		{
-			size = 1;
-		}
-	}
-
-	void ShaderVK::CreatePipelineLayout()
-	{
-		uint32_t setCount = 0;
-		std::vector<VkDescriptorSetLayout> layouts;
-		for (uint32_t i = 0; i < 16; i++)
-		{
-			VkDescriptorSetLayoutCreateInfo info = {};
-			VkDescriptorSetLayoutBinding binding;
-			//binding.
-		}
-
-		VkPipelineLayoutCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		createInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-		createInfo.pSetLayouts = layouts.data();
-
-		vkCreatePipelineLayout(m_Device->Get(), &createInfo, nullptr, &m_PipelineLayout);
+		m_Layout.SetCount = sets;
 	}
 	
 	ShaderProgramVK::ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* vertShader, ShaderVK* fragShader)
 		: ShaderProgram(vertShader, fragShader), m_Device(device)
 	{
-		CombineLayouts();
+		m_DescCache = DBG_NEW DescriptorSetLayoutCacheVK(m_Device);
+	}
+
+	ShaderProgramVK::~ShaderProgramVK()
+	{
+		delete m_DescCache;
+		vkDestroyPipelineLayout(m_Device->Get(), m_PipeLayout, nullptr);
 	}
 
 	void ShaderProgramVK::AddShader(Shader* shader)
@@ -361,75 +456,31 @@ namespace VkAPI {
 		m_Shaders[shader->GetDesc().Type] = shader;
 	}
 
-	void ShaderProgramVK::CombineLayouts()
+	void ShaderProgramVK::Build()
 	{
-		CombinedLayout combined = {};
-		if (m_Shaders[ShaderType::Vertex])
-			combined.Inputs = m_Shaders[ShaderType::Vertex]->GetLayout().Inputs;
-		if (m_Shaders[ShaderType::Fragment])
-			combined.Outputs = m_Shaders[ShaderType::Fragment]->GetLayout().Outputs;
-
+		uint32_t maxSets = 1;
 		for (auto const& [type, shader] : m_Shaders)
 		{
-			uint32_t stageMask = 1 << static_cast<uint32_t>(type);
-			auto layout = shader->GetLayout();
-			for (uint32_t set = 0; set < 16; set++)
-			{
-				combined.Sets[set].SampledImages.insert(std::end(combined.Sets[set].SampledImages), std::begin(layout.Sets[set].SampledImages), std::end(layout.Sets[set].SampledImages));
-				combined.Sets[set].StorageImages.insert(std::end(combined.Sets[set].StorageImages), std::begin(layout.Sets[set].StorageImages), std::end(layout.Sets[set].StorageImages));
-				combined.Sets[set].UniformBuffers.insert(std::end(combined.Sets[set].UniformBuffers), std::begin(layout.Sets[set].UniformBuffers), std::end(layout.Sets[set].UniformBuffers));
-				combined.Sets[set].StorageBuffers.insert(std::end(combined.Sets[set].StorageBuffers), std::begin(layout.Sets[set].StorageBuffers), std::end(layout.Sets[set].StorageBuffers));
-				combined.Sets[set].SampledBuffers.insert(std::end(combined.Sets[set].SampledBuffers), std::begin(layout.Sets[set].SampledBuffers), std::end(layout.Sets[set].SampledBuffers));
-				combined.Sets[set].InputAttachments.insert(std::end(combined.Sets[set].InputAttachments), std::begin(layout.Sets[set].InputAttachments), std::end(layout.Sets[set].InputAttachments));
-				combined.Sets[set].Samplers.insert(std::end(combined.Sets[set].Samplers), std::begin(layout.Sets[set].Samplers), std::end(layout.Sets[set].Samplers));
-				combined.Sets[set].SeparateImages.insert(std::end(combined.Sets[set].SeparateImages), std::begin(layout.Sets[set].SeparateImages), std::begin(layout.Sets[set].SeparateImages));
-
-				uint32_t active = !layout.Sets[set].SampledImages.empty() | !layout.Sets[set].StorageImages.empty() |
-					!layout.Sets[set].UniformBuffers.empty() | !layout.Sets[set].StorageBuffers.empty() |
-					!layout.Sets[set].SampledBuffers.empty() | !layout.Sets[set].InputAttachments.empty() |
-					!layout.Sets[set].Samplers.empty() | !layout.Sets[set].SeparateImages.empty();
-
-				if (active)
-					combined.SetStages[set] |= stageMask;
-
-				for (uint32_t bit = 0; bit < 32; bit++)
-					combined.BindingStages[set][bit] |= stageMask;
-			}
-
-			if (layout.PushConstantSize != 0)
-			{
-			}
-			combined.SpecConstants[static_cast<uint32_t>(type)] = layout.SpecConstants;
-			combined.CombinedSpecConstants |= layout.SpecConstants;
-			combined.BindlessSets |= layout.BindlessSets;
+			maxSets = std::max(maxSets, shader->GetLayout().SetCount);
+			for (ResourceBinding resource : shader->GetLayout().Resources)
+				m_Layout.Resources.emplace_back(resource);
 		}
-
-		for (uint32_t set = 0; set < 16; set++)
+		std::vector<std::vector<ResourceBinding>> resourceSets(maxSets);
+		std::vector<VkDescriptorSetLayout> layouts(maxSets);
+		for (uint32_t i = 0; i < m_Layout.Resources.size(); i++)
 		{
-			if (combined.SetStages[set] != 0)
-				combined.DescriptorSet |= 1 << set;
+			uint32_t binding = m_Layout.Resources[i].Binding;
+			uint32_t set = m_Layout.Resources[i].Set;
+			m_Layout.BindingStagesMask[set][binding] |= (uint32_t)m_Layout.Resources[i].Stages;
+			resourceSets[m_Layout.Resources[i].Set].emplace_back(m_Layout.Resources[i]);
 		}
+		for (uint32_t i = 0; i < maxSets; i++)
+			layouts[i] = m_DescCache->GetLayout(resourceSets[i], m_Layout.BindingStagesMask[i]);
 
-		CreatePipelineLayout(combined);
-	}
-
-	void ShaderProgramVK::CreatePipelineLayout(const CombinedLayout& layout)
-	{
-		VkDescriptorSetLayout layouts[16];
-		uint32_t sets = 0;
-		for (uint32_t i = 0; i < 16; i++)
-		{
-			layouts[i] = m_Device->GetDescriptorSetPool().GetLayout(layout.Sets[i], layout.BindingStages[i]);
-			if (layout.DescriptorSet & (1 << i))
-				sets = i + 1;
-		}
 		VkPipelineLayoutCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		if (sets)
-		{
-			createInfo.setLayoutCount = sets;
-			createInfo.pSetLayouts = layouts;
-		}
-		vkCreatePipelineLayout(m_Device->Get(), &createInfo, nullptr, &m_Layout);
+		createInfo.setLayoutCount = maxSets;
+		createInfo.pSetLayouts = layouts.data();
+		vkCreatePipelineLayout(m_Device->Get(), &createInfo, nullptr, &m_PipeLayout);
 	}
 }

@@ -18,6 +18,8 @@ public:
 		: m_Device(device), m_Desc(desc)
 	{}
 
+	virtual ~Framebuffer() {}
+
 	const FramebufferDesc& GetDesc() { return m_Desc; }
 
 protected:

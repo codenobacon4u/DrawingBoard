@@ -13,10 +13,10 @@ namespace VkAPI {
 		// Set the tag for an object
 		static void SetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, std::string tag);
 
-		// Start a new debug marker region
+		// Start a DBG_NEW debug marker region
 		static void BeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, float* color);
 
-		// Insert a new debug marker into the command buffer
+		// Insert a DBG_NEW debug marker into the command buffer
 		static void Insert(VkCommandBuffer cmdbuffer, std::string markerName, float* color);
 
 		// End the current debug marker region

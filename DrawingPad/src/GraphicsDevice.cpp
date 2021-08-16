@@ -18,7 +18,6 @@ void GraphicsDevice::SwapBuffers()
 
 GraphicsContext* GraphicsDevice::CreateContext(const GraphicsContextDesc& desc)
 {
-    m_ImmediateContexts.resize(m_ImmediateContexts.size() + 1);
     switch (s_API)
     {
     case API::None:
@@ -28,8 +27,7 @@ GraphicsContext* GraphicsDevice::CreateContext(const GraphicsContextDesc& desc)
         return nullptr;
         break;
     case API::Vulkan:
-        m_ImmediateContexts.push_back(new VkAPI::GraphicsContextVK((VkAPI::GraphicsDeviceVK*)this, desc));
-        return m_ImmediateContexts.back();
+        return DBG_NEW VkAPI::GraphicsContextVK((VkAPI::GraphicsDeviceVK*)this, desc); 
         break;
     case API::DirectX:
         return nullptr;
@@ -49,10 +47,10 @@ GraphicsDevice* GraphicsDevice::Create(GLFWwindow* window, API api)
         return nullptr;
         break;
     case API::OpenGL:
-        return new GlAPI::GraphicsDeviceGL(window);
+        return DBG_NEW GlAPI::GraphicsDeviceGL(window);
         break;
     case API::Vulkan:
-        return new VkAPI::GraphicsDeviceVK();
+        return DBG_NEW VkAPI::GraphicsDeviceVK();
         break;
     case API::DirectX:
         return nullptr;

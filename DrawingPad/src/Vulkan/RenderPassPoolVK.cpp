@@ -27,48 +27,86 @@ namespace VkAPI
 	{
 		if (Hash == 0)
 		{
-			hash_combine(Hash, NumColors);
-			hash_combine(Hash, SampleCount);
-			hash_combine(Hash, DepthFormat);
+			Hasher h;
+			h.AddHash(NumColors);
+			h.AddHash(SampleCount);
+			h.AddHash(DepthFormat);
 			for (uint32_t i = 0; i < NumColors; i++)
-				hash_combine(Hash, ColorFormats[i]);
+				h.AddHash(ColorFormats[i]);
 		}
 		return Hash;
 	}
 
-    RenderPassVK* RenderPassPoolVK::GetRenderPass(const RPKey& key)
+	RenderPassPoolVK::~RenderPassPoolVK()
+	{
+		for (const auto& [key, pass] : m_Array)
+			delete pass;
+		for (const auto& [key, pass] : m_Map)
+			delete pass;
+	}
+
+	RenderPassVK* RenderPassPoolVK::GetRenderPass(const RPKey& key)
     {
-		HZ_PROFILE_FUNCTION();
-#if 1
 		auto it = m_Map.find(key);
 		if (it == m_Map.end())
 		{
-			std::array<RenderPassAttachmentDesc, 9> attachments;
-			std::array<AttachmentReference, 9> refs;
-			SubpassDesc subpass;
+			std::vector<RenderPassAttachmentDesc> attachments;
+			std::vector<AttachmentReference> refs;
+			uint32_t doff = 0;
+			if (key.DepthFormat != TextureFormat::Unknown)
+			{
+				doff = 1;
+				attachments.push_back({
+					key.DepthFormat,
+					key.SampleCount,
+					AttachmentLoadOp::Clear,
+					AttachmentStoreOp::Store,
+					AttachmentLoadOp::Clear,
+					AttachmentStoreOp::Store,
+					ImageLayout::DepthAttachOptimal,
+					ImageLayout::DepthAttachOptimal
+				});
 
-			auto desc = RenderPassVK::GetDefaultDesc(key.NumColors, key.ColorFormats, key.DepthFormat, UtilsVK::Convert(key.SampleCount), attachments, refs, subpass);
+				refs.push_back({ 0, ImageLayout::DepthAttachOptimal });
+			}
+
+			for (uint32_t i = attachments.size(); i < key.NumColors + doff; i++)
+			{
+				attachments.push_back({ 
+					key.ColorFormats[i],
+					key.SampleCount,
+					AttachmentLoadOp::Clear, 
+					AttachmentStoreOp::Store, 
+					AttachmentLoadOp::Discard, 
+					AttachmentStoreOp::Discard, 
+					ImageLayout::Undefined, 
+					ImageLayout::PresentSrcKHR 
+				});
+
+				refs.push_back({ i, ImageLayout::ColorAttachOptimal });
+			}
+
+			SubpassDesc subpass = {};
+			subpass.InputAttachmentCount = 0;
+			subpass.InputAttachments = nullptr;
+			subpass.ColorAttachmentCount = refs.size() - doff;
+			subpass.ColorAttachments = &refs[doff];
+			subpass.ResolveAttachments = nullptr;
+			subpass.DepthStencilAttachment = key.DepthFormat != TextureFormat::Unknown ? &refs.front() : nullptr;
+			subpass.PreserveAttachmentCount = 0;
+			subpass.PreserveAttachments = nullptr;
+
+			RenderPassDesc desc;
+			desc.AttachmentCount = attachments.size();
+			desc.Attachments = attachments.data();
+			desc.SubpassCount = 1;
+			desc.Subpasses = &subpass;
+			desc.DependencyCount = 0;
+			desc.Dependencies = nullptr;
+
 			RenderPassVK* rp = m_Device.CreateRenderPass(desc);
 			it = m_Map.emplace(key, std::move(rp)).first;
 		}
-#else
-		auto it = m_Array.begin();
-		for (; it != m_Array.end(); it++) {
-			if (it->first == key)
-				break;
-		}
-
-		if (it == m_Array.end())
-		{
-			std::array<RenderPassAttachmentDesc, 8> attachments;
-			std::array<AttachmentReference, 8> refs;
-			SubpassDesc subpass;
-
-			auto desc = RenderPassVK::GetDefaultDesc(key.NumColors, key.ColorFormats, key.DepthFormat, UtilsVK::Convert(key.SampleCount), attachments, refs, subpass);
-			RenderPassVK* rp = m_Device.CreateRenderPass(desc);
-			it = m_Array.emplace_back(std::make_pair(key, std::move(rp))).first;
-		}
-#endif
 		return it->second;
 	}
 }

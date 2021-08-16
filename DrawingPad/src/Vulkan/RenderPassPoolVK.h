@@ -25,6 +25,8 @@ namespace VkAPI
 			: m_Device(device)
 		{}
 
+		~RenderPassPoolVK();
+
 		RenderPassVK* GetRenderPass(const RPKey& key);
 
 	private:

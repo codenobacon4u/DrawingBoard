@@ -28,7 +28,7 @@ enum class Usage
 	Unified,
 };
 
-enum class TextureFormat {
+enum class TextureFormat : uint32_t {
 	Unknown,
 
 	R8Uint,
@@ -175,6 +175,7 @@ public:
 		: m_Desc(desc)
 	{}
 
+	virtual ~Texture() {}
 
 	const TextureDesc& GetDesc() { return m_Desc; }
 
@@ -188,6 +189,8 @@ public:
 	TextureView(const TextureViewDesc& desc)
 		: m_Desc(desc)
 	{}
+
+	virtual ~TextureView() {}
 
 	virtual Texture* GetTexture() = 0;
 

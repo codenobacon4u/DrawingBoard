@@ -288,7 +288,7 @@ namespace VkAPI
 		case AttachmentLoadOp::DontCare:
 			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		default:
-			throw new std::runtime_error("Failed to convert attachment load op");
+			throw DBG_NEW std::runtime_error("Failed to convert attachment load op");
 		}
 	}
 	VkAttachmentStoreOp UtilsVK::Convert(AttachmentStoreOp op)
@@ -301,7 +301,7 @@ namespace VkAPI
 		case AttachmentStoreOp::DontCare:
 			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		default:
-			throw new std::runtime_error("Failed to convert attachment store op");
+			throw DBG_NEW std::runtime_error("Failed to convert attachment store op");
 		}
 	}
 	VkImageLayout UtilsVK::Convert(ImageLayout layout)
@@ -355,7 +355,7 @@ namespace VkAPI
 		case 64:
 			return SampleCount::e64Bit;
 		default:
-			throw new std::runtime_error("Invalid sample count");
+			throw DBG_NEW std::runtime_error("Invalid sample count");
 		}
 	}
 

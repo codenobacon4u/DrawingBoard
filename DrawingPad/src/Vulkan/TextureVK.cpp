@@ -62,9 +62,14 @@ namespace VkAPI
 
 	TextureVK::~TextureVK()
 	{
-		if (m_Image)
-			vkDestroyImage(m_Device->Get(), m_Image, nullptr);
-		vkUnmapMemory(m_Device->Get(), m_Mem);
+		if (!((uint32_t)m_Desc.BindFlags & (uint32_t)BindFlags::RenderTarget))
+		{
+			if (m_Image)
+				vkDestroyImage(m_Device->Get(), m_Image, nullptr);
+			vkUnmapMemory(m_Device->Get(), m_Mem);
+			if (m_DefaultView != nullptr)
+				delete m_DefaultView;
+		}
 	}
 
 	TextureView* TextureVK::CreateView(const TextureViewDesc& desc)
@@ -84,7 +89,7 @@ namespace VkAPI
 			else
 				updatedDesc.Slices = 1;
 
-		return new TextureViewVK(m_Device, updatedDesc, this, VK_IMAGE_ASPECT_COLOR_BIT);
+		return DBG_NEW TextureViewVK(m_Device, updatedDesc, this, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
 	TextureViewVK::TextureViewVK(GraphicsDeviceVK* device, const TextureViewDesc& desc, TextureVK* texture, VkImageAspectFlags aspectFlags)

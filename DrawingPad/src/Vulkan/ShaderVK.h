@@ -5,12 +5,16 @@
 #include <vulkan/vulkan.h>
 #include <spirv_cross/spirv_cross.hpp>
 
+#include "DescriptorSetVK.h"
+
 namespace VkAPI {
 	class GraphicsDeviceVK;
 	class ShaderVK : public Shader
 	{
 	public:
 		ShaderVK(GraphicsDeviceVK* device, const ShaderDesc& desc);
+
+		~ShaderVK();
 
 		VkPipelineShaderStageCreateInfo& GetStage() { return m_Stage; }
 
@@ -19,8 +23,6 @@ namespace VkAPI {
 
 	private:
 		void Reflect(std::vector<uint32_t> spirv);
-		void test(const spirv_cross::SPIRType& type, uint32_t set, uint32_t binding);
-		void CreatePipelineLayout();
 
 	private:
 		GraphicsDeviceVK* m_Device;
@@ -34,17 +36,20 @@ namespace VkAPI {
 	public:
 		ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* vertShader, ShaderVK* fragShader);
 		
+		~ShaderProgramVK();
+
 		virtual void AddShader(Shader* shader) override;
+		virtual void Build() override;
 
-		VkPipelineLayout GetLayout() { return m_Layout; }
-
-	private:
-		void CombineLayouts();
-		void CreatePipelineLayout(const CombinedLayout& layout);
+		DescriptorSetLayoutCacheVK* GetCache() { return m_DescCache; }
+		VkPipelineLayout GetPipelineLayout() { return m_PipeLayout; }
+		ShaderLayout GetLayout() { return m_Layout; }
 
 	private:
 		GraphicsDeviceVK* m_Device;
-		ResourceLayout m_Combined;
-		VkPipelineLayout m_Layout = VK_NULL_HANDLE;
+		ShaderLayout m_Layout;
+
+		VkPipelineLayout m_PipeLayout = VK_NULL_HANDLE;
+		DescriptorSetLayoutCacheVK* m_DescCache;
 	};
 }

@@ -24,7 +24,7 @@ namespace VkAPI
 			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			allocInfo.commandBufferCount = 1;
 			if (vkAllocateCommandBuffers(m_Device->Get(), &allocInfo, &buffer) != VK_SUCCESS)
-				throw new std::runtime_error("Failed to create command buffer");
+				throw DBG_NEW std::runtime_error("Failed to create command buffer");
 			m_Buffers.push_back(std::move(buffer));
 		}
 	}
@@ -64,7 +64,7 @@ namespace VkAPI
 			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 			allocInfo.commandBufferCount = 1;
 			if (vkAllocateCommandBuffers(m_Device->Get(), &allocInfo, &buffer) != VK_SUCCESS)
-				throw new std::runtime_error("Failed to create command buffer");
+				throw DBG_NEW std::runtime_error("Failed to create command buffer");
 		}
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

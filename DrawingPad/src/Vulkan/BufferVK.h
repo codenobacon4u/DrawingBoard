@@ -12,6 +12,8 @@ namespace VkAPI
 		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, void* data = nullptr);
 		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, VkBuffer buffer);
 
+		~BufferVK();
+
 		virtual void BeginStaging() override;
 		virtual void EndStaging() override;
 

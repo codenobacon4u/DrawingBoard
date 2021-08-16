@@ -19,21 +19,13 @@ namespace VkAPI
 #endif
 
 	const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		//VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
 	};
 
 	static PFN_vkCreateDebugUtilsMessengerEXT  CreateDebugUtilsMessengerEXT = nullptr;
 	static PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT = nullptr;
-	//VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info, const VkAllocationCallbacks* allocator, VkDebugUtilsMessengerEXT* callback) {
-	//	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-	//	if (func != nullptr) {
-	//		return func(instance, create_info, allocator, callback);
-	//	}
-	//	printf("Failed to get instance proc address for vkCreateDebugUtilsMessengerEXT.\n");
-	//	return VK_ERROR_EXTENSION_NOT_PRESENT;
-	//}
-	//
-	//extern PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
+
 	VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 		UtilsVK::Log("validation_layers.log", std::string(pCallbackData->pMessage));
@@ -41,7 +33,6 @@ namespace VkAPI
 	}
 
 	GraphicsDeviceVK::GraphicsDeviceVK()
-		: m_FramebufferPool(*this), m_RenderPassPool(*this), m_DescriptorSetPool(this)
 	{
 		if (!glfwVulkanSupported())
 			throw std::runtime_error("Vulkan is not supported!");
@@ -49,14 +40,23 @@ namespace VkAPI
 		CreateInstance();
 		CreatePhysicalDevice();
 		CreateDevice();
-		DebugMarker::Setup(m_Device, m_PhysicalDevice);
+		if (enableValidation)
+			DebugMarker::Setup(m_Device, m_PhysicalDevice);
 		CreateDescriptiorPool();
 		CreateCommandPool();
+		m_FramebufferPool = new FramebufferPoolVK(*this);
+		m_RenderPassPool = new RenderPassPoolVK(*this);
+		m_DescriptorSetPool = new DescriptorSetPoolVK(this);
 	}
 
 	GraphicsDeviceVK::~GraphicsDeviceVK()
 	{
+		std::cout << "DELETING GRAPHICS DEVICE" << std::endl;
 		vkDeviceWaitIdle(m_Device);
+
+		delete m_FramebufferPool;
+		delete m_RenderPassPool;
+		delete m_DescriptorSetPool;
 
 		vkDestroyDevice(m_Device, nullptr);
 		if (enableValidation)
@@ -67,12 +67,16 @@ namespace VkAPI
 
 	void GraphicsDeviceVK::SubmitCommandBuffer(const VkSubmitInfo& info, VkFence* fence)
 	{
-		vkQueueSubmit(m_GraphicsQueue, 1, &info, *fence);
+		auto result = vkQueueSubmit(m_GraphicsQueue, 1, &info, *fence);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to submit commandbuffer!");
+		}
 	}
 	
 	void GraphicsDeviceVK::WaitForIdle()
 	{
-		vkQueueWaitIdle(m_GraphicsQueue);
+		vkDeviceWaitIdle(m_Device);
 	}
 
 	void GraphicsDeviceVK::Present()
@@ -81,17 +85,17 @@ namespace VkAPI
 
 	Buffer* GraphicsDeviceVK::CreateBuffer(const BufferDesc& desc, void* data)
 	{
-		return new BufferVK(this, desc, data);
+		return DBG_NEW BufferVK(this, desc, data);
 	}
 
 	Texture* GraphicsDeviceVK::CreateTexture(const TextureDesc& desc, const TextureData* data)
 	{
-		return new TextureVK(this, desc, data);
+		return DBG_NEW TextureVK(this, desc, data);
 	}
 
 	TextureVK* GraphicsDeviceVK::CreateTextureFromImage(const TextureDesc& desc, VkImage img)
 	{
-		return new TextureVK(this, desc, std::move(img));
+		return DBG_NEW TextureVK(this, desc, std::move(img));
 	}
 
 	uint32_t GraphicsDeviceVK::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
@@ -108,32 +112,32 @@ namespace VkAPI
 
 	RenderPassVK* GraphicsDeviceVK::CreateRenderPass(const RenderPassDesc& desc)
 	{
-		return new RenderPassVK(this, desc);
+		return DBG_NEW RenderPassVK(this, desc);
 	}
 
 	Framebuffer* GraphicsDeviceVK::CreateFramebuffer(const FramebufferDesc& desc)
 	{
-		return new FramebufferVK(this, desc);
+		return DBG_NEW FramebufferVK(this, desc);
 	}
 
 	Pipeline* GraphicsDeviceVK::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
 	{
-		return new PipelineVK(this, desc);
+		return DBG_NEW PipelineVK(this, desc);
 	}
 
 	Pipeline* GraphicsDeviceVK::CreateComputePipeline(const ComputePipelineDesc& desc)
 	{
-		return new PipelineVK(this, desc);
+		return DBG_NEW PipelineVK(this, desc);
 	}
 
-	Swapchain* GraphicsDeviceVK::CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window)
+	Swapchain* GraphicsDeviceVK::CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window)
 	{
-		return new SwapchainVK(this, (GraphicsContextVK*)m_ImmediateContexts.back(), desc, window);
+		return DBG_NEW SwapchainVK(this, (GraphicsContextVK*)context, desc, window);
 	}
 
 	Shader* GraphicsDeviceVK::CreateShader(const ShaderDesc& desc)
 	{
-		return new ShaderVK(this, desc);
+		return DBG_NEW ShaderVK(this, desc);
 	}
 	
 	QueueFamilyIndices GraphicsDeviceVK::FindQueueFamilies(VkQueueFlags flags)
@@ -205,7 +209,7 @@ namespace VkAPI
 			debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 			debugCreateInfo.flags = 0;
 			debugCreateInfo.pNext = nullptr;
-			debugCreateInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |*/ VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+			debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |*/ VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 			debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 			debugCreateInfo.pfnUserCallback = debugCallback;
 			debugCreateInfo.pUserData = nullptr;
@@ -238,6 +242,10 @@ namespace VkAPI
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
 		m_PhysicalDevice = devices[0];
+
+		VkPhysicalDeviceProperties props;
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
+		m_Limits = props.limits;
 	}
 	
 	void GraphicsDeviceVK::CreateDevice()

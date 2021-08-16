@@ -45,7 +45,7 @@ namespace GlAPI
 		return nullptr;
 	}
 
-	Swapchain* GraphicsDeviceGL::CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window)
+	Swapchain* GraphicsDeviceGL::CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window)
 	{
 		return nullptr;
 	}

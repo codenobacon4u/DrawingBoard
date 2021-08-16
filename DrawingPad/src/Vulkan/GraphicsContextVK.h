@@ -6,10 +6,23 @@
 
 namespace VkAPI
 {
+	struct ShaderResourceVK {
+		VkDescriptorBufferInfo Buffer = {};
+		VkDescriptorImageInfo Texture = {};
+	};
+
+	struct ResourceBindingsVK {
+		ShaderResourceVK Sets[4][32] = {};
+		DSLKey SetLayouts[4] = {};
+		uint32_t SetCount = 0;
+	};
+
 	class GraphicsContextVK : public GraphicsContext
 	{
 	public:
 		GraphicsContextVK(GraphicsDeviceVK* device, const GraphicsContextDesc& desc);
+		
+		~GraphicsContextVK();
 
 		virtual void Flush() override;
 
@@ -26,6 +39,8 @@ namespace VkAPI
 		virtual void SetPipeline(Pipeline* pipeline) override;
 		virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint32_t* offset) override;
 		virtual void SetIndexBuffer(Buffer* buffer, uint32_t offset) override;
+		virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Buffer* buffer) override;
+		virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Texture* buffer) override;
 
 		virtual void Draw(const DrawAttribs& attribs) override;
 		virtual void DrawIndexed(const DrawAttribs& attribs) override;
@@ -57,6 +72,10 @@ namespace VkAPI
 		}
 
 	private:
+		void PrepareDraw();
+		void BindDescriptorSets();
+		void UpdateDescriptorSet(VkDescriptorSet set, const DSLKey& key, ShaderResourceVK* bindings);
+
 		void VerifyCommandBuffer();
 		void TransitionTexture(TextureVK* tex, ViewType oldState, ViewType newState);
 		void DisposeCurrentBuffer();
@@ -69,6 +88,10 @@ namespace VkAPI
 
 		VkRenderPass m_vkRenderPass = VK_NULL_HANDLE;
 		VkFramebuffer m_vkFramebuffer = VK_NULL_HANDLE;
+
+		ResourceBindingsVK m_Bindings;
+		uint32_t m_UpdateSetsMask = 0;
+		uint32_t m_UpdateSetsDynamicMask = 0;
 
 		std::vector<VkSemaphore> m_WaitSemaphores;
 		std::vector<VkSemaphore> m_SignalSemaphores;

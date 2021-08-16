@@ -10,7 +10,7 @@ namespace VkAPI
 	CommandListVK::CommandListVK(GraphicsDeviceVK* device)
 		: CommandList(device), m_vkDevice(device)
 	{
-		m_CmdPool = new CommandPoolVK(device, device->GetGraphicsIndex(), 0);
+		m_CmdPool = DBG_NEW CommandPoolVK(device, device->GetGraphicsIndex(), 0);
 		VkSemaphoreCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 

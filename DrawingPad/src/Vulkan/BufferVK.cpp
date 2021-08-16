@@ -6,7 +6,7 @@
 namespace VkAPI 
 {
 	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, void* bufData)
-		: Buffer(desc, bufData), m_Device(device), m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE)
+		: Buffer(desc, bufData), m_Device(device)
 	{
 		VkMemoryPropertyFlags properties = 0;
 		VkBufferUsageFlags usage = 0;
@@ -51,12 +51,19 @@ namespace VkAPI
 		default:
 			break;
 		}
+
 		m_Buffer = CreateBuffer(m_Desc.Size, usage, properties, m_Memory);
 	}
 
 	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, VkBuffer buffer)
-		: Buffer(desc), m_Device(device), m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE)
+		: Buffer(desc), m_Device(device)
 	{
+	}
+
+	BufferVK::~BufferVK()
+	{
+		vkDestroyBuffer(m_Device->Get(), m_Buffer, nullptr);
+		vkFreeMemory(m_Device->Get(), m_Memory, nullptr);
 	}
 
 	void BufferVK::BeginStaging()
@@ -69,8 +76,6 @@ namespace VkAPI
 
 	void BufferVK::EndStaging()
 	{
-		vkDestroyBuffer(m_Device->Get(), m_Buffer, nullptr);
-		vkFreeMemory(m_Device->Get(), m_Memory, nullptr);
 	}
 
 	uint32_t BufferVK::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {

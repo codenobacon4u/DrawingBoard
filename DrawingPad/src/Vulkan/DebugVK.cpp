@@ -3,6 +3,7 @@
 
 static bool active = false;
 static bool extensionPresent = false;
+static bool debug = false;
 
 static PFN_vkDebugMarkerSetObjectTagEXT vkDebugMarkerSetObjectTag = VK_NULL_HANDLE;
 static PFN_vkDebugMarkerSetObjectNameEXT vkDebugMarkerSetObjectName = VK_NULL_HANDLE;
@@ -43,6 +44,7 @@ void VkAPI::DebugMarker::Setup(VkDevice device, VkPhysicalDevice physicalDevice)
 	}
 	SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
 	SetDebugUtilsObjectTagEXT = (PFN_vkSetDebugUtilsObjectTagEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectTagEXT");
+	debug = true;
 }
 
 void VkAPI::DebugMarker::SetName(VkDevice device, uint64_t object, VkObjectType objectType, std::string name)
@@ -57,7 +59,7 @@ void VkAPI::DebugMarker::SetName(VkDevice device, uint64_t object, VkObjectType 
 		nameInfo.pObjectName = name.c_str();
 		vkDebugMarkerSetObjectName(device, &nameInfo);
 	}
-	else
+	else if (debug)
 	{
 		VkDebugUtilsObjectNameInfoEXT nameInfo = {};
 		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -83,7 +85,7 @@ void VkAPI::DebugMarker::SetObjectTag(VkDevice device, uint64_t object, VkObject
 		tagInfo.pTag = tag.c_str();
 		vkDebugMarkerSetObjectTag(device, &tagInfo);
 	}
-	else
+	else if (debug)
 	{
 		VkDebugUtilsObjectTagInfoEXT tagInfo = {};
 		tagInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT;

@@ -55,5 +55,21 @@ typedef struct RaytracingPipelineDesc {
 class Pipeline
 {
 public:
-	//CreateShaderResourceBinding
+	Pipeline(const GraphicsPipelineDesc& desc)
+		: m_GraphicsDesc(desc) {}
+	Pipeline(const ComputePipelineDesc& desc)
+		: m_ComputeDesc(desc) {}
+	Pipeline(const RaytracingPipelineDesc& desc)
+		: m_RaytracingDesc(desc) {}
+
+	virtual ~Pipeline() {}
+
+	const GraphicsPipelineDesc& GetGraphicsDesc() const { return m_GraphicsDesc; }
+	const ComputePipelineDesc& GetComputeDesc() const { return m_ComputeDesc; }
+	const RaytracingPipelineDesc& GetRaytracingDesc() const { return m_RaytracingDesc; }
+
+protected:
+	GraphicsPipelineDesc m_GraphicsDesc;
+	ComputePipelineDesc m_ComputeDesc;
+	RaytracingPipelineDesc m_RaytracingDesc;
 };

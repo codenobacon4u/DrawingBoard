@@ -100,7 +100,7 @@ typedef struct AttachmentReference {
 
 typedef struct RenderPassAttachmentDesc {
 	TextureFormat Format = TextureFormat::Unknown;
-	SampleCount Samples = SampleCount::e1Bit;
+	uint8_t Samples = SampleCount::e1Bit;
 	AttachmentLoadOp LoadOp = AttachmentLoadOp::Load;
 	AttachmentStoreOp StoreOp = AttachmentStoreOp::Store;
 	AttachmentLoadOp StencilLoadOp = AttachmentLoadOp::Load;
@@ -108,7 +108,38 @@ typedef struct RenderPassAttachmentDesc {
 	ImageLayout InitialLayout = ImageLayout::Undefined;
 	ImageLayout FinalLayout = ImageLayout::Undefined;
 
-	RenderPassAttachmentDesc() = default;
+	RenderPassAttachmentDesc()
+	{
+		Format = TextureFormat::Unknown;
+		Samples = SampleCount::e1Bit;
+		LoadOp = AttachmentLoadOp::Load;
+		StoreOp = AttachmentStoreOp::Store;
+		StencilLoadOp = AttachmentLoadOp::Load;
+		StencilStoreOp = AttachmentStoreOp::Store;
+		InitialLayout = ImageLayout::Undefined;
+		FinalLayout = ImageLayout::Undefined;
+	}
+
+	RenderPassAttachmentDesc(
+		TextureFormat format, 
+		uint32_t sampleCount, 
+		AttachmentLoadOp loadOp, 
+		AttachmentStoreOp storeOp, 
+		AttachmentLoadOp stencilLoad, 
+		AttachmentStoreOp stencilStore, 
+		ImageLayout initialLayout, 
+		ImageLayout finalLayout
+	)
+	{
+		Format = format;
+		Samples = sampleCount;
+		LoadOp = loadOp;
+		StoreOp = storeOp;
+		StencilLoadOp =  stencilLoad;
+		StencilStoreOp = stencilStore;
+		InitialLayout = initialLayout;
+		FinalLayout = finalLayout;
+	}
 } RenderPassAttachmentDesc;
 
 typedef struct SubpassDesc {
@@ -144,7 +175,15 @@ typedef struct RenderPassDesc {
 	uint32_t DependencyCount = 0;
 	DependencyDesc* Dependencies = nullptr;
 
-	RenderPassDesc() = default;
+	RenderPassDesc()
+	{
+		AttachmentCount = 0;
+		Attachments = nullptr;
+		SubpassCount = 0;
+		Subpasses = nullptr;
+		DependencyCount = 0;
+		Dependencies = nullptr;
+	}
 } RenderPassDesc;
 
 class GraphicsDevice;
@@ -154,6 +193,8 @@ public:
 	RenderPass(GraphicsDevice* device, const RenderPassDesc& desc)
 		: m_Device(device), m_Desc(desc)
 	{}
+
+	virtual ~RenderPass() {}
 
 	const RenderPassDesc& getDesc() { return m_Desc; }
 protected:

@@ -11,11 +11,10 @@ namespace VkAPI {
 	public:
 		RenderPassVK(GraphicsDevice* device, const RenderPassDesc& desc);
 
+		~RenderPassVK();
+
 		VkRenderPass GetRenderPass() const { return m_Pass; }
 
-		static RenderPassDesc GetDefaultDesc(uint32_t numTargets, const TextureFormat* colorFormats, TextureFormat depthFormat, SampleCount samples, std::array<RenderPassAttachmentDesc, 9> attachments, std::array<AttachmentReference, 9> refs, SubpassDesc subpass);
-		//static RenderPassDesc GetDefaultDesc(uint32_t numTargets, const TextureFormat* colorFormats, TextureFormat depthFormat, SampleCount samples);
-	
 	private:
 		inline static const VkAttachmentReference* ConvertAttachRefs (uint32_t refCount, const AttachmentReference* srcRefs, std::vector<VkAttachmentReference>* attach, uint32_t* counter)
 		{

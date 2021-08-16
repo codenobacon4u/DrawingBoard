@@ -23,7 +23,7 @@ namespace VkAPI
 		const void* m_Data;
 		VkImage m_Image;
 		VkDeviceMemory m_Mem;
-		TextureViewVK* m_DefaultView;
+		TextureViewVK* m_DefaultView = nullptr;
 	};
 
 	class TextureViewVK : public TextureView

@@ -1,4 +1,4 @@
-#include "pwpch.h"]
+#include "pwpch.h"
 #include "GraphicsContextVK.h"
 
 #include "RenderPassVK.h"
@@ -13,8 +13,19 @@ namespace VkAPI {
 	{
 		for (auto i = 0; i < 3; i++)
 		{
-			m_CmdPool[i] = new CommandPoolVK(device, device->GetGraphicsIndex(), 0);
-			m_DescPool[i] = new DescriptorSetPoolVK(device);
+			m_CmdPool[i] = DBG_NEW CommandPoolVK(device, device->GetGraphicsIndex(), 0);
+			m_DescPool[i] = DBG_NEW DescriptorSetPoolVK(device);
+		}
+	}
+
+	GraphicsContextVK::~GraphicsContextVK()
+	{
+		std::cout << "DELETING GRAPHICS CONTEXT" << std::endl;
+		vkDeviceWaitIdle(m_vkDevice->Get());
+		for (auto i = 0; i < 3; i++)
+		{
+			delete m_CmdPool[i];
+			delete m_DescPool[i];
 		}
 	}
 
@@ -72,6 +83,8 @@ namespace VkAPI {
 	{
 		m_FrameIndex = frameIdx;
 		m_CmdPool[m_FrameIndex]->Reset();
+		m_DescPool[m_FrameIndex]->ResetPools();
+		SetRenderTargets(0, nullptr, nullptr);
 	}
 
 	void GraphicsContextVK::BeginRenderPass(const BeginRenderPassAttribs& attribs)
@@ -104,7 +117,7 @@ namespace VkAPI {
 
 	void GraphicsContextVK::ClearColor(TextureView* tv, const float* color)
 	{
-		static constexpr float defaultColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		static constexpr float defaultColor[4] = { 0.3f, 0.0f, 0.3f, 0.1f };
 		if (color == nullptr)
 			color = defaultColor;
 
@@ -127,10 +140,10 @@ namespace VkAPI {
 			if (state.Framebuffer != m_vkFramebuffer)
 			{
 				VkClearValue clear = {};
-				clear.color.float32[0] = color[0];
-				clear.color.float32[1] = color[1];
-				clear.color.float32[2] = color[2];
-				clear.color.float32[3] = color[3];
+				clear.color.float32[0] = 0.5f;//color[0];
+				clear.color.float32[1] = 0.f;//color[1];
+				clear.color.float32[2] = 0.5f;//color[2];
+				clear.color.float32[3] = 1.f;//color[3];
 
 				if (state.RenderPass != VK_NULL_HANDLE)
 					m_CommandBuffer.EndRenderPass();
@@ -352,6 +365,7 @@ namespace VkAPI {
 	void GraphicsContextVK::SetPipeline(Pipeline* pipeline)
 	{
 		PipelineVK* vkPipeline = (PipelineVK*)pipeline;
+		m_Pipeline = pipeline;
 		vkCmdBindPipeline(m_CommandBuffer.Get(), VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->Get());
 	}
 	
@@ -366,21 +380,71 @@ namespace VkAPI {
 	{
 		m_IndexBuffer = buffer;
 	}
+
+	void GraphicsContextVK::SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Buffer* buffer)
+	{
+		switch (type)
+		{
+		case ResourceBindingType::UniformBuffer:
+			m_Bindings.SetLayouts[set].UniformBuffers |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		case ResourceBindingType::StorageBuffer:
+			m_Bindings.SetLayouts[set].StorageBuffers |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		case ResourceBindingType::SampledBuffer:
+			m_Bindings.SetLayouts[set].SampledBuffers |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		default:
+			return;
+		}
+		BufferVK* buff = (BufferVK*)buffer;
+		auto& resource = m_Bindings.Sets[set][binding].Buffer;
+		resource.buffer = buff->Get();
+		resource.offset = m_FrameIndex * (buffer->GetSize() / 3);
+		resource.range = buff->GetSize() / 3;
+		m_UpdateSetsMask |= 1 << set;
+	}
+
+	void GraphicsContextVK::SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Texture* texture)
+	{
+		switch (type)
+		{
+		case ResourceBindingType::Image:
+			m_Bindings.SetLayouts[set].SeparateImages |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		case ResourceBindingType::ImageSampler:
+			m_Bindings.SetLayouts[set].SampledImages |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		case ResourceBindingType::ImageStorage:
+			m_Bindings.SetLayouts[set].StorageImages |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		case ResourceBindingType::Sampler:
+			m_Bindings.SetLayouts[set].Samplers |= 1 << binding;
+			m_Bindings.SetCount = std::max(m_Bindings.SetCount, set+1);
+			break;
+		default:
+			return;
+		}
+		TextureVK* tex = (TextureVK*)texture;
+		auto& resource = m_Bindings.Sets[set][binding].Texture;
+		m_UpdateSetsMask |= 1 << set;
+	}
 	
 	void GraphicsContextVK::Draw(const DrawAttribs& attribs)
 	{
-		VerifyCommandBuffer();
+		PrepareDraw();
 		vkCmdDraw(m_CommandBuffer.Get(), attribs.VrtIdxCount, attribs.InstanceCount, attribs.FirstVrtIdx, attribs.FirstInstance);
 	}
 	
 	void GraphicsContextVK::DrawIndexed(const DrawAttribs& attribs)
 	{
-		std::vector<VkBuffer> buffs;
-		buffs.resize(m_NumVertexBuffers);
-		for (uint32_t i = 0; i < m_NumVertexBuffers; i++)
-			buffs[i] = ((BufferVK*)m_VertexBuffers[i])->Get();
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_CommandBuffer.Get(), 0, m_NumVertexBuffers, buffs.data(), offsets);
+		PrepareDraw();
 		vkCmdBindIndexBuffer(m_CommandBuffer.Get(), ((BufferVK*)m_IndexBuffer)->Get(), attribs.VertexOffset, VK_INDEX_TYPE_UINT16);
 		vkCmdDrawIndexed(m_CommandBuffer.Get(), attribs.VrtIdxCount, attribs.InstanceCount, attribs.FirstVrtIdx, attribs.VertexOffset, attribs.FirstVrtIdx);
 	}
@@ -426,6 +490,142 @@ namespace VkAPI {
 	
 	void GraphicsContextVK::UploadTexture()
 	{
+	}
+
+	void GraphicsContextVK::PrepareDraw()
+	{
+		VerifyCommandBuffer();
+		std::vector<VkBuffer> buffs;
+		buffs.resize(m_NumVertexBuffers);
+		for (uint32_t i = 0; i < m_NumVertexBuffers; i++)
+			buffs[i] = ((BufferVK*)m_VertexBuffers[i])->Get();
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(m_CommandBuffer.Get(), 0, m_NumVertexBuffers, buffs.data(), offsets);
+		
+		BindDescriptorSets();
+	}
+
+	void GraphicsContextVK::BindDescriptorSets()
+	{
+		PipelineVK* pipe = (PipelineVK*)m_Pipeline;
+		for (uint32_t set = 0; set < m_Bindings.SetCount; set++)
+		{
+			uint32_t* stages = pipe->GetProgram()->GetLayout().BindingStagesMask[set];
+			auto binds = m_Bindings.SetLayouts[set];
+			VkDescriptorSetLayout layout = pipe->GetProgram()->GetCache()->GetLayout(binds, stages);
+			auto result = m_DescPool[m_FrameIndex]->RequestDescriptorSet(layout, binds, stages);
+
+			//if (!result.first)
+			UpdateDescriptorSet(result.second, binds, m_Bindings.Sets[set]);
+
+			vkCmdBindDescriptorSets(m_CommandBuffer.Get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->GetProgram()->GetPipelineLayout(), set, 1, &result.second, 0, nullptr);
+		}
+	}
+
+	void GraphicsContextVK::UpdateDescriptorSet(VkDescriptorSet set, const DSLKey& key, ShaderResourceVK* bindings)
+	{
+		std::vector<VkWriteDescriptorSet> writes;
+
+		for (uint32_t binding = 0; binding < 32; binding++)
+		{
+			if (key.UniformBuffers & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				write.descriptorCount = 1;
+				write.pBufferInfo = &bindings[binding].Buffer;
+				writes.push_back(std::move(write));
+			}
+			if (key.StorageBuffers & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+				write.descriptorCount = 1;
+				write.pBufferInfo = &bindings[binding].Buffer;
+				writes.push_back(std::move(write));
+			}
+			if (key.SampledBuffers & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+				write.descriptorCount = 1;
+				write.pBufferInfo = &bindings[binding].Buffer;
+				writes.push_back(std::move(write));
+			}
+			if (key.SampledImages & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				write.descriptorCount = 1;
+				write.pImageInfo = &bindings[binding].Texture;
+				writes.push_back(std::move(write));
+			}
+			if (key.SeparateImages & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+				write.descriptorCount = 1;
+				write.pImageInfo = &bindings[binding].Texture;
+				writes.push_back(std::move(write));
+			}
+			if (key.Samplers & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+				write.descriptorCount = 1;
+				write.pImageInfo = &bindings[binding].Texture;
+				writes.push_back(std::move(write));
+			}
+			if (key.StorageImages & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+				write.descriptorCount = 1;
+				write.pImageInfo = &bindings[binding].Texture;
+				writes.push_back(std::move(write));
+			}
+			if (key.InputAttachments & 1 << binding)
+			{
+				VkWriteDescriptorSet write = {};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = set;
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+				write.descriptorCount = 1;
+				write.pImageInfo = &bindings[binding].Texture;
+				writes.push_back(std::move(write));
+			}
+		}
+		vkUpdateDescriptorSets(((GraphicsDeviceVK*)m_Device)->Get(), writes.size(), writes.data(), 0, nullptr);
 	}
 
 	void GraphicsContextVK::VerifyCommandBuffer()
@@ -490,7 +690,7 @@ namespace VkAPI {
 	void GraphicsContextVK::DisposeCurrentBuffer()
 	{
 		if (m_CommandBuffer.GetState().RenderPass != VK_NULL_HANDLE)
-			throw new std::runtime_error("Disposing command buffer while renderpass active");
+			throw DBG_NEW std::runtime_error("Disposing command buffer while renderpass active");
 		auto buf = m_CommandBuffer.Get();
 		if (buf != VK_NULL_HANDLE)
 		{

@@ -27,6 +27,9 @@ namespace VkAPI
 	{
 	public:
 		SwapchainVK(GraphicsDeviceVK* device, GraphicsContextVK* context, SwapchainDesc desc, GLFWwindow* window);
+
+		~SwapchainVK();
+
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
 		virtual void Present(uint32_t sync) override;
@@ -36,12 +39,13 @@ namespace VkAPI
 		VkQueue GetPresentQueue() { return m_Present; }
 		virtual uint32_t GetImageIndex() override { return m_ImageIndex; }
 
-		virtual std::pair<uint32_t, TextureView*> GetNextBackbuffer() override { return std::make_pair(m_ImageIndex, m_BackBuffers[m_ImageIndex]); }
+		virtual std::pair<uint32_t, TextureView*> GetNextBackbuffer() override { return std::make_pair(m_ImageIndex, m_BackBuffers[m_ImageIndex].second); }
 		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthBuffer; }
 
 		void SetResized(uint32_t width, uint32_t height) { m_Resized = true; m_Desc.Width = width; m_Desc.Height = height; }
 	private:
 		void RecreateSwap(uint32_t width, uint32_t height);
+		void Cleanup();
 
 		SwapSupportDetails QuerySwapSupport();
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -54,8 +58,7 @@ namespace VkAPI
 
 		VkSurfaceKHR m_Surface;
 		VkExtent2D m_Extent;
-		std::vector<VkImage> m_Images;
-		std::vector<TextureViewVK*> m_BackBuffers;
+		std::vector<std::pair<TextureVK*,TextureViewVK*>> m_BackBuffers;
 		TextureViewVK* m_DepthBuffer = VK_NULL_HANDLE;
 		VkPresentModeKHR m_PresentMode;
 		VkSwapchainKHR m_Swap;

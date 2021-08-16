@@ -93,6 +93,8 @@ public:
 	{
 	}
 
+	virtual ~GraphicsContext() {}
+
 	virtual const GraphicsContextDesc& GetDesc() const final { return m_Desc; }
 
 	virtual void Flush() = 0;
@@ -111,6 +113,8 @@ public:
 	virtual void SetPipeline(Pipeline* pipeline) = 0;
 	virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint32_t* offsets) = 0;
 	virtual void SetIndexBuffer(Buffer* buffer, uint32_t offset) = 0;
+	virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Buffer* buffer) = 0;
+	virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Texture* buffer) = 0;
 	
 	virtual void Draw(const DrawAttribs& attribs) = 0;
 	virtual void DrawIndexed(const DrawAttribs& attribs) = 0;
@@ -133,7 +137,7 @@ protected:
 	GraphicsDevice* m_Device;
 	
 	uint32_t m_NumVertexBuffers = 0;
-	Buffer* m_VertexBuffers[32];
+	Buffer* m_VertexBuffers[32] = {};
 	Buffer* m_IndexBuffer = nullptr;
 
 	uint32_t m_NumViewports = 0;
@@ -142,10 +146,12 @@ protected:
 	uint32_t m_NumScissorRecs = 0;
 	Rec m_ScissorRecs[MAX_VIEWPORTS];
 
-	TextureView* m_RenderTargets[MAX_RENDER_TARGETS];
+	TextureView* m_RenderTargets[MAX_RENDER_TARGETS] = {};
 	uint32_t m_NumRenderTargets = 0;
 
 	TextureView* m_DepthStencil = nullptr;
+
+	Pipeline* m_Pipeline = nullptr;
 
 	uint32_t m_FramebufferWidth = 0;
 	uint32_t m_FramebufferHeight = 0;

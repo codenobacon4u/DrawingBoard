@@ -49,7 +49,7 @@ namespace VkAPI
 		virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) override;
 		virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
 		virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) override;
-		virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) override;
+		virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window) override;
 		virtual Shader* CreateShader(const ShaderDesc& desc) override;
 
 		TextureVK* CreateTextureFromImage(const TextureDesc& desc, VkImage img);
@@ -63,9 +63,11 @@ namespace VkAPI
 		uint32_t GetGraphicsIndex() { return m_GraphicsIndex; }
 		VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
 
-		FramebufferPoolVK& GetFramebufferPool() { return m_FramebufferPool; }
-		RenderPassPoolVK& GetRenderPassPool() { return m_RenderPassPool; }
-		DescriptorSetPoolVK& GetDescriptorSetPool() { return m_DescriptorSetPool; }
+		FramebufferPoolVK& GetFramebufferPool() { return *m_FramebufferPool; }
+		RenderPassPoolVK& GetRenderPassPool() { return *m_RenderPassPool; }
+		DescriptorSetPoolVK& GetDescriptorSetPool() { return *m_DescriptorSetPool; }
+
+		VkPhysicalDeviceLimits GetPhysicalLimits() { return m_Limits; }
 
 		QueueFamilyIndices FindQueueFamilies(VkQueueFlags flags);
 		bool QueryPresentSupport(uint32_t index, VkSurfaceKHR surface);
@@ -92,13 +94,15 @@ namespace VkAPI
 		VkPhysicalDevice m_PhysicalDevice;
 		VkDevice m_Device;
 
-		FramebufferPoolVK m_FramebufferPool;
-		RenderPassPoolVK m_RenderPassPool;
-		DescriptorSetPoolVK m_DescriptorSetPool;
+		FramebufferPoolVK* m_FramebufferPool;
+		RenderPassPoolVK* m_RenderPassPool;
+		DescriptorSetPoolVK* m_DescriptorSetPool;
 
 		uint32_t m_GraphicsIndex;
 		uint32_t m_ComputeIndex;
 		VkQueue m_GraphicsQueue;
+
+		VkPhysicalDeviceLimits m_Limits;
 
 		std::vector<VkFence> m_SubFences;
 		std::queue<VkFence> m_AvailFences;

@@ -11,6 +11,9 @@ typedef struct SwapchainDesc {
 
 class Swapchain {
 public:
+
+	virtual ~Swapchain() {}
+
 	virtual void Resize(uint32_t width, uint32_t height) = 0;
 	virtual void Present(uint32_t sync) = 0;
 	virtual void* GetNative() = 0;

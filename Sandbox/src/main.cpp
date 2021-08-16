@@ -8,6 +8,8 @@
 #include <DrawingPad.h>
 #include <fstream>
 #include <chrono>
+#include <iostream>
+#include <glm/glm/gtx/string_cast.hpp>
 
 API Curr_API = API::Vulkan;
 
@@ -17,7 +19,7 @@ static std::string vertSrc = R"(
 
 layout(location = 0) in vec2 inPos;
 layout(location = 1) in vec3 inColor;
-
+ 
 layout(location = 0) out vec3 fragColor;
 
 
@@ -46,9 +48,9 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 };
 
 void UpdateUniformBuffer(uint32_t index, uint32_t width, uint32_t height)
@@ -64,16 +66,26 @@ void UpdateUniformBuffer(uint32_t index, uint32_t width, uint32_t height)
 	ubo.proj[1][1] += -1;
 }
 
+void printMat(glm::mat4 mat)
+{
+	int i, j;
+	for (j = 0; j < 4; j++) {
+		for (i = 0; i < 4; i++) {
+			printf("%f ", mat[i][j]);
+		}
+		printf("\n");
+	}
+}
+
 int main() {
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
 	GraphicsDevice* gd;
 	GraphicsContext* ctx;
-	//CommandList* cmd[3];
 	Swapchain* swap;
-	//CmdList* cq;
 	Buffer* vb;
 	Buffer* ib;
-	Buffer* ub[3];
-	//Shader[] shaders;
+	Buffer* ub;
 	Pipeline* pipeline;
 	Shader* vertShader;
 	Shader* fragShader;
@@ -93,16 +105,13 @@ int main() {
 	desc.Name = "Immediate";
 	ctx = gd->CreateContext(desc);
 	SwapchainDesc swapSpec;
-	swap = gd->CreateSwapchain(swapSpec, window);
-
-	//for (uint32_t i = 0; i < 3; i++)
-	//	cmd[i] = gd->CreateCommandList();
+	swap = gd->CreateSwapchain(swapSpec, ctx, window);
 
 	const std::vector<Vertex> vertices = {
 		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 		{{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
 		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}}
+		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
 	};
 
 	const std::vector<uint16_t> indices = {
@@ -111,7 +120,7 @@ int main() {
 
 	BufferDesc bufDesc = {};
 	bufDesc.Usage = BufferUsageFlags::Default;
-	// Create Vertex Buffer
+	// ======== Create Vertex Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Vertex;
 	bufDesc.Size = sizeof(vertices[0]) * vertices.size();
 	vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
@@ -124,8 +133,9 @@ int main() {
 		sb->BeginStaging();
 		ctx->CopyBuffer(sb, vb, sDesc.Size);
 		sb->EndStaging();
+		delete sb;
 	}
-	// Create Index Buffer
+	// ======== Create Index Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Index;
 	bufDesc.Size = sizeof(indices[0]) * indices.size();
 	ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
@@ -138,14 +148,14 @@ int main() {
 		sb->BeginStaging();
 		ctx->CopyBuffer(sb, ib, sDesc.Size);
 		sb->EndStaging();
+		delete sb;
 	}
+	// ======== Create Uniform Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Uniform;
-	bufDesc.Size = sizeof(UniformBufferObject);
-	for (uint32_t i = 0; i < 3; i++)
-	{
-		ub[i] = gd->CreateBuffer(bufDesc, nullptr);
-	}
-
+	bufDesc.Size = sizeof(UniformBufferObject) * 3;
+	bufDesc.Buffered = true;
+	ub = gd->CreateBuffer(bufDesc, nullptr);
+	// ======== Create Shaders ========
 	ShaderDesc sDesc = {};
 	sDesc.EntryPoint = "main";
 	sDesc.Name = "Basic Vert";
@@ -180,6 +190,7 @@ int main() {
 	pDesc.NumViewports = 1;
 	pDesc.NumColors = 1;
 	pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
+	pDesc.DepthFormat = TextureFormat::Unknown;
 	pDesc.InputLayout.NumElements = 2;
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
@@ -187,8 +198,8 @@ int main() {
 	pDesc.Shaders[1] = fragShader;
 	pipeline = gd->CreateGraphicsPipeline(pDesc);
 
-	pipeline->
-
+	//Texture* texture = gd->CreateTexture();
+	
 	auto glfwVersion = glfwGetVersionString();
 	if (Curr_API == API::OpenGL) {
 		glfwMakeContextCurrent(window);
@@ -198,19 +209,6 @@ int main() {
 		auto glVendor = glGetString(GL_VENDOR);
 		printf("GLFW Version: %s\nGL Version: %s\nGL Renderer: %s\nGL Vendor: %s\n", glfwVersion, glVersion, glRenderer, glVendor);
 	}
-
-	static const float data[] = {
-		-1.0f, -1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		0.0f,  1.0f, 0.0f,
-	};
-
-	static float clearColor[] = {
-		0.3f, 0.3f, 0.3f, 1.0f
-	};
-
-	static float mod = 0.0f;
-	static float mod2 = 1.0f;
 
 	DrawAttribs drawAttribs = {};
 	drawAttribs.VrtIdxCount = indices.size();
@@ -224,29 +222,13 @@ int main() {
 		glfwPollEvents();
 
 		//====RENDER====
-		/*
-		const auto cb = gd->GetCommandBuffer();
-		TextureView* rt = reinterpret_cast<TextureView*>(swap->GetNextBackbuffer());
-		cb->SetRenderTarget(1, &rt, nullptr);
-		cb->ClearColor(rt, clearColor);
-
-		//cb->SetVertexBuffer();
-		//cb->SetIndexBuffer();
-		//cb->SetPipeline(pipeline);
-
-		//cq->DrawIndexed(6);
-
-		cb->End();
-
-		gd->Submit(cb);
-		*/
 		uint32_t i = swap->GetNextBackbuffer().first;
 		TextureView* rtv = swap->GetNextBackbuffer().second;
 		TextureView* dsv = swap->GetDepthBufferView();
-		float color[4] = { mod2, mod, mod2, 1.0f };
+		float color[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
 		ctx->Begin(i);
 		ctx->SetRenderTargets(1, &rtv, nullptr);
-		ctx->ClearColor(rtv, color);
+		ctx->ClearColor(rtv, nullptr);
 		//ctx->ClearDepth(dsv, ClearDepthStencil::Depth, 1, 0);
 		ctx->SetPipeline(pipeline);
 		Buffer* vertexBuffs[] = { vb };
@@ -263,22 +245,25 @@ int main() {
 			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
 			ubo.proj[1][1] *= -1;
-			ctx->UploadBuffer(ub[i], 0, sizeof(ubo), &ubo);
+			ctx->UploadBuffer(ub, i * sizeof(ubo), sizeof(ubo), &ubo);
 		}
-
-		//UpdateUBO(swap->GetImageIndex());
+		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
 		ctx->DrawIndexed(drawAttribs);
 		ctx->Flush();
 
 		//====PRESENT====
 		swap->Present(0);
-		mod += 0.0001;
-		if (mod >= 1.0f)
-			mod = 0.0f;
-		mod2 -= 0.0001;
-		if (mod2 <= 0.0f)
-			mod2 = 1.0f;
 	}
+	gd->WaitForIdle();
+	delete pipeline;
+	delete swap;
+	delete ctx;
+	delete ib;
+	delete vb;
+	delete ub;
+	delete fragShader;
+	delete vertShader;
+	delete gd;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

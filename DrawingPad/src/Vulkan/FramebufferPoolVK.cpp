@@ -24,11 +24,13 @@ namespace VkAPI {
 	{
 		if (Hash == 0)
 		{
-			hash_combine(Hash, Pass);
-			hash_combine(Hash, AttachmentCount);
-			hash_combine(Hash, CommandQueueMask);
+			Hasher h;
+			h.AddHash(Pass);
+			h.AddHash(AttachmentCount);
+			h.AddHash(CommandQueueMask);
 			for (uint32_t i = 0; i < AttachmentCount; i++)
-				hash_combine(Hash, Attachments[i]);
+				h.AddHash(Attachments[i]);
+			Hash = h.Get();
 		}
 		return Hash;
 	}
@@ -50,7 +52,6 @@ namespace VkAPI {
 
 	VkFramebuffer FramebufferPoolVK::GetFramebuffer(const FBKey& key, uint32_t width, uint32_t height, uint32_t layers)
 	{
-		HZ_PROFILE_FUNCTION();
 #if 1
 		auto it = m_Map.find(key);
 		if (it != m_Map.end())
