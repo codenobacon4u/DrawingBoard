@@ -157,7 +157,7 @@ typedef struct TextureViewDesc {
 	TextureFormat Format = TextureFormat::Unknown;
 	TextureType Dim = TextureType::Undefined;
 	uint32_t HighestMip = 0;
-	uint32_t NumMipLevels = 0;
+	uint32_t NumMipLevels = 1;
 	uint32_t FirstSlice = 0;
 	uint32_t Slices = 0;
 } TextureViewDesc;
@@ -174,13 +174,15 @@ public:
 	Texture(const TextureDesc& desc)
 		: m_Desc(desc)
 	{}
-
 	virtual ~Texture() {}
 
 	const TextureDesc& GetDesc() { return m_Desc; }
 
+	TextureView* GetDefaultView() { return m_DefaultView; }
+
 protected:
 	TextureDesc m_Desc;
+	TextureView* m_DefaultView = nullptr;
 };
 
 class TextureView

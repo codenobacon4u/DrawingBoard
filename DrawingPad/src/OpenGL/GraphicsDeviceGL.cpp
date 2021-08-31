@@ -20,7 +20,7 @@ namespace GlAPI
 		return nullptr;
 	}
 	
-	Texture* GraphicsDeviceGL::CreateTexture(const TextureDesc& desc, const TextureData* data)
+	Texture* GraphicsDeviceGL::CreateTexture(const TextureDesc& desc, const unsigned char* data)
 	{
 		return nullptr;
 	}

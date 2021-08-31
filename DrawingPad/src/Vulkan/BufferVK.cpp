@@ -5,20 +5,23 @@
 
 namespace VkAPI 
 {
-	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, void* bufData)
+	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, const void* bufData)
 		: Buffer(desc, bufData), m_Device(device)
 	{
 		VkMemoryPropertyFlags properties = 0;
 		VkBufferUsageFlags usage = 0;
+		bool staging = false;
 		switch (m_Desc.BindFlags)
 		{
 		case BufferBindFlags::Vertex:
 			usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			staging = true;
 			break;
 		case BufferBindFlags::Index:
 			usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			staging = true;
 			break;
 		case BufferBindFlags::Staging:
 			usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -53,6 +56,22 @@ namespace VkAPI
 		}
 
 		m_Buffer = CreateBuffer(m_Desc.Size, usage, properties, m_Memory);
+
+		if (staging)
+		{
+			VkDeviceMemory stagingMem;
+			VkBuffer stagingBuff = CreateBuffer(m_Desc.Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingMem);
+
+			void* data;
+			vkMapMemory(m_Device->Get(), stagingMem, 0, m_Desc.Size, 0, &data);
+			memcpy(data, bufData, (size_t)m_Desc.Size);
+			vkUnmapMemory(m_Device->Get(), stagingMem);
+
+			CopyFrom(stagingBuff, m_Desc.Size);
+
+			vkDestroyBuffer(m_Device->Get(), stagingBuff, nullptr);
+			vkFreeMemory(m_Device->Get(), stagingMem, nullptr);
+		}
 	}
 
 	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, VkBuffer buffer)
@@ -64,18 +83,6 @@ namespace VkAPI
 	{
 		vkDestroyBuffer(m_Device->Get(), m_Buffer, nullptr);
 		vkFreeMemory(m_Device->Get(), m_Memory, nullptr);
-	}
-
-	void BufferVK::BeginStaging()
-	{
-		void* data;
-		vkMapMemory(m_Device->Get(), m_Memory, 0, m_Desc.Size, 0, &data);
-		memcpy(data, m_Data, m_Desc.Size);
-		vkUnmapMemory(m_Device->Get(), m_Memory);
-	}
-
-	void BufferVK::EndStaging()
-	{
 	}
 
 	uint32_t BufferVK::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -113,5 +120,21 @@ namespace VkAPI
 		vkAllocateMemory(m_Device->Get(), &allocInfo, nullptr, &bufferMemory);
 		vkBindBufferMemory(m_Device->Get(), buffer, bufferMemory, 0);
 		return buffer;
+	}
+
+	void BufferVK::CopyFrom(VkBuffer src, VkDeviceSize size)
+	{
+		VkQueue graphics = m_Device->GetGraphicsQueue();
+		VkCommandBuffer cmd = m_Device->GetTempCommandPool().GetBuffer();
+		VkBufferCopy copy{ 0, 0, size };
+		vkCmdCopyBuffer(cmd, src, m_Buffer, 1, &copy);
+		vkEndCommandBuffer(cmd);
+		VkSubmitInfo submit = {};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.commandBufferCount = 1;
+		submit.pCommandBuffers = &cmd;
+		vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphics);
+		//m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 	}
 }

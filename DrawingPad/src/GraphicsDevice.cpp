@@ -9,11 +9,7 @@ API GraphicsDevice::s_API = API::OpenGL;
 
 void GraphicsDevice::SwapBuffers()
 {
-	if (m_MainSwap == nullptr) {
-		throw std::runtime_error("Main Swapchain was not created");
-	}
-
-	SwapBuffers(m_MainSwap);
+	
 }
 
 GraphicsContext* GraphicsDevice::CreateContext(const GraphicsContextDesc& desc)

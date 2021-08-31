@@ -5,10 +5,10 @@
 namespace VkAPI 
 {
 	typedef struct RPKey {
-		uint8_t NumColors;
-		uint8_t SampleCount;
+		uint8_t NumColors = 0;
+		uint8_t SampleCount = 1;
 		TextureFormat ColorFormats[8];
-		TextureFormat DepthFormat;
+		TextureFormat DepthFormat = TextureFormat::Unknown;
 
 		bool operator==(const RPKey& rhs) const;
 		size_t GetHash() const;

@@ -45,6 +45,7 @@ void main() {
 struct Vertex {
 	glm::vec2 pos;
 	glm::vec3 color;
+	glm::vec2 tex;
 };
 
 struct UniformBufferObject {
@@ -77,9 +78,23 @@ void printMat(glm::mat4 mat)
 	}
 }
 
-int main() {
-	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
+glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_W && action == GLFW_PRESS)
+		pos += 0.05f * front;
+	if (key == GLFW_KEY_A && action == GLFW_PRESS)
+		pos -= 0.05f * glm::normalize(glm::cross(front, up));
+	if (key == GLFW_KEY_S && action == GLFW_PRESS)
+		pos -= 0.05f * front;
+	if (key == GLFW_KEY_D && action == GLFW_PRESS)
+		pos += 0.05f * glm::normalize(glm::cross(front, up));
+}
+
+int main() {
 	GraphicsDevice* gd;
 	GraphicsContext* ctx;
 	Swapchain* swap;
@@ -98,6 +113,7 @@ int main() {
 		printf("Window is NULL!\n");
 		std::abort();
 	}
+	glfwSetKeyCallback(window, key_callback);
 
 	gd = GraphicsDevice::Create(window, Curr_API);
 	GraphicsContextDesc desc = {};
@@ -108,10 +124,10 @@ int main() {
 	swap = gd->CreateSwapchain(swapSpec, ctx, window);
 
 	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
+		{ { 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
+		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
+		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}} // TL
 	};
 
 	const std::vector<uint16_t> indices = {
@@ -122,50 +138,31 @@ int main() {
 	bufDesc.Usage = BufferUsageFlags::Default;
 	// ======== Create Vertex Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Vertex;
-	bufDesc.Size = sizeof(vertices[0]) * vertices.size();
+	bufDesc.Size = static_cast<uint32_t>(sizeof(vertices[0]) * vertices.size());
 	vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
-	{
-		BufferDesc sDesc = {}; 
-		sDesc.Usage = BufferUsageFlags::Staging;
-		sDesc.BindFlags = BufferBindFlags::Staging;
-		sDesc.Size = bufDesc.Size;
-		Buffer *sb = gd->CreateBuffer(sDesc, (void*)vertices.data());
-		sb->BeginStaging();
-		ctx->CopyBuffer(sb, vb, sDesc.Size);
-		sb->EndStaging();
-		delete sb;
-	}
+
 	// ======== Create Index Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Index;
-	bufDesc.Size = sizeof(indices[0]) * indices.size();
+	bufDesc.Size = static_cast<uint32_t>(sizeof(indices[0]) * indices.size());
 	ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
-	{
-		BufferDesc sDesc = {};
-		sDesc.Usage = BufferUsageFlags::Staging;
-		sDesc.BindFlags = BufferBindFlags::Staging;
-		sDesc.Size = bufDesc.Size;
-		Buffer* sb = gd->CreateBuffer(sDesc, (void*)indices.data());
-		sb->BeginStaging();
-		ctx->CopyBuffer(sb, ib, sDesc.Size);
-		sb->EndStaging();
-		delete sb;
-	}
+
 	// ======== Create Uniform Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Uniform;
-	bufDesc.Size = sizeof(UniformBufferObject) * 3;
+	bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
 	bufDesc.Buffered = true;
 	ub = gd->CreateBuffer(bufDesc, nullptr);
+
 	// ======== Create Shaders ========
 	ShaderDesc sDesc = {};
 	sDesc.EntryPoint = "main";
 	sDesc.Name = "Basic Vert";
 	//sDesc.Src = vertSrc;
-	sDesc.Path = "shaders/ubo.vert";
+	sDesc.Path = "shaders/textured.vert";
 	sDesc.Type = ShaderType::Vertex;
 	vertShader = gd->CreateShader(sDesc);
 	sDesc.Name = "Basic Frag";
 	//sDesc.Src = fragSrc;
-	sDesc.Path = "shaders/ubo.frag";
+	sDesc.Path = "shaders/textured.frag";
 	sDesc.Type = ShaderType::Fragment;
 	fragShader = gd->CreateShader(sDesc);
 
@@ -183,6 +180,13 @@ int main() {
 			3, // Num Components
 			offsetof(Vertex, color),  // Offset
 			sizeof(Vertex) // Stride
+		},
+		{
+			2,
+			0,
+			2,
+			offsetof(Vertex, tex),
+			sizeof(Vertex)
 		}
 	};
 
@@ -191,14 +195,14 @@ int main() {
 	pDesc.NumColors = 1;
 	pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
 	pDesc.DepthFormat = TextureFormat::Unknown;
-	pDesc.InputLayout.NumElements = 2;
+	pDesc.InputLayout.NumElements = 3;
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
 	pDesc.Shaders[0] = vertShader;
 	pDesc.Shaders[1] = fragShader;
 	pipeline = gd->CreateGraphicsPipeline(pDesc);
 
-	//Texture* texture = gd->CreateTexture();
+	Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
 	
 	auto glfwVersion = glfwGetVersionString();
 	if (Curr_API == API::OpenGL) {
@@ -211,7 +215,7 @@ int main() {
 	}
 
 	DrawAttribs drawAttribs = {};
-	drawAttribs.VrtIdxCount = indices.size();
+	drawAttribs.VrtIdxCount = static_cast<uint32_t>(indices.size());
 	drawAttribs.InstanceCount = 1;
 	drawAttribs.FirstVrtIdx = 0;
 	drawAttribs.FirstInstance = 0;
@@ -241,13 +245,19 @@ int main() {
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 			UniformBufferObject ubo = {};
-			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.0f, 0.0f, 1.0f));
+			//ubo.view = glm::inverse(glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
+			ubo.view = glm::lookAt(pos, pos + front, up);
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
-			ubo.proj[1][1] *= -1;
+			glm::mat4 cor(1.0f);
+			cor[1][1] = -1.0f;
+			//cor[2][2] = 0.5f;
+			//cor[2][3] = 0.5f;
+			ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
 			ctx->UploadBuffer(ub, i * sizeof(ubo), sizeof(ubo), &ubo);
 		}
 		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
+		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);
 		ctx->DrawIndexed(drawAttribs);
 		ctx->Flush();
 
@@ -255,6 +265,7 @@ int main() {
 		swap->Present(0);
 	}
 	gd->WaitForIdle();
+	delete texture;
 	delete pipeline;
 	delete swap;
 	delete ctx;

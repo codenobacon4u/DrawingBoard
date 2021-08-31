@@ -61,14 +61,11 @@ public:
 	Buffer(const BufferDesc& desc)
 		: m_Desc(desc), m_Data(nullptr)
 	{}
-	Buffer(const BufferDesc& desc, void* data)
+	Buffer(const BufferDesc& desc, const void* data)
 		: m_Desc(desc), m_Data(data)
 	{}
 
 	virtual ~Buffer() {}
-
-	virtual void BeginStaging() = 0;
-	virtual void EndStaging() = 0;
 
 	BufferDesc GetDesc() const { return m_Desc; }
 
@@ -77,6 +74,6 @@ public:
 	uint32_t GetNumElements() { return m_Desc.Size / m_Desc.Stride; }
 
 protected:
-	void* m_Data;
+	const void* m_Data;
 	BufferDesc m_Desc;
 };

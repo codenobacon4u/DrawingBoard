@@ -27,6 +27,8 @@ namespace VkAPI {
 			delete m_CmdPool[i];
 			delete m_DescPool[i];
 		}
+		for (auto view : m_RenderTargets)
+			delete view;
 	}
 
 	void GraphicsContextVK::Flush()
@@ -433,6 +435,9 @@ namespace VkAPI {
 		}
 		TextureVK* tex = (TextureVK*)texture;
 		auto& resource = m_Bindings.Sets[set][binding].Texture;
+		resource.imageView = ((TextureViewVK*)tex->GetDefaultView())->GetView();
+		resource.sampler = tex->GetSampler();
+		resource.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		m_UpdateSetsMask |= 1 << set;
 	}
 	
@@ -625,7 +630,7 @@ namespace VkAPI {
 				writes.push_back(std::move(write));
 			}
 		}
-		vkUpdateDescriptorSets(((GraphicsDeviceVK*)m_Device)->Get(), writes.size(), writes.data(), 0, nullptr);
+		vkUpdateDescriptorSets(((GraphicsDeviceVK*)m_Device)->Get(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 	}
 
 	void GraphicsContextVK::VerifyCommandBuffer()

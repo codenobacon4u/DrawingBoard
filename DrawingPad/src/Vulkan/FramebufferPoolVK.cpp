@@ -35,6 +35,12 @@ namespace VkAPI {
 		return Hash;
 	}
 
+	FramebufferPoolVK::~FramebufferPoolVK()
+	{
+		for (auto& [key, fb] : m_Map)
+			vkDestroyFramebuffer(m_Device.Get(), fb, nullptr);
+	}
+
 	void FramebufferPoolVK::DeleteViewEntry(VkImageView view)
 	{
 		auto range = m_VTKMap.equal_range(view);

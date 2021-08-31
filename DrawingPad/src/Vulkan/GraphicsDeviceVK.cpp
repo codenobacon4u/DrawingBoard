@@ -8,7 +8,7 @@
 #include "BufferVK.h"
 #include "ShaderVK.h"
 #include "PipelineVK.h"
-#include "CommandListVK.h"
+#include "TextureManagerVK.h"
 
 namespace VkAPI
 {
@@ -44,9 +44,11 @@ namespace VkAPI
 			DebugMarker::Setup(m_Device, m_PhysicalDevice);
 		CreateDescriptiorPool();
 		CreateCommandPool();
-		m_FramebufferPool = new FramebufferPoolVK(*this);
-		m_RenderPassPool = new RenderPassPoolVK(*this);
-		m_DescriptorSetPool = new DescriptorSetPoolVK(this);
+		m_FramebufferPool = DBG_NEW FramebufferPoolVK(*this);
+		m_RenderPassPool = DBG_NEW RenderPassPoolVK(*this);
+		m_DescriptorSetPool = DBG_NEW DescriptorSetPoolVK(this);
+		m_TempPool = DBG_NEW CommandPoolVK(this, m_GraphicsIndex, 0);
+		m_TextureManager = DBG_NEW TextureManagerVK(this);
 	}
 
 	GraphicsDeviceVK::~GraphicsDeviceVK()
@@ -57,6 +59,7 @@ namespace VkAPI
 		delete m_FramebufferPool;
 		delete m_RenderPassPool;
 		delete m_DescriptorSetPool;
+		delete m_TempPool;
 
 		vkDestroyDevice(m_Device, nullptr);
 		if (enableValidation)
@@ -88,7 +91,7 @@ namespace VkAPI
 		return DBG_NEW BufferVK(this, desc, data);
 	}
 
-	Texture* GraphicsDeviceVK::CreateTexture(const TextureDesc& desc, const TextureData* data)
+	Texture* GraphicsDeviceVK::CreateTexture(const TextureDesc& desc, const unsigned char* data)
 	{
 		return DBG_NEW TextureVK(this, desc, data);
 	}
@@ -413,6 +416,6 @@ namespace VkAPI
 	
 	void GraphicsDeviceVK::SwapBuffers(Swapchain* swapchain) const
 	{
-		m_MainSwap->Present(60);
+		swapchain->Present(60);
 	}
 }

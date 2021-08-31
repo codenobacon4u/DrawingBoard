@@ -35,7 +35,7 @@ namespace Hazel {
 
 		void BeginSession(const std::string& name, const std::string& filepath = "results.json")
 		{
-			std::lock_guard lock(m_Mutex);
+			//std::lock_guard lock(m_Mutex);
 			if (m_CurrentSession)
 			{
 				// If there is already a current session, then close it before beginning DBG_NEW one.
@@ -60,31 +60,31 @@ namespace Hazel {
 
 		void EndSession()
 		{
-			std::lock_guard lock(m_Mutex);
+			//std::lock_guard lock(m_Mutex);
 			InternalEndSession();
 		}
 
 		void WriteProfile(const ProfileResult& result)
 		{
-			std::stringstream json;
+			//std::stringstream json;
 
-			json << std::setprecision(3) << std::fixed;
-			json << ",{";
-			json << "\"cat\":\"function\",";
-			json << "\"dur\":" << (result.ElapsedTime.count()) << ',';
-			json << "\"name\":\"" << result.Name << "\",";
-			json << "\"ph\":\"X\",";
-			json << "\"pid\":0,";
-			json << "\"tid\":" << result.ThreadID << ",";
-			json << "\"ts\":" << result.Start.count();
-			json << "}";
-
-			std::lock_guard lock(m_Mutex);
-			if (m_CurrentSession)
-			{
-				m_OutputStream << json.str();
-				m_OutputStream.flush();
-			}
+			//json << std::setprecision(3) << std::fixed;
+			//json << ",{";
+			//json << "\"cat\":\"function\",";
+			//json << "\"dur\":" << (result.ElapsedTime.count()) << ',';
+			//json << "\"name\":\"" << result.Name << "\",";
+			//json << "\"ph\":\"X\",";
+			//json << "\"pid\":0,";
+			//json << "\"tid\":" << result.ThreadID << ",";
+			//json << "\"ts\":" << result.Start.count();
+			//json << "}";
+			//
+			////std::lock_guard lock(m_Mutex);
+			//if (m_CurrentSession)
+			//{
+			//	m_OutputStream << json.str();
+			//	m_OutputStream.flush();
+			//}
 		}
 
 		static Instrumentor& Get()
@@ -128,7 +128,7 @@ namespace Hazel {
 			}
 		}
 	private:
-		std::mutex m_Mutex;
+		//std::mutex m_Mutex;
 		InstrumentationSession* m_CurrentSession;
 		std::ofstream m_OutputStream;
 	};

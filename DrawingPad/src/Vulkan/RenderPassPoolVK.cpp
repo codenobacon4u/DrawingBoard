@@ -70,7 +70,7 @@ namespace VkAPI
 				refs.push_back({ 0, ImageLayout::DepthAttachOptimal });
 			}
 
-			for (uint32_t i = attachments.size(); i < key.NumColors + doff; i++)
+			for (uint32_t i = static_cast<uint32_t>(attachments.size()); i < key.NumColors + doff; i++)
 			{
 				attachments.push_back({ 
 					key.ColorFormats[i],
@@ -89,7 +89,7 @@ namespace VkAPI
 			SubpassDesc subpass = {};
 			subpass.InputAttachmentCount = 0;
 			subpass.InputAttachments = nullptr;
-			subpass.ColorAttachmentCount = refs.size() - doff;
+			subpass.ColorAttachmentCount = static_cast<uint32_t>(refs.size() - doff);
 			subpass.ColorAttachments = &refs[doff];
 			subpass.ResolveAttachments = nullptr;
 			subpass.DepthStencilAttachment = key.DepthFormat != TextureFormat::Unknown ? &refs.front() : nullptr;
@@ -97,7 +97,7 @@ namespace VkAPI
 			subpass.PreserveAttachments = nullptr;
 
 			RenderPassDesc desc;
-			desc.AttachmentCount = attachments.size();
+			desc.AttachmentCount = static_cast<uint32_t>(attachments.size());
 			desc.Attachments = attachments.data();
 			desc.SubpassCount = 1;
 			desc.Subpasses = &subpass;

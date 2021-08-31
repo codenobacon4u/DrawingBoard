@@ -45,11 +45,11 @@ typedef struct GraphicsPipelineDesc {
 } GraphicsPipelineDesc;
 
 typedef struct ComputePipelineDesc {
-	void* Rasterizer;
+	void* Rasterizer = nullptr;
 } ComputePipelineDesc;
 
 typedef struct RaytracingPipelineDesc {
-	void* Rasterizer;
+	void* Rasterizer = nullptr;
 } RaytracingPipelineDesc;
 
 class Pipeline
@@ -69,7 +69,7 @@ public:
 	const RaytracingPipelineDesc& GetRaytracingDesc() const { return m_RaytracingDesc; }
 
 protected:
-	GraphicsPipelineDesc m_GraphicsDesc;
-	ComputePipelineDesc m_ComputeDesc;
-	RaytracingPipelineDesc m_RaytracingDesc;
+	GraphicsPipelineDesc m_GraphicsDesc = {};
+	ComputePipelineDesc m_ComputeDesc = {};
+	RaytracingPipelineDesc m_RaytracingDesc = {};
 };

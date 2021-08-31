@@ -8,10 +8,10 @@
 namespace VkAPI {
 
 	typedef struct FBKey {
-		VkRenderPass Pass;
-		uint32_t AttachmentCount;
+		VkRenderPass Pass = VK_NULL_HANDLE;
+		uint32_t AttachmentCount = 0;
 		VkImageView Attachments[9];
-		uint64_t CommandQueueMask;
+		uint64_t CommandQueueMask = 0;
 
 		bool operator==(const FBKey& rhs) const;
 		size_t GetHash() const;
@@ -27,6 +27,8 @@ namespace VkAPI {
 		FramebufferPoolVK(GraphicsDeviceVK& device)
 			: m_Device(device)
 		{}
+
+		~FramebufferPoolVK();
 
 		void DeleteViewEntry(VkImageView view);
 

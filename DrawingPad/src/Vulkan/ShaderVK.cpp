@@ -188,7 +188,7 @@ namespace VkAPI {
 			res.Stages = stage;
 			res.Name = resource.name;
 
-			res.Size = compiler.get_declared_struct_size_runtime_array(type, 0);
+			res.Size = static_cast<uint32_t>(compiler.get_declared_struct_size_runtime_array(type, 0));
 			// ArraySize
 			res.ArraySize = type.array.size() ? type.array[0] : 1;
 			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -212,7 +212,7 @@ namespace VkAPI {
 			res.Stages = stage;
 			res.Name = resource.name;
 
-			res.Size = compiler.get_declared_struct_size_runtime_array(type, 0);
+			res.Size = static_cast<uint32_t>(compiler.get_declared_struct_size_runtime_array(type, 0));
 			// ArraySize
 			res.ArraySize = type.array.size() ? type.array[0] : 1;
 			res.Set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -394,7 +394,7 @@ namespace VkAPI {
 			res.Name = resource.name;
 			res.Offset = offset;
 
-			res.Size = comp.get_declared_struct_size_runtime_array(type, 0);
+			res.Size = static_cast<uint32_t>(comp.get_declared_struct_size_runtime_array(type, 0));
 
 			res.Size -= res.Offset;
 

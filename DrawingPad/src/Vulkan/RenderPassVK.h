@@ -19,7 +19,7 @@ namespace VkAPI {
 		inline static const VkAttachmentReference* ConvertAttachRefs (uint32_t refCount, const AttachmentReference* srcRefs, std::vector<VkAttachmentReference>* attach, uint32_t* counter)
 		{
 			VkAttachmentReference* curr = &(*attach)[*counter];
-			for (uint32_t i = 0; i < refCount; i++, *counter++)
+			for (uint32_t i = 0; i < refCount; i++, (*counter)++)
 			{
 				(*attach)[*counter].attachment = srcRefs[i].Attachment;
 				(*attach)[*counter].layout = UtilsVK::Convert(srcRefs[i].Layout);

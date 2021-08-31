@@ -8,7 +8,6 @@
 #define DBG_NEW new
 #endif
 
-
 #include <iostream>
 #include <memory>
 #include <algorithm>

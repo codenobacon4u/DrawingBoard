@@ -16,9 +16,6 @@ namespace VkAPI {
 		for (auto pool : m_UsedPools)
 			if (pool != VK_NULL_HANDLE)
 				vkDestroyDescriptorPool(m_Device->Get(), pool, nullptr);
-		for (auto [f, layout] : m_Layouts)
-			if (layout != VK_NULL_HANDLE)
-				vkDestroyDescriptorSetLayout(m_Device->Get(), layout, nullptr);
 	}
 
 	std::pair<bool, VkDescriptorSet> DescriptorSetPoolVK::RequestDescriptorSet(VkDescriptorSetLayout layout, const DSLKey& hash, const uint32_t* bindStages)

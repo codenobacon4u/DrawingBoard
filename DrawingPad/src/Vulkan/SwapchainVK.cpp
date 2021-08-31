@@ -70,7 +70,6 @@ namespace VkAPI
 		{
 			m_Resized = false;
 			RecreateSwap(m_Desc.Width, m_Desc.Height);
-			//m_Context->SetRenderTargets(0, nullptr, nullptr);
 		}
 		else if (result != VK_SUCCESS)
 			throw std::runtime_error("Failed to present swap image!");
@@ -137,7 +136,7 @@ namespace VkAPI
 		auto old = m_Swap;
 		m_Swap = nullptr;
 
-		VkSwapchainCreateInfoKHR createInfo;
+		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfo.pNext = nullptr;
 		createInfo.flags = 0;

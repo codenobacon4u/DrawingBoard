@@ -9,21 +9,26 @@ namespace VkAPI
 	class TextureVK : public Texture
 	{
 	public:
-		TextureVK(GraphicsDeviceVK* device, const TextureDesc& desc, const void* data = nullptr);
+		TextureVK(GraphicsDeviceVK* device, const TextureDesc& desc, const unsigned char* data = nullptr);
 		TextureVK(GraphicsDeviceVK* device, const TextureDesc& desc, VkImage image);
 
 		~TextureVK();
 
 		VkImage GetImage() { return m_Image; }
+		VkSampler GetSampler() { return m_Sampler; }
 
 		TextureView* CreateView(const TextureViewDesc& desc);
+
+	private:
+		void TransistionLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
+		void CopyFromBuffer(VkBuffer buffer, uint32_t width, uint32_t height);
 
 	private:
 		GraphicsDeviceVK* m_Device;
 		const void* m_Data;
 		VkImage m_Image;
 		VkDeviceMemory m_Mem;
-		TextureViewVK* m_DefaultView = nullptr;
+		VkSampler m_Sampler;
 	};
 
 	class TextureViewVK : public TextureView

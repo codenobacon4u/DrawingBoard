@@ -15,6 +15,7 @@
 #include "DescriptorSetVK.h"
 #include "UtilsVK.h"
 #include "DebugVK.h"
+#include "CommandPoolVK.h"
 
 #include "Instrumentor.h"
 
@@ -38,13 +39,12 @@ namespace VkAPI
 
 		void SubmitCommandBuffer(const VkSubmitInfo& info, VkFence* fences);
 
-		//virtual void Submit(const CommandList* cb) override;
 		virtual void WaitForIdle() override;
 		virtual void Present() override;
 
 		//virtual CommandList* CreateCommandList() override;
 		virtual Buffer* CreateBuffer(const BufferDesc& desc, void* data) override;
-		virtual Texture* CreateTexture(const TextureDesc& desc, const TextureData* data) override;
+		virtual Texture* CreateTexture(const TextureDesc& desc, const unsigned char* data) override;
 		virtual RenderPassVK* CreateRenderPass(const RenderPassDesc& desc) override;
 		virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) override;
 		virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
@@ -66,8 +66,10 @@ namespace VkAPI
 		FramebufferPoolVK& GetFramebufferPool() { return *m_FramebufferPool; }
 		RenderPassPoolVK& GetRenderPassPool() { return *m_RenderPassPool; }
 		DescriptorSetPoolVK& GetDescriptorSetPool() { return *m_DescriptorSetPool; }
+		CommandPoolVK& GetTempCommandPool() { return *m_TempPool; }
 
 		VkPhysicalDeviceLimits GetPhysicalLimits() { return m_Limits; }
+		VkPhysicalDeviceProperties GetPhysicalProperties() { return m_Props; }
 
 		QueueFamilyIndices FindQueueFamilies(VkQueueFlags flags);
 		bool QueryPresentSupport(uint32_t index, VkSurfaceKHR surface);
@@ -102,7 +104,10 @@ namespace VkAPI
 		uint32_t m_ComputeIndex;
 		VkQueue m_GraphicsQueue;
 
+		CommandPoolVK* m_TempPool;
+
 		VkPhysicalDeviceLimits m_Limits;
+		VkPhysicalDeviceProperties m_Props;
 
 		std::vector<VkFence> m_SubFences;
 		std::queue<VkFence> m_AvailFences;

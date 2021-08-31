@@ -10,6 +10,7 @@
 #include "Framebuffer.h"
 #include "Swapchain.h"
 #include "Shader.h"
+#include "TextureManager.h"
 
 enum class API {
 	None = 0, OpenGL = 1, Vulkan = 2, DirectX = 3
@@ -18,18 +19,15 @@ enum class API {
 class GraphicsDevice 
 {
 public:
-
 	virtual ~GraphicsDevice() {}
 
 	void SwapBuffers();
 	
-	//virtual void Submit(const CommandList* cb) = 0;
 	virtual void WaitForIdle() = 0;
 	virtual void Present() = 0;
 
-	//virtual CommandList* CreateCommandList() = 0;
 	virtual Buffer* CreateBuffer(const BufferDesc& desc, void* data) = 0;
-	virtual Texture* CreateTexture(const TextureDesc& desc, const TextureData* data) = 0;
+	virtual Texture* CreateTexture(const TextureDesc& desc, const unsigned char* data) = 0;
 	virtual RenderPass* CreateRenderPass(const RenderPassDesc& desc) = 0;
 	virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) = 0;
 	virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
@@ -37,26 +35,16 @@ public:
 	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window) = 0;
 	virtual Shader* CreateShader(const ShaderDesc& desc) = 0;
 
-	virtual void OnWindowResize(int width, int height)
-	{
-		m_MainSwap->Resize(width, height);
-	}
-
 	GraphicsContext* CreateContext(const GraphicsContextDesc& desc);
 
-	Framebuffer* GetSwapchainFramebuffer() { return m_SwapFB; }
-
-	
+	TextureManager* GetTextureManager() { return m_TextureManager; }
 
 	static GraphicsDevice* Create(GLFWwindow* window, API api);
-
 	inline static API GetAPI() { return s_API; }
 protected:
 	virtual void SwapBuffers(Swapchain* swapchain) const = 0;
-	Framebuffer* m_SwapFB;
-	Swapchain* m_MainSwap;
 
-	//std::vector<GraphicsContext*> m_ImmediateContexts;
+	TextureManager* m_TextureManager;
 
 private:
 	static API s_API;
