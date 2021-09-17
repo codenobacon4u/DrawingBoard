@@ -72,7 +72,7 @@ namespace VkAPI
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationState.lineWidth = 1.0f;
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		rasterizationState.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
@@ -101,6 +101,18 @@ namespace VkAPI
 		colorBlendState.blendConstants[1] = 0.0f;
 		colorBlendState.blendConstants[2] = 0.0f;
 		colorBlendState.blendConstants[3] = 0.0f;
+
+		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
+		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilState.depthTestEnable = VK_TRUE;
+		depthStencilState.depthWriteEnable = VK_TRUE;
+		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencilState.depthBoundsTestEnable = VK_FALSE;
+		depthStencilState.minDepthBounds = 0.0f;
+		depthStencilState.maxDepthBounds = 1.0f;
+		depthStencilState.stencilTestEnable = VK_FALSE;
+		depthStencilState.front = {};
+		depthStencilState.back = {};
 
 		// Potentially Modify
 		//VkPipelineLayout layout;
@@ -137,6 +149,7 @@ namespace VkAPI
 		createInfo.pRasterizationState = &rasterizationState;
 		createInfo.pMultisampleState = &multisampleState;
 		createInfo.pColorBlendState = &colorBlendState;
+		createInfo.pDepthStencilState = &depthStencilState;
 		createInfo.layout = m_Program->GetPipelineLayout();
 		createInfo.renderPass = renderpass;
 		createInfo.subpass = 0;

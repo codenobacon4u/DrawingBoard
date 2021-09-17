@@ -131,7 +131,7 @@ namespace VkAPI
 
 		m_Desc.Width = m_Extent.width;
 		m_Desc.Height = m_Extent.height;
-		//m_Desc.DepthFormat = ChooseDepthFormat();
+		m_Desc.DepthFormat = ChooseDepthFormat();
 
 		auto old = m_Swap;
 		m_Swap = nullptr;
@@ -327,7 +327,7 @@ namespace VkAPI
 
 			TextureVK* backTex = static_cast<TextureVK*>(m_Device->CreateTextureFromImage(backDesc, swapImages[i]));
 			m_BackBuffers[i].first = backTex;
-			std::string name = "Backbuffer Image View ";
+			std::string name = "Backbuffer Image ";
 			name += std::to_string(i);
 			DebugMarker::SetName(m_Device->Get(), (uint64_t)backTex->GetImage(), VK_OBJECT_TYPE_IMAGE, name);
 			
@@ -342,19 +342,27 @@ namespace VkAPI
 			DebugMarker::SetName(m_Device->Get(), (uint64_t)rtv->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, name);
 		}
 
-		//if (m_Desc.DepthFormat != TextureFormat::Unknown)
-		//{
-		//	TextureDesc depthDesc = {};
-		//	depthDesc.Type = TextureType::DimTex2D;
-		//	depthDesc.Width = m_Desc.Width;
-		//	depthDesc.Height = m_Desc.Height;
-		//	depthDesc.Format = m_Desc.DepthFormat;
-		//	depthDesc.SampleCount = 1;
-		//	depthDesc.MipLevels = 1;
-		//	depthDesc.Usage = Usage::Default;
-		//	depthDesc.BindFlags = BindFlags::DepthStencil;
-		//	auto* tex = m_Device->CreateTexture(depthDesc, nullptr);
-		//	//m_DepthBuffer = (TextureViewVK*)tex->;
-		//}
+		if (m_Desc.DepthFormat != TextureFormat::Unknown)
+		{
+			TextureDesc depthDesc = {};
+			depthDesc.Type = TextureType::DimTex2D;
+			depthDesc.Width = m_Desc.Width;
+			depthDesc.Height = m_Desc.Height;
+			depthDesc.Format = m_Desc.DepthFormat;
+			depthDesc.SampleCount = 1;
+			depthDesc.MipLevels = 1;
+			depthDesc.Usage = Usage::Default;
+			depthDesc.BindFlags = BindFlags::DepthStencil;
+			TextureVK* tex = static_cast<TextureVK*>(m_Device->CreateTexture(depthDesc, nullptr));
+			std::string name = "DepthStencil Image";
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)tex->GetImage(), VK_OBJECT_TYPE_IMAGE, name);
+
+			TextureViewDesc tvDesc;
+			tvDesc.ViewType = ViewType::DepthStencil;
+			tvDesc.Format = depthDesc.Format;
+			m_DepthBuffer = static_cast<TextureViewVK*>(tex->CreateView(tvDesc));
+			name = "DepthStencil Image View";
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthBuffer->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, name);
+		}
 	}
 }

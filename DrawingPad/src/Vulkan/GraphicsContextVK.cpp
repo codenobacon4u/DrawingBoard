@@ -141,16 +141,17 @@ namespace VkAPI {
 			const auto& state = m_CommandBuffer.GetState();
 			if (state.Framebuffer != m_vkFramebuffer)
 			{
-				VkClearValue clear = {};
-				clear.color.float32[0] = 0.5f;//color[0];
-				clear.color.float32[1] = 0.f;//color[1];
-				clear.color.float32[2] = 0.5f;//color[2];
-				clear.color.float32[3] = 1.f;//color[3];
+				VkClearValue clear[2] = {};
+				clear[0].depthStencil = { 1.0f, 0 };
+				clear[1].color.float32[0] = 0.f;//color[0];
+				clear[1].color.float32[1] = 0.f;//color[1];
+				clear[1].color.float32[2] = 0.f;//color[2];
+				clear[1].color.float32[3] = 1.f;//color[3];
 
 				if (state.RenderPass != VK_NULL_HANDLE)
 					m_CommandBuffer.EndRenderPass();
 				if (m_vkFramebuffer != VK_NULL_HANDLE)
-					m_CommandBuffer.BeginRenderPass(m_vkRenderPass, m_vkFramebuffer, m_FramebufferWidth, m_FramebufferHeight, 1, &clear);
+					m_CommandBuffer.BeginRenderPass(m_vkRenderPass, m_vkFramebuffer, m_FramebufferWidth, m_FramebufferHeight, 2, clear);
 			}
 		}
 		else
@@ -206,8 +207,6 @@ namespace VkAPI {
 		}
 		else
 		{
-			if (m_CommandBuffer.GetState().RenderPass != VK_NULL_HANDLE)
-				m_CommandBuffer.EndRenderPass();
 
 			auto* tex = (TextureVK*)dsv->GetTexture();
 			VkClearDepthStencilValue clearVal = {};
@@ -326,29 +325,32 @@ namespace VkAPI {
 
 		FBKey fKey = {};
 		RPKey rKey = {};
+		uint32_t base = 0;
 		if (m_DepthStencil)
 		{
 			TextureVK* depth = ((TextureVK*)m_DepthStencil->GetTexture());
 			rKey.SampleCount = static_cast<uint8_t>(depth->GetDesc().SampleCount);
 			rKey.DepthFormat = depth->GetDesc().Format;
+			fKey.Attachments[base] = static_cast<TextureViewVK*>(m_DepthStencil)->GetView();
+			base++;
 		}
 
 		fKey.AttachmentCount = m_NumRenderTargets + (m_DepthStencil ? 1 : 0);
 		rKey.NumColors = static_cast<uint8_t>(m_NumRenderTargets);
 
-		for (uint32_t i = 0; i < m_NumRenderTargets; i++) {
-			if (auto* rt = m_RenderTargets[i])
+		for (uint32_t i = base; i < m_NumRenderTargets + base; i++) {
+			if (auto* rt = m_RenderTargets[i-base])
 			{
 				auto* target = rt->GetTexture();
 				fKey.Attachments[i] = ((TextureViewVK*)rt)->GetView();
-				rKey.ColorFormats[i] = target->GetDesc().Format;
+				rKey.ColorFormats[i-base] = target->GetDesc().Format;
 				if (rKey.SampleCount == 0)
 					rKey.SampleCount = static_cast<uint8_t>(target->GetDesc().SampleCount);
 			}
 			else
 			{
 				fKey.Attachments[i] = VK_NULL_HANDLE;
-				rKey.ColorFormats[i] = TextureFormat::Unknown;
+				rKey.ColorFormats[i-base] = TextureFormat::Unknown;
 			}
 		}
 

@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -10,6 +11,7 @@
 #include <chrono>
 #include <iostream>
 #include <glm/glm/gtx/string_cast.hpp>
+#include <glm/glm/gtx/rotate_vector.hpp>
 
 API Curr_API = API::Vulkan;
 
@@ -43,7 +45,7 @@ void main() {
 )";
 
 struct Vertex {
-	glm::vec2 pos;
+	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 tex;
 };
@@ -78,8 +80,8 @@ void printMat(glm::mat4 mat)
 	}
 }
 
-glm::vec3 pos = glm::vec3(0.0f, 0.0f, 1.0f);
-glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 front = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -124,14 +126,22 @@ int main() {
 	swap = gd->CreateSwapchain(swapSpec, ctx, window);
 
 	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
-		{ { 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
-		{{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
-		{{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}} // TL
+		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
+		{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
+		{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
+		{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}, // TL
+		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+		//{{0.f, -1.f, 6.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+		//{{0.f,  5.f, 2.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		//{{3.f,  2.f, 1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
 	};
 
 	const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4
 	};
 
 	BufferDesc bufDesc = {};
@@ -170,7 +180,7 @@ int main() {
 		{
 			0, // InputIndex Location
 			0, // BufferSlot Binding
-			2, // Num Components
+			3, // Num Components
 			offsetof(Vertex, pos), // Offset
 			sizeof(Vertex) // Stride
 		},
@@ -194,7 +204,7 @@ int main() {
 	pDesc.NumViewports = 1;
 	pDesc.NumColors = 1;
 	pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
-	pDesc.DepthFormat = TextureFormat::Unknown;
+	pDesc.DepthFormat = swap->GetDesc().DepthFormat;
 	pDesc.InputLayout.NumElements = 3;
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
@@ -231,7 +241,7 @@ int main() {
 		TextureView* dsv = swap->GetDepthBufferView();
 		float color[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
 		ctx->Begin(i);
-		ctx->SetRenderTargets(1, &rtv, nullptr);
+		ctx->SetRenderTargets(1, &rtv, dsv);
 		ctx->ClearColor(rtv, nullptr);
 		//ctx->ClearDepth(dsv, ClearDepthStencil::Depth, 1, 0);
 		ctx->SetPipeline(pipeline);
@@ -245,15 +255,13 @@ int main() {
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 			UniformBufferObject ubo = {};
-			ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
 			//ubo.view = glm::inverse(glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
-			ubo.view = glm::lookAt(pos, pos + front, up);
+			//ubo.view = glm::lookAt(pos, pos+front, up);
+			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
-			glm::mat4 cor(1.0f);
-			cor[1][1] = -1.0f;
-			//cor[2][2] = 0.5f;
-			//cor[2][3] = 0.5f;
-			ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
+			ubo.proj[1][1] *= -1;
+			//ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
 			ctx->UploadBuffer(ub, i * sizeof(ubo), sizeof(ubo), &ubo);
 		}
 		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);

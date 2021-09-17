@@ -60,17 +60,17 @@ namespace VkAPI
 					key.DepthFormat,
 					key.SampleCount,
 					AttachmentLoadOp::Clear,
-					AttachmentStoreOp::Store,
-					AttachmentLoadOp::Clear,
-					AttachmentStoreOp::Store,
-					ImageLayout::DepthAttachOptimal,
-					ImageLayout::DepthAttachOptimal
+					AttachmentStoreOp::DontCare,
+					AttachmentLoadOp::DontCare,
+					AttachmentStoreOp::DontCare,
+					ImageLayout::Undefined,
+					ImageLayout::DepthStencilAttachOptimal
 				});
 
-				refs.push_back({ 0, ImageLayout::DepthAttachOptimal });
+				refs.push_back({ 0, ImageLayout::DepthStencilAttachOptimal });
 			}
 
-			for (uint32_t i = static_cast<uint32_t>(attachments.size()); i < key.NumColors + doff; i++)
+			for (uint32_t i = 0; i < key.NumColors; i++)
 			{
 				attachments.push_back({ 
 					key.ColorFormats[i],
@@ -83,7 +83,7 @@ namespace VkAPI
 					ImageLayout::PresentSrcKHR 
 				});
 
-				refs.push_back({ i, ImageLayout::ColorAttachOptimal });
+				refs.push_back({ i + doff, ImageLayout::ColorAttachOptimal });
 			}
 
 			SubpassDesc subpass = {};
@@ -96,13 +96,22 @@ namespace VkAPI
 			subpass.PreserveAttachmentCount = 0;
 			subpass.PreserveAttachments = nullptr;
 
+			DependencyDesc dependency = {};
+			dependency.SrcSubpass = VK_SUBPASS_EXTERNAL;
+			dependency.DstSubpass = 0;
+			dependency.SrcStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
+			dependency.SrcAccess = SubpassAccess::NA;
+			dependency.DstStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
+			dependency.DstAccess = (SubpassAccess)(SubpassAccess::ColorAttachWrite | SubpassAccess::DepthStencilAttachWrite);
+
+
 			RenderPassDesc desc;
 			desc.AttachmentCount = static_cast<uint32_t>(attachments.size());
 			desc.Attachments = attachments.data();
 			desc.SubpassCount = 1;
 			desc.Subpasses = &subpass;
-			desc.DependencyCount = 0;
-			desc.Dependencies = nullptr;
+			desc.DependencyCount = 1;
+			desc.Dependencies = &dependency;
 
 			RenderPassVK* rp = m_Device.CreateRenderPass(desc);
 			it = m_Map.emplace(key, std::move(rp)).first;

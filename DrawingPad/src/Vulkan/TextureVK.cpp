@@ -33,7 +33,7 @@ namespace VkAPI
 		if (m_Desc.BindFlags == BindFlags::RenderTarget)
 			imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (m_Desc.BindFlags == BindFlags::DepthStencil)
-			imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		if (m_Desc.BindFlags == BindFlags::ShaderResource)
 			imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -54,7 +54,7 @@ namespace VkAPI
 		vkAllocateMemory(m_Device->Get(), &allocInfo, nullptr, &m_Mem);
 
 		vkBindImageMemory(m_Device->Get(), m_Image, m_Mem, 0);
-
+		if (m_Desc.BindFlags != BindFlags::DepthStencil)
 		{
 			BufferDesc bufDesc = {};
 			bufDesc.Usage = BufferUsageFlags::Staging;
@@ -70,33 +70,33 @@ namespace VkAPI
 			TransistionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 			CopyFromBuffer(staging.Get(), m_Desc.Width, m_Desc.Height);
 			TransistionLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+			TextureViewDesc texDesc = {};
+			texDesc.Format = m_Desc.Format;
+			texDesc.ViewType = ViewType::ShaderResource;
+
+			m_DefaultView = CreateView(texDesc);
+
+			VkSamplerCreateInfo sampler = {};
+			sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			sampler.magFilter = VK_FILTER_LINEAR;
+			sampler.minFilter = VK_FILTER_LINEAR;
+			sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			sampler.anisotropyEnable = VK_FALSE;
+			sampler.maxAnisotropy = 1.0f;//m_Device->GetPhysicalLimits().maxSamplerAnisotropy;
+			sampler.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+			sampler.unnormalizedCoordinates = VK_FALSE;
+			sampler.compareEnable = VK_FALSE;
+			sampler.compareOp = VK_COMPARE_OP_ALWAYS;
+			sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			sampler.mipLodBias = 0.0f;
+			sampler.minLod = 0.0f;
+			sampler.maxLod = 0.0f;
+
+			vkCreateSampler(m_Device->Get(), &sampler, nullptr, &m_Sampler);
 		}
-
-		TextureViewDesc texDesc = {};
-		texDesc.Format = m_Desc.Format;
-		texDesc.ViewType = ViewType::ShaderResource;
-
-		m_DefaultView = CreateView(texDesc);
-
-		VkSamplerCreateInfo sampler = {};
-		sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sampler.magFilter = VK_FILTER_LINEAR;
-		sampler.minFilter = VK_FILTER_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		sampler.anisotropyEnable = VK_FALSE;
-		sampler.maxAnisotropy = 1.0f;//m_Device->GetPhysicalLimits().maxSamplerAnisotropy;
-		sampler.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
-		sampler.unnormalizedCoordinates = VK_FALSE;
-		sampler.compareEnable = VK_FALSE;
-		sampler.compareOp = VK_COMPARE_OP_ALWAYS;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.mipLodBias = 0.0f;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 0.0f;
-
-		vkCreateSampler(m_Device->Get(), &sampler, nullptr, &m_Sampler);
 	}
 
 	TextureVK::TextureVK(GraphicsDeviceVK* device, const TextureDesc& desc, VkImage image)
@@ -225,7 +225,10 @@ namespace VkAPI
 		viewInfo.image = m_Texture->GetImage();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = UtilsVK::Convert(desc.Format);
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		if (desc.ViewType == ViewType::DepthStencil)
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		else
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = desc.HighestMip;
 		viewInfo.subresourceRange.levelCount = desc.NumMipLevels;
 		if (desc.Dim == TextureType::DimTex1DArray || desc.Dim == TextureType::DimTex2DArray)
