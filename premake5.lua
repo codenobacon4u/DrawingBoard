@@ -176,3 +176,74 @@ filter "configurations:Dist"
 defines "PW_DIST"
 runtime "Release"
 optimize "on"
+
+project "UISandbox"
+location "UISandbox"
+kind "ConsoleApp"
+language "C++"
+cppdialect "C++17"
+staticruntime "on"
+
+targetdir("bin/" .. outputdir .. "/%{prj.name}")
+objdir("bin-int/" .. outputdir .. "/%{prj.name}")
+
+files {
+    "%{prj.name}/src/**.h",
+    "%{prj.name}/src/**.cpp"
+}
+
+includedirs {
+    "DrawingPad/src",
+    "DrawingPad/vendor",
+    "%{IncludeDir.glm}",
+    "%{IncludeDir.glfw}",
+    "%{IncludeDir.GLAD}",
+	"%{IncludeDir.Vulkan}",
+	"%{IncludeDir.SPIRV}",
+	"%{IncludeDir.stb_image}"
+}
+
+libdirs {
+	"C:/VulkanSDK/1.2.176.1/Lib"
+}
+
+links {
+    "DrawingPad",
+	"vulkan-1.lib",
+    "shaderc_shared.lib",
+}
+
+
+filter "system:linux"
+pic "on"
+
+links {
+	"glfw",
+	"GLAD",
+    "SPIRV",
+    "Xrandr",
+    "Xi",
+    "GL",
+	"dl",
+	"pthread",
+    "X11"
+}
+
+filter "system:windows"
+systemversion "latest"
+toolset "v142"
+
+filter "configurations:Debug"
+defines "PW_DEBUG"
+runtime "Debug"
+symbols "on"
+
+filter "configurations:Release"
+defines "PW_RELEASE"
+runtime "Release"
+optimize "on"
+
+filter "configurations:Dist"
+defines "PW_DIST"
+runtime "Release"
+optimize "on"

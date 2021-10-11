@@ -176,6 +176,8 @@ public:
 	{}
 	virtual ~Texture() {}
 
+	virtual TextureView* CreateView(const TextureViewDesc& desc) = 0;
+
 	const TextureDesc& GetDesc() { return m_Desc; }
 
 	TextureView* GetDefaultView() { return m_DefaultView; }

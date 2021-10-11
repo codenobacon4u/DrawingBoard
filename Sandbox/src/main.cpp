@@ -2,7 +2,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -273,16 +272,16 @@ int main() {
 		swap->Present(0);
 	}
 	gd->WaitForIdle();
-	delete texture;
-	delete pipeline;
-	delete swap;
-	delete ctx;
-	delete ib;
-	delete vb;
-	delete ub;
-	delete fragShader;
-	delete vertShader;
-	delete gd;
+	//delete texture;
+	//delete pipeline;
+	//delete swap;
+	//delete ctx;
+	//delete ib;
+	//delete vb;
+	//delete ub;
+	//delete fragShader;
+	//delete vertShader;
+	//delete gd;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
