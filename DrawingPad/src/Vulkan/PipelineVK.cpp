@@ -72,7 +72,7 @@ namespace VkAPI
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationState.lineWidth = 1.0f;
 		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizationState.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};

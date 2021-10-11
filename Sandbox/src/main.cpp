@@ -2,9 +2,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <DrawingPad.h>
 #include <fstream>
@@ -47,7 +47,7 @@ void main() {
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 color;
-	glm::vec2 tex;
+	glm::vec3 normal;
 };
 
 struct UniformBufferObject {
@@ -55,30 +55,6 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 };
-
-void UpdateUniformBuffer(uint32_t index, uint32_t width, uint32_t height)
-{
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currTime - startTime).count();
-
-	UniformBufferObject ubo = {};
-	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), width / (float) height, 0.1f, 10.0f);
-	ubo.proj[1][1] += -1;
-}
-
-void printMat(glm::mat4 mat)
-{
-	int i, j;
-	for (j = 0; j < 4; j++) {
-		for (i = 0; i < 4; i++) {
-			printf("%f ", mat[i][j]);
-		}
-		printf("\n");
-	}
-}
 
 glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 front = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -95,6 +71,23 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_D && action == GLFW_PRESS)
 		pos += 0.05f * glm::normalize(glm::cross(front, up));
 }
+
+Vertex CylVert(float radius, float height, uint32_t step, uint32_t steps)
+{
+	Vertex vert = {
+		{0.0f, height, 0.0f},
+		{0.0f, 1.0f, 1.0f},
+		{0.0f, 0.0f, 1.0f}
+	};
+
+	float rot = 360.f * (float)step / (float)steps;
+	vert.pos.z += radius;
+	vert.pos = glm::rotateY(vert.pos, glm::radians(rot));
+	vert.normal = glm::rotateY(vert.normal, glm::radians(rot));
+	return vert;
+}
+
+
 
 int main() {
 	GraphicsDevice* gd;
@@ -125,6 +118,7 @@ int main() {
 	SwapchainDesc swapSpec;
 	swap = gd->CreateSwapchain(swapSpec, ctx, window);
 
+	/*
 	const std::vector<Vertex> vertices = {
 		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
 		{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
@@ -143,6 +137,68 @@ int main() {
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4
 	};
+	*/
+	float radius = 1.0f;
+	float height = 1.0f;
+	uint32_t steps = 24;
+	uint32_t totalTriangles = steps * 4;
+	std::vector<Vertex> vertices(totalTriangles * (uint32_t)3);
+	std::vector<uint16_t> indices(totalTriangles * (uint32_t)3);
+	std::vector<Vertex> quad(4);
+	uint32_t numTriangles = 0;
+	for (uint32_t i = 0; i < steps; i++)
+	{
+		quad[0] = CylVert(radius, 0.0f, i, steps);
+		quad[1] = CylVert(radius, 0.0f, i + 1, steps);
+		quad[2] = CylVert(radius, height, i + 1, steps);
+		quad[3] = CylVert(radius, height, i, steps);
+
+		uint32_t base = 3 * numTriangles;
+
+		vertices[base] = quad[0];
+		vertices[base+1] = quad[1];
+		vertices[base+2] = quad[3];
+
+		indices[base] = base;
+		indices[base+1] = base+1;
+		indices[base+2] = base+2;
+
+		numTriangles++;
+		base = 3 * numTriangles;
+
+		vertices[base] = quad[1];
+		vertices[base+1] = quad[2];
+		vertices[base+2] = quad[3];
+		
+		indices[base] = base;
+		indices[base+1] = base+1;
+		indices[base+2] = base+2;
+		
+		numTriangles++;
+		base = 3 * numTriangles;
+		
+		vertices[base] = quad[0];
+		vertices[base + 1] = { {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f} };
+		vertices[base+2] = quad[1];
+		
+		indices[base] = base;
+		indices[base + 1] = base + 1;
+		indices[base + 2] = base + 2;
+		
+		numTriangles++;
+		base = 3 * numTriangles;
+		
+		vertices[base] = quad[2];
+		vertices[base + 1] = { {0.0f, quad[3].pos.y, 0.0f}, {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f} };
+		vertices[base + 2] = quad[3];
+		
+		indices[base] = base;
+		indices[base + 1] = base + 1;
+		indices[base + 2] = base + 2;
+		
+		numTriangles++;
+	}
+
 
 	BufferDesc bufDesc = {};
 	bufDesc.Usage = BufferUsageFlags::Default;
@@ -167,12 +223,12 @@ int main() {
 	sDesc.EntryPoint = "main";
 	sDesc.Name = "Basic Vert";
 	//sDesc.Src = vertSrc;
-	sDesc.Path = "shaders/textured.vert";
+	sDesc.Path = "shaders/normals.vert";
 	sDesc.Type = ShaderType::Vertex;
 	vertShader = gd->CreateShader(sDesc);
 	sDesc.Name = "Basic Frag";
 	//sDesc.Src = fragSrc;
-	sDesc.Path = "shaders/textured.frag";
+	sDesc.Path = "shaders/normals.frag";
 	sDesc.Type = ShaderType::Fragment;
 	fragShader = gd->CreateShader(sDesc);
 
@@ -194,8 +250,8 @@ int main() {
 		{
 			2,
 			0,
-			2,
-			offsetof(Vertex, tex),
+			3,
+			offsetof(Vertex, normal),
 			sizeof(Vertex)
 		}
 	};
@@ -255,17 +311,16 @@ int main() {
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 			UniformBufferObject ubo = {};
-			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
-			//ubo.view = glm::inverse(glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
-			//ubo.view = glm::lookAt(pos, pos+front, up);
-			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			//ubo.view = glm::lookAt(pos, pos + front, up);
+			ubo.view = glm::lookAt(glm::vec3(0.0f, 2.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
+			//ubo.proj = glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
 			ubo.proj[1][1] *= -1;
-			//ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
 			ctx->UploadBuffer(ub, i * sizeof(ubo), sizeof(ubo), &ubo);
 		}
 		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
-		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);
+		//ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);
 		ctx->DrawIndexed(drawAttribs);
 		ctx->Flush();
 
