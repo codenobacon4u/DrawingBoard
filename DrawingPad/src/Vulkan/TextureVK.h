@@ -17,7 +17,7 @@ namespace VkAPI
 		VkImage GetImage() { return m_Image; }
 		VkSampler GetSampler() { return m_Sampler; }
 
-		TextureView* CreateView(const TextureViewDesc& desc);
+		virtual TextureView* CreateView(const TextureViewDesc& desc) override;
 
 	private:
 		void TransistionLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
