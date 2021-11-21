@@ -31,6 +31,6 @@ protected:
 		: m_Desc(desc) {}
 
 protected:
-	bool m_VSync;
+	bool m_VSync = false;
 	SwapchainDesc m_Desc;
 };

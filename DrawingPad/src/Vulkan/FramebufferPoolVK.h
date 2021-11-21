@@ -10,7 +10,7 @@ namespace VkAPI {
 	typedef struct FBKey {
 		VkRenderPass Pass = VK_NULL_HANDLE;
 		uint32_t AttachmentCount = 0;
-		VkImageView Attachments[9];
+		VkImageView Attachments[9] = {};
 		uint64_t CommandQueueMask = 0;
 
 		bool operator==(const FBKey& rhs) const;

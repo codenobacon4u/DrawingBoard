@@ -242,7 +242,7 @@ int main() {
 		ctx->Begin(i);
 		ctx->SetRenderTargets(1, &rtv, dsv);
 		ctx->ClearColor(rtv, nullptr);
-		//ctx->ClearDepth(dsv, ClearDepthStencil::Depth, 1, 0);
+		ctx->ClearDepth(dsv, ClearDepthStencil::Depth, 1, 0);
 		ctx->SetPipeline(pipeline);
 		Buffer* vertexBuffs[] = { vb };
 		uint32_t offsets[] = { 0 };

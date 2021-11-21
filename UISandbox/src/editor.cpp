@@ -13,7 +13,7 @@
 #include <glm/glm/gtx/rotate_vector.hpp>
 #include <imgui/imgui.h>
 
-#include "imgui_impl_glfw.cpp"
+#include "ImGuiWindow.h"
 
 API Curr_API = API::Vulkan;
 
@@ -91,6 +91,12 @@ static uint32_t __glsl_shader_frag_spv[] =
     0x00010038
 };
 
+struct Vertex {
+    glm::vec2 pos;
+    glm::vec2 tex;
+    glm::vec4 color;
+};
+
 bool rebuildSwap = false;
 
 bool showDemo = true;
@@ -104,9 +110,9 @@ int main() {
 	GraphicsDevice* gd;
 	GraphicsContext* ctx;
 	Swapchain* swap;
-	Buffer* vb;
-	Buffer* ib;
-	Buffer* ub;
+	Buffer* vb = nullptr;
+	Buffer* ib = nullptr;
+	Buffer* ub = nullptr;
 	Pipeline* pipeline;
 	Shader* vertShader;
 	Shader* fragShader;
@@ -129,13 +135,63 @@ int main() {
 	SwapchainDesc swapSpec;
 	swap = gd->CreateSwapchain(swapSpec, ctx, window);
 
+    // ======== Create Shaders ========
+    ShaderDesc sDesc = {};
+    sDesc.EntryPoint = "main";
+    sDesc.Name = "Basic Vert";
+    //sDesc.Src = vertSrc;
+    sDesc.Path = "shaders/ui.vert";
+    sDesc.Type = ShaderType::Vertex;
+    vertShader = gd->CreateShader(sDesc);
+    sDesc.Name = "Basic Frag";
+    //sDesc.Src = fragSrc;
+    sDesc.Path = "shaders/ui.frag";
+    sDesc.Type = ShaderType::Fragment;
+    fragShader = gd->CreateShader(sDesc);
+
+    LayoutElement vertInputs[]{
+        {
+            0, // InputIndex Location
+            0, // BufferSlot Binding
+            2, // Num Components
+            offsetof(Vertex, pos), // Offset
+            sizeof(Vertex) // Stride
+        },
+        {
+            1, // InputIndex Location
+            0, // BufferSlot Binding
+            2, // Num Components
+            offsetof(Vertex, tex),  // Offset
+            sizeof(Vertex) // Stride
+        },
+        {
+            2,
+            0,
+            4,
+            offsetof(Vertex, color),
+            sizeof(Vertex)
+        }
+    };
+
+    GraphicsPipelineDesc pDesc = {};
+    pDesc.NumViewports = 1;
+    pDesc.NumColors = 1;
+    pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
+    pDesc.DepthFormat = swap->GetDesc().DepthFormat;
+    pDesc.InputLayout.NumElements = 3;
+    pDesc.InputLayout.Elements = vertInputs;
+    pDesc.ShaderCount = 2;
+    pDesc.Shaders[0] = vertShader;
+    pDesc.Shaders[1] = fragShader;
+    pipeline = gd->CreateGraphicsPipeline(pDesc);
+
     // Setup Dear ImGui
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui::StyleColorsDark();
     
     // Setup Platform/Renderer backents
-    ImGui_ImplGlfw_InitForVulkan(window, true);
+    //ImGui_ImplGlfw_InitForVulkan(window, true);
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
     // Upload Fonts
@@ -145,7 +201,7 @@ int main() {
         unsigned char* pixels;
         int width, height;
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-        size_t upload_size = width * height * 4 * sizeof(char);
+        size_t upload_size = (size_t)width * (size_t)height * 4 * sizeof(char);
         {
             TextureDesc desc = {};
             desc.Type = TextureType::DimTex2D;
@@ -156,16 +212,17 @@ int main() {
             desc.MipLevels = 1;
             desc.ArraySize = 1;
             desc.SampleCount = 1;
-            fontImage = gd->CreateTexture(desc, nullptr);
+            desc.BindFlags = BindFlags::ShaderResource;
+            fontImage = gd->CreateTexture(desc, pixels);
         }
 
         {
             TextureViewDesc desc = {};
-            
+            desc.Format = TextureFormat::RGBA8Unorm;
             fontView = fontImage->CreateView(desc);
         }
-        // Submit CB
-        // Cleanup
+
+        io.Fonts->TexID = (ImTextureID)fontImage;
     }
     while (!glfwWindowShouldClose(window))
     {
@@ -178,7 +235,9 @@ int main() {
         }
 
         // API NewFrame()
+        {/*Noting to do*/}
         // GLFW NewFrame()
+        ImGui_ImplGlfw_NewFrame();
 
         if (showDemo)
             ImGui::ShowDemoWindow(&showDemo);
@@ -217,11 +276,101 @@ int main() {
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
         const bool mini = (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f);
-        if (!mini)
+
+        if (!mini && drawData->TotalVtxCount > 0)
         {
+            uint32_t i = swap->GetNextBackbuffer().first;
+            TextureView* rtv = swap->GetNextBackbuffer().second;
+            TextureView* dsv = swap->GetDepthBufferView();
+            float color[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
+            ctx->Begin(i);
+            ctx->SetRenderTargets(1, &rtv, dsv);
+            ctx->ClearColor(rtv, nullptr);
+            uint32_t vtxSize = drawData->TotalVtxCount * sizeof(ImDrawVert);
+            uint32_t idxSize = drawData->TotalIdxCount * sizeof(ImDrawIdx);
+            if (!vb || vb->GetSize() < vtxSize)
+            {
+                if (!vb)
+                    delete vb;
+                BufferDesc buffDesc = {};
+                buffDesc.Usage = BufferUsageFlags::Default;
+                buffDesc.BindFlags = BufferBindFlags::Vertex;
+                buffDesc.Size = vtxSize;
+                ImDrawVert* dst = new ImDrawVert[drawData->TotalVtxCount];
+                for (int32_t i = 0; i < drawData->CmdListsCount; i++)
+                {
+                    const ImDrawList* cmdLst = drawData->CmdLists[i];
+                    memcpy(dst, cmdLst->VtxBuffer.Data, cmdLst->VtxBuffer.Size * sizeof(ImDrawVert));
+                    dst += cmdLst->VtxBuffer.Size;
+                }
+                vb = gd->CreateBuffer(buffDesc, dst);
+                delete[] dst;
+            }
+            if (!ib || ib->GetSize() < idxSize)
+            {
+                if (!ib)
+                    delete ib;
+                BufferDesc buffDesc = {};
+                buffDesc.Usage = BufferUsageFlags::Default;
+                buffDesc.BindFlags = BufferBindFlags::Index;
+                buffDesc.Size = idxSize;
+                ImDrawIdx* dst = new ImDrawIdx[drawData->TotalIdxCount];
+                for (int32_t i = 0; i < drawData->CmdListsCount; i++)
+                {
+                    const ImDrawList* cmdLst = drawData->CmdLists[i];
+                    memcpy(dst, cmdLst->IdxBuffer.Data, cmdLst->IdxBuffer.Size * sizeof(ImDrawIdx));
+                    dst += cmdLst->IdxBuffer.Size;
+                }
+                ib = gd->CreateBuffer(buffDesc, dst);
+                delete[] dst;
+            }
             // Get clear color
             // Render Frame
+            ctx->SetPipeline(pipeline);
+            Buffer* vertexBuffs[] = { vb };
+            uint32_t offsets[] = { 0 };
+            ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
+            ctx->SetIndexBuffer(ib, 0);
+
+            ImVec2 clipOffset = drawData->DisplayPos;
+            ImVec2 clipScale = drawData->FramebufferScale;
+            uint32_t fbWidth = (uint32_t)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
+            uint32_t fbHeight = (uint32_t)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
+            uint32_t vtxOffset = 0, idxOffset = 0;
+            for (int32_t i = 0; i < drawData->CmdListsCount; i++)
+            {
+                const ImDrawList* cmdList = drawData->CmdLists[i];
+                for (int32_t j = 0; j < cmdList->CmdBuffer.Size; j++)
+                {
+                    const ImDrawCmd* cmd = &cmdList->CmdBuffer[j];
+                    ImVec4 clipRect;
+                    clipRect.x = (cmd->ClipRect.x - clipOffset.x) * clipScale.x;
+                    clipRect.y = (cmd->ClipRect.y - clipOffset.y) * clipScale.y;
+                    clipRect.x = (cmd->ClipRect.z - clipOffset.x) * clipScale.x;
+                    clipRect.x = (cmd->ClipRect.w - clipOffset.y) * clipScale.y;
+
+                    if (clipRect.x < fbWidth && clipRect.y < fbHeight && clipRect.z >= 0.0f && clipRect.w >= 0.0f)
+                    {
+                        if (clipRect.x < 0.0f)
+                            clipRect.x = 0.0f;
+                        if (clipRect.y < 0.0f)
+                            clipRect.y = 0.0f;
+
+                        ctx->SetScissors(1, (int32_t)clipRect.x, (int32_t)clipRect.y, (uint32_t)(clipRect.z - clipRect.x), (uint32_t)(clipRect.w - clipRect.y));
+                        DrawAttribs attribs = {};
+                        attribs.VrtIdxCount = cmd->ElemCount;
+                        attribs.InstanceCount = 1;
+                        attribs.FirstVrtIdx = cmd->IdxOffset + idxOffset;
+                        attribs.VertexOffset = cmd->VtxOffset + vtxOffset;
+                        attribs.FirstInstance = 0;
+                        ctx->DrawIndexed(attribs);
+                    }
+                }
+                vtxOffset += cmdList->VtxBuffer.Size;
+                idxOffset += cmdList->IdxBuffer.Size;
+            }
             // Present Frame
+            swap->Present(0);
         }
     }
 

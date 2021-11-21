@@ -252,7 +252,7 @@ namespace VkAPI {
 		m_CommandBuffer.SetViewports(0, num, vp);
 	}
 
-	void GraphicsContextVK::SetScissors(uint32_t num, const Viewport* viewports, uint32_t width, uint32_t height)
+	void GraphicsContextVK::SetScissors(uint32_t num, int32_t offX, int32_t offY, uint32_t width, uint32_t height)
 	{
 		if (width == 0 || height == 0)
 		{
@@ -260,15 +260,9 @@ namespace VkAPI {
 			height = m_FramebufferHeight;
 		}
 
-		Viewport defaultVP{ 0, 0, static_cast<float>(width), static_cast<float>(height) };
-		if (num == 1 && viewports == nullptr)
-		{
-			viewports = &defaultVP;
-		}
-
 		VkRect2D vp[MAX_VIEWPORTS];
 		for (uint32_t i = 0; i < num; i++) {
-			vp[i].offset = { 0,0 };
+			vp[i].offset = { offX, offY };
 			vp[i].extent = { width, height };
 		}
 
@@ -363,7 +357,7 @@ namespace VkAPI {
 		m_vkFramebuffer = fbPool.GetFramebuffer(fKey, m_FramebufferWidth, m_FramebufferHeight, m_FramebufferSlices);
 
 		SetViewports(1, nullptr, 0, 0);
-		SetScissors(1, nullptr, 0, 0);
+		SetScissors(1, 0, 0, 0, 0);
 	}
 	
 	void GraphicsContextVK::SetPipeline(Pipeline* pipeline)
@@ -407,7 +401,7 @@ namespace VkAPI {
 		BufferVK* buff = (BufferVK*)buffer;
 		auto& resource = m_Bindings.Sets[set][binding].Buffer;
 		resource.buffer = buff->Get();
-		resource.offset = m_FrameIndex * (buffer->GetSize() / 3);
+		resource.offset = (size_t)m_FrameIndex * (buffer->GetSize() / 3);
 		resource.range = buff->GetSize() / 3;
 		m_UpdateSetsMask |= 1 << set;
 	}
@@ -453,7 +447,7 @@ namespace VkAPI {
 	{
 		PrepareDraw();
 		vkCmdBindIndexBuffer(m_CommandBuffer.Get(), ((BufferVK*)m_IndexBuffer)->Get(), attribs.VertexOffset, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(m_CommandBuffer.Get(), attribs.VrtIdxCount, attribs.InstanceCount, attribs.FirstVrtIdx, attribs.VertexOffset, attribs.FirstVrtIdx);
+		vkCmdDrawIndexed(m_CommandBuffer.Get(), attribs.VrtIdxCount, attribs.InstanceCount, attribs.FirstVrtIdx, attribs.VertexOffset, attribs.FirstInstance);
 	}
 	
 	void GraphicsContextVK::DrawIndirect(const DrawIndirectAttribs& attribs)
