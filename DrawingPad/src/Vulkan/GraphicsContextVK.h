@@ -37,13 +37,14 @@ namespace VkAPI
 		virtual void SetScissors(uint32_t num, int32_t offX, int32_t offY, uint32_t width, uint32_t height) override;
 		virtual void SetRenderTargets(uint32_t numTargets, TextureView** targets, TextureView* depthStencil) override;
 		virtual void SetPipeline(Pipeline* pipeline) override;
-		virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint32_t* offset) override;
+		virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint64_t* offset) override;
 		virtual void SetIndexBuffer(Buffer* buffer, uint32_t offset) override;
 		virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Buffer* buffer) override;
 		virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Texture* buffer) override;
+		virtual void SetPushConstant(ShaderType stage, uint32_t offset, uint32_t size, void* data) override;
 
 		virtual void Draw(const DrawAttribs& attribs) override;
-		virtual void DrawIndexed(const DrawAttribs& attribs) override;
+		virtual void DrawIndexed(const DrawIndexAttribs& attribs) override;
 		virtual void DrawIndirect(const DrawIndirectAttribs& attribs) override;
 		virtual void DrawIndexedIndirect(const DrawIndirectAttribs& attribs) override;
 		//TODO: Look into drawing meshes

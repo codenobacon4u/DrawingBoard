@@ -364,40 +364,82 @@ namespace VkAPI
 		switch (type)
 		{
 		case ElementDataType::Float16:
-			switch (num)
+			if (normalized)
 			{
-			case 1: return VK_FORMAT_R16_SFLOAT;
-			case 2: return VK_FORMAT_R16G16_SFLOAT;
-			case 3: return VK_FORMAT_R16G16B16_SFLOAT;
-			case 4: return VK_FORMAT_R16G16B16A16_SFLOAT;
-			default: return VK_FORMAT_UNDEFINED;
+				return VK_FORMAT_UNDEFINED;
+			}
+			else
+			{
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R16_SFLOAT;
+				case 2: return VK_FORMAT_R16G16_SFLOAT;
+				case 3: return VK_FORMAT_R16G16B16_SFLOAT;
+				case 4: return VK_FORMAT_R16G16B16A16_SFLOAT;
+				default: return VK_FORMAT_UNDEFINED;
+				}
 			}
 		case ElementDataType::Float32:
-			switch (num)
+			if (normalized)
 			{
-			case 1: return VK_FORMAT_R32_SFLOAT;
-			case 2: return VK_FORMAT_R32G32_SFLOAT;
-			case 3: return VK_FORMAT_R32G32B32_SFLOAT;
-			case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-			default: return VK_FORMAT_UNDEFINED;
+				return VK_FORMAT_UNDEFINED;
+			}
+			else
+			{
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R32_SFLOAT;
+				case 2: return VK_FORMAT_R32G32_SFLOAT;
+				case 3: return VK_FORMAT_R32G32B32_SFLOAT;
+				case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
+				default: return VK_FORMAT_UNDEFINED;
+				}
 			}
 		case ElementDataType::Int8:
-			switch (num)
+			if (normalized)
 			{
-			case 1: return VK_FORMAT_R8_SINT;
-			case 2: return VK_FORMAT_R8G8_SINT;
-			case 3: return VK_FORMAT_R8G8B8_SINT;
-			case 4: return VK_FORMAT_R8G8B8A8_SINT;
-			default: return VK_FORMAT_UNDEFINED;
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R8_SNORM;
+				case 2: return VK_FORMAT_R8G8_SNORM;
+				case 3: return VK_FORMAT_R8G8B8_SNORM;
+				case 4: return VK_FORMAT_R8G8B8A8_SNORM;
+				default: return VK_FORMAT_UNDEFINED;
+				}
+			}
+			else
+			{
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R8_SINT;
+				case 2: return VK_FORMAT_R8G8_SINT;
+				case 3: return VK_FORMAT_R8G8B8_SINT;
+				case 4: return VK_FORMAT_R8G8B8A8_SINT;
+				default: return VK_FORMAT_UNDEFINED;
+				}
 			}
 		case ElementDataType::Int16:
-			switch (num)
+			if (normalized)
 			{
-			case 1: return VK_FORMAT_R16_SINT;
-			case 2: return VK_FORMAT_R16G16_SINT;
-			case 3: return VK_FORMAT_R16G16B16_SINT;
-			case 4: return VK_FORMAT_R16G16B16A16_SINT;
-			default: return VK_FORMAT_UNDEFINED;
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R16_SNORM;
+				case 2: return VK_FORMAT_R16G16_SNORM;
+				case 3: return VK_FORMAT_R16G16B16_SNORM;
+				case 4: return VK_FORMAT_R16G16B16A16_SNORM;
+				default: return VK_FORMAT_UNDEFINED;
+				}
+			}
+			else
+			{
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R16_SINT;
+				case 2: return VK_FORMAT_R16G16_SINT;
+				case 3: return VK_FORMAT_R16G16B16_SINT;
+				case 4: return VK_FORMAT_R16G16B16A16_SINT;
+				default: return VK_FORMAT_UNDEFINED;
+				}
 			}
 		case ElementDataType::Int32:
 			switch (num)
@@ -409,22 +451,50 @@ namespace VkAPI
 			default: return VK_FORMAT_UNDEFINED;
 			}
 		case ElementDataType::Uint8:
-			switch (num)
+			if (normalized)
 			{
-			case 1: return VK_FORMAT_R8_UINT;
-			case 2: return VK_FORMAT_R8G8_UINT;
-			case 3: return VK_FORMAT_R8G8B8_UINT;
-			case 4: return VK_FORMAT_R8G8B8A8_UINT;
-			default: return VK_FORMAT_UNDEFINED;
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R8_UNORM;
+				case 2: return VK_FORMAT_R8G8_UNORM;
+				case 3: return VK_FORMAT_R8G8B8_UNORM;
+				case 4: return VK_FORMAT_R8G8B8A8_UNORM;
+				default: return VK_FORMAT_UNDEFINED;
+				}
+			}
+			else
+			{
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R8_UINT;
+				case 2: return VK_FORMAT_R8G8_UINT;
+				case 3: return VK_FORMAT_R8G8B8_UINT;
+				case 4: return VK_FORMAT_R8G8B8A8_UINT;
+				default: return VK_FORMAT_UNDEFINED;
+				}
 			}
 		case ElementDataType::Uint16:
-			switch (num)
+			if (normalized)
 			{
-			case 1: return VK_FORMAT_R16_UINT;
-			case 2: return VK_FORMAT_R16G16_UINT;
-			case 3: return VK_FORMAT_R16G16B16_UINT;
-			case 4: return VK_FORMAT_R16G16B16A16_UINT;
-			default: return VK_FORMAT_UNDEFINED;
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R16_UNORM;
+				case 2: return VK_FORMAT_R16G16_UNORM;
+				case 3: return VK_FORMAT_R16G16B16_UNORM;
+				case 4: return VK_FORMAT_R16G16B16A16_UNORM;
+				default: return VK_FORMAT_UNDEFINED;
+				}
+			}
+			else
+			{
+				switch (num)
+				{
+				case 1: return VK_FORMAT_R16_UINT;
+				case 2: return VK_FORMAT_R16G16_UINT;
+				case 3: return VK_FORMAT_R16G16B16_UINT;
+				case 4: return VK_FORMAT_R16G16B16A16_UINT;
+				default: return VK_FORMAT_UNDEFINED;
+				}
 			}
 		case ElementDataType::Uint32:
 			switch (num)

@@ -4,6 +4,7 @@
 typedef struct SwapchainDesc {
 	uint32_t Width = 0;
 	uint32_t Height = 0;
+	std::vector<TextureFormat> SurfaceFormats = { TextureFormat::BGRA8UnormSRGB };
 	TextureFormat ColorFormat = TextureFormat::RGBA8UnormSRGB;
 	TextureFormat DepthFormat = TextureFormat::D32Float;
 	uint32_t BufferCount = 2;
@@ -18,7 +19,7 @@ public:
 	virtual void Present(uint32_t sync) = 0;
 	virtual void* GetNative() = 0;
 	virtual uint32_t GetImageIndex() = 0;
-	virtual std::pair<uint32_t, TextureView*> GetNextBackbuffer() = 0;
+	virtual TextureView* GetNextBackbuffer() = 0;
 	virtual TextureView* GetDepthBufferView() = 0;
 	
 	void SetVSync(bool enabled) { m_VSync = enabled; }

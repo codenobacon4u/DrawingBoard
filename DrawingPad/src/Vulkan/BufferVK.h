@@ -14,6 +14,9 @@ namespace VkAPI
 
 		~BufferVK();
 
+		virtual void MapMemory(uint64_t offset, uint64_t size, void** data);
+		virtual void FlushMemory();
+
 		VkBuffer Get() { return m_Buffer; }
 		VkDeviceMemory GetMemory() { return m_Memory; }
 
@@ -27,6 +30,8 @@ namespace VkAPI
 
 		VkBuffer m_Buffer;
 		VkDeviceMemory m_Memory;
+
+		VkDeviceSize m_Alignment = 256;
 
 		void* m_StageData = nullptr;
 	};

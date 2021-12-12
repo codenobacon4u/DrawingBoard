@@ -223,10 +223,10 @@ int main() {
 		printf("GLFW Version: %s\nGL Version: %s\nGL Renderer: %s\nGL Vendor: %s\n", glfwVersion, glVersion, glRenderer, glVendor);
 	}
 
-	DrawAttribs drawAttribs = {};
-	drawAttribs.VrtIdxCount = static_cast<uint32_t>(indices.size());
+	DrawIndexAttribs drawAttribs = {};
+	drawAttribs.IndexCount = static_cast<uint32_t>(indices.size());
 	drawAttribs.InstanceCount = 1;
-	drawAttribs.FirstVrtIdx = 0;
+	drawAttribs.FirstIndex = 0;
 	drawAttribs.FirstInstance = 0;
 
 	while (!glfwWindowShouldClose(window))
@@ -235,17 +235,16 @@ int main() {
 		glfwPollEvents();
 
 		//====RENDER====
-		uint32_t i = swap->GetNextBackbuffer().first;
-		TextureView* rtv = swap->GetNextBackbuffer().second;
+		TextureView* rtv = swap->GetNextBackbuffer();
 		TextureView* dsv = swap->GetDepthBufferView();
 		float color[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
-		ctx->Begin(i);
+		ctx->Begin(swap->GetImageIndex());
 		ctx->SetRenderTargets(1, &rtv, dsv);
 		ctx->ClearColor(rtv, nullptr);
 		ctx->ClearDepth(dsv, ClearDepthStencil::Depth, 1, 0);
 		ctx->SetPipeline(pipeline);
 		Buffer* vertexBuffs[] = { vb };
-		uint32_t offsets[] = { 0 };
+		uint64_t offsets[] = { 0 };
 		ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
 		ctx->SetIndexBuffer(ib, 0);
 		
@@ -261,7 +260,7 @@ int main() {
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
 			ubo.proj[1][1] *= -1;
 			//ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
-			ctx->UploadBuffer(ub, i * sizeof(ubo), sizeof(ubo), &ubo);
+			ctx->UploadBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
 		}
 		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
 		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);

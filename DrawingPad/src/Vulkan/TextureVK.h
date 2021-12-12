@@ -20,8 +20,8 @@ namespace VkAPI
 		virtual TextureView* CreateView(const TextureViewDesc& desc) override;
 
 	private:
-		void TransistionLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
-		void CopyFromBuffer(VkBuffer buffer, uint32_t width, uint32_t height);
+		void TransistionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout);
+		void CopyFromBuffer(VkCommandBuffer cmd, VkBuffer buffer, uint32_t width, uint32_t height);
 
 	private:
 		GraphicsDeviceVK* m_Device;

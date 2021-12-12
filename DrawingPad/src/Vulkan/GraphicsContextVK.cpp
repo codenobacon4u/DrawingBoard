@@ -141,17 +141,24 @@ namespace VkAPI {
 			const auto& state = m_CommandBuffer.GetState();
 			if (state.Framebuffer != m_vkFramebuffer)
 			{
-				VkClearValue clear[2] = {};
-				clear[0].depthStencil = { 1.0f, 0 };
-				clear[1].color.float32[0] = 0.f;//color[0];
-				clear[1].color.float32[1] = 0.f;//color[1];
-				clear[1].color.float32[2] = 0.f;//color[2];
-				clear[1].color.float32[3] = 1.f;//color[3];
+				std::vector<VkClearValue> clear = {};
+				if (m_DepthStencil != nullptr)
+				{
+					VkClearValue depth = {};
+					depth.depthStencil = { 1.0f, 0 };
+					clear.emplace_back(depth);
+				}
+				VkClearValue clr = {};
+				clr.color.float32[0] = color[0];
+				clr.color.float32[1] = color[1];
+				clr.color.float32[2] = color[2];
+				clr.color.float32[3] = color[3];
+				clear.emplace_back(clr);
 
 				if (state.RenderPass != VK_NULL_HANDLE)
 					m_CommandBuffer.EndRenderPass();
 				if (m_vkFramebuffer != VK_NULL_HANDLE)
-					m_CommandBuffer.BeginRenderPass(m_vkRenderPass, m_vkFramebuffer, m_FramebufferWidth, m_FramebufferHeight, 2, clear);
+					m_CommandBuffer.BeginRenderPass(m_vkRenderPass, m_vkFramebuffer, m_FramebufferWidth, m_FramebufferHeight, clear.size(), clear.data());
 			}
 		}
 		else
@@ -367,10 +374,13 @@ namespace VkAPI {
 		vkCmdBindPipeline(m_CommandBuffer.Get(), VK_PIPELINE_BIND_POINT_GRAPHICS, vkPipeline->Get());
 	}
 	
-	void GraphicsContextVK::SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint32_t* offset)
+	void GraphicsContextVK::SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint64_t* offset)
 	{
 		for (uint32_t i = m_NumVertexBuffers, j = 0; i < m_NumVertexBuffers + num; i++, j++)
+		{
 			m_VertexBuffers[i] = buffers[j];
+			m_VertexOffsets[i] = offset ? *offset : 0;
+		}
 		m_NumVertexBuffers += num;
 	}
 	
@@ -401,8 +411,16 @@ namespace VkAPI {
 		BufferVK* buff = (BufferVK*)buffer;
 		auto& resource = m_Bindings.Sets[set][binding].Buffer;
 		resource.buffer = buff->Get();
-		resource.offset = (size_t)m_FrameIndex * (buffer->GetSize() / 3);
-		resource.range = buff->GetSize() / 3;
+		if (buffer->GetDesc().Buffered)
+		{
+			resource.offset = (size_t)m_FrameIndex * (buffer->GetSize() / 3);
+			resource.range = buff->GetSize() / 3;
+		}
+		else
+		{
+			resource.offset = 0;
+			resource.range = buff->GetSize();
+		}
 		m_UpdateSetsMask |= 1 << set;
 	}
 
@@ -436,6 +454,11 @@ namespace VkAPI {
 		resource.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		m_UpdateSetsMask |= 1 << set;
 	}
+
+	void GraphicsContextVK::SetPushConstant(ShaderType stage, uint32_t offset, uint32_t size, void* data)
+	{
+		vkCmdPushConstants(m_CommandBuffer.Get(), ((PipelineVK*)m_Pipeline)->GetProgram()->GetPipelineLayout(), (VkShaderStageFlags)stage, offset, size, data);
+	}
 	
 	void GraphicsContextVK::Draw(const DrawAttribs& attribs)
 	{
@@ -443,11 +466,11 @@ namespace VkAPI {
 		vkCmdDraw(m_CommandBuffer.Get(), attribs.VrtIdxCount, attribs.InstanceCount, attribs.FirstVrtIdx, attribs.FirstInstance);
 	}
 	
-	void GraphicsContextVK::DrawIndexed(const DrawAttribs& attribs)
+	void GraphicsContextVK::DrawIndexed(const DrawIndexAttribs& attribs)
 	{
 		PrepareDraw();
-		vkCmdBindIndexBuffer(m_CommandBuffer.Get(), ((BufferVK*)m_IndexBuffer)->Get(), attribs.VertexOffset, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(m_CommandBuffer.Get(), attribs.VrtIdxCount, attribs.InstanceCount, attribs.FirstVrtIdx, attribs.VertexOffset, attribs.FirstInstance);
+		vkCmdBindIndexBuffer(m_CommandBuffer.Get(), ((BufferVK*)m_IndexBuffer)->Get(), 0, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(m_CommandBuffer.Get(), attribs.IndexCount, attribs.InstanceCount, attribs.FirstIndex, attribs.VertexOffset, attribs.FirstInstance);
 	}
 	
 	void GraphicsContextVK::DrawIndirect(const DrawIndirectAttribs& attribs)
@@ -500,8 +523,7 @@ namespace VkAPI {
 		buffs.resize(m_NumVertexBuffers);
 		for (uint32_t i = 0; i < m_NumVertexBuffers; i++)
 			buffs[i] = ((BufferVK*)m_VertexBuffers[i])->Get();
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_CommandBuffer.Get(), 0, m_NumVertexBuffers, buffs.data(), offsets);
+		vkCmdBindVertexBuffers(m_CommandBuffer.Get(), 0, m_NumVertexBuffers, buffs.data(), m_VertexOffsets);
 		
 		BindDescriptorSets();
 	}

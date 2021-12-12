@@ -29,6 +29,7 @@ enum class Usage
 };
 
 enum class TextureFormat : uint32_t {
+	None,
 	Unknown,
 
 	R8Uint,

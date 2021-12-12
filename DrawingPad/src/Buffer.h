@@ -67,6 +67,9 @@ public:
 
 	virtual ~Buffer() {}
 
+	virtual void MapMemory(uint64_t offset, uint64_t size, void** data) = 0;
+	virtual void FlushMemory() = 0;
+
 	BufferDesc GetDesc() const { return m_Desc; }
 
 	uint32_t GetStride() { return m_Desc.Stride; }

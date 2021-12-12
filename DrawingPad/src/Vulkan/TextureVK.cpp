@@ -67,9 +67,21 @@ namespace VkAPI
 			memcpy(temp, data, static_cast<size_t>(bufDesc.Size));
 			vkUnmapMemory(m_Device->Get(), staging.GetMemory());
 
-			TransistionLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			CopyFromBuffer(staging.Get(), m_Desc.Width, m_Desc.Height);
-			TransistionLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			VkQueue graphics = m_Device->GetGraphicsQueue();
+			VkCommandBuffer cmd = m_Device->GetTempCommandPool().GetBuffer();
+			
+			TransistionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			CopyFromBuffer(cmd, staging.Get(), m_Desc.Width, m_Desc.Height);
+			TransistionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+			vkEndCommandBuffer(cmd);
+			VkSubmitInfo submit = {};
+			submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submit.commandBufferCount = 1;
+			submit.pCommandBuffers = &cmd;
+			vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
+			vkQueueWaitIdle(graphics);
+			//m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 
 			TextureViewDesc texDesc = {};
 			texDesc.Format = m_Desc.Format;
@@ -81,19 +93,12 @@ namespace VkAPI
 			sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 			sampler.magFilter = VK_FILTER_LINEAR;
 			sampler.minFilter = VK_FILTER_LINEAR;
+			sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 			sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			sampler.anisotropyEnable = VK_FALSE;
-			sampler.maxAnisotropy = 1.0f;//m_Device->GetPhysicalLimits().maxSamplerAnisotropy;
-			sampler.borderColor = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
-			sampler.unnormalizedCoordinates = VK_FALSE;
-			sampler.compareEnable = VK_FALSE;
-			sampler.compareOp = VK_COMPARE_OP_ALWAYS;
-			sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			sampler.mipLodBias = 0.0f;
-			sampler.minLod = 0.0f;
-			sampler.maxLod = 0.0f;
+			sampler.minLod = -1000;
+			sampler.maxLod = 1000;
 
 			vkCreateSampler(m_Device->Get(), &sampler, nullptr, &m_Sampler);
 		}
@@ -137,11 +142,8 @@ namespace VkAPI
 		return DBG_NEW TextureViewVK(m_Device, updatedDesc, this, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
-	void TextureVK::TransistionLayout(VkImageLayout oldLayout, VkImageLayout newLayout)
+	void TextureVK::TransistionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		VkQueue graphics = m_Device->GetGraphicsQueue();
-		VkCommandBuffer cmd = m_Device->GetTempCommandPool().GetBuffer();
-
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.oldLayout = oldLayout;
@@ -174,22 +176,10 @@ namespace VkAPI
 			throw std::invalid_argument("Unsupported layout transition!");
 
 		vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-		vkEndCommandBuffer(cmd);
-		VkSubmitInfo submit = {};
-		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit.commandBufferCount = 1;
-		submit.pCommandBuffers = &cmd;
-		vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
-		vkQueueWaitIdle(graphics);
-		//m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 	}
 
-	void TextureVK::CopyFromBuffer(VkBuffer buffer, uint32_t width, uint32_t height)
+	void TextureVK::CopyFromBuffer(VkCommandBuffer cmd, VkBuffer buffer, uint32_t width, uint32_t height)
 	{
-		VkQueue graphics = m_Device->GetGraphicsQueue();
-		VkCommandBuffer cmd = m_Device->GetTempCommandPool().GetBuffer();
-
 		VkBufferImageCopy region = {};
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;
@@ -206,15 +196,6 @@ namespace VkAPI
 		};
 
 		vkCmdCopyBufferToImage(cmd, buffer, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-		vkEndCommandBuffer(cmd);
-		VkSubmitInfo submit = {};
-		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit.commandBufferCount = 1;
-		submit.pCommandBuffers = &cmd;
-		vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
-		vkQueueWaitIdle(graphics);
-		//m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 	}
 
 	TextureViewVK::TextureViewVK(GraphicsDeviceVK* device, const TextureViewDesc& desc, TextureVK* texture, VkImageAspectFlags aspectFlags)

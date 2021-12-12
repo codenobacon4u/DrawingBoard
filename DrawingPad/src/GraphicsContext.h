@@ -44,6 +44,14 @@ struct DrawAttribs {
 	uint32_t VertexOffset;
 };
 
+struct DrawIndexAttribs {
+	uint32_t IndexCount;
+	uint32_t InstanceCount;
+	uint32_t FirstIndex;
+	uint32_t VertexOffset;
+	uint32_t FirstInstance;
+};
+
 struct DrawIndirectAttribs {
 	Buffer* Buffer;
 	uint64_t Offset;
@@ -111,13 +119,14 @@ public:
 	virtual void SetScissors(uint32_t num, int32_t offX, int32_t offY, uint32_t width, uint32_t height) = 0;
 	virtual void SetRenderTargets(uint32_t numTargets, TextureView** targets, TextureView* depthStencil) = 0;
 	virtual void SetPipeline(Pipeline* pipeline) = 0;
-	virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint32_t* offsets) = 0;
+	virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint64_t* offsets) = 0;
 	virtual void SetIndexBuffer(Buffer* buffer, uint32_t offset) = 0;
 	virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Buffer* buffer) = 0;
 	virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Texture* buffer) = 0;
+	virtual void SetPushConstant(ShaderType stage, uint32_t offset, uint32_t size, void* data) = 0;
 	
 	virtual void Draw(const DrawAttribs& attribs) = 0;
-	virtual void DrawIndexed(const DrawAttribs& attribs) = 0;
+	virtual void DrawIndexed(const DrawIndexAttribs& attribs) = 0;
 	virtual void DrawIndirect(const DrawIndirectAttribs& attribs) = 0;
 	virtual void DrawIndexedIndirect(const DrawIndirectAttribs& attribs) = 0;
 	//TODO: Look into drawing meshes
@@ -138,6 +147,7 @@ protected:
 	
 	uint32_t m_NumVertexBuffers = 0;
 	Buffer* m_VertexBuffers[32] = {};
+	uint64_t m_VertexOffsets[32] = { 0 };
 	Buffer* m_IndexBuffer = nullptr;
 
 	uint32_t m_NumViewports = 0;

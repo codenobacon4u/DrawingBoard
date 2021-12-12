@@ -4,136 +4,272 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <DrawingPad.h>
 #include <fstream>
+#include <iomanip>
 #include <chrono>
 #include <iostream>
 #include <glm/glm/gtx/string_cast.hpp>
 #include <glm/glm/gtx/rotate_vector.hpp>
 #include <imgui/imgui.h>
 
-#include "ImGuiWindow.h"
+#include <imgui/backends/imgui_impl_glfw.h>
 
 API Curr_API = API::Vulkan;
-
-static uint32_t __glsl_shader_vert_spv[] =
-{
-    0x07230203,0x00010000,0x00080001,0x0000002e,0x00000000,0x00020011,0x00000001,0x0006000b,
-    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
-    0x000a000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000b,0x0000000f,0x00000015,
-    0x0000001b,0x0000001c,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
-    0x00000000,0x00030005,0x00000009,0x00000000,0x00050006,0x00000009,0x00000000,0x6f6c6f43,
-    0x00000072,0x00040006,0x00000009,0x00000001,0x00005655,0x00030005,0x0000000b,0x0074754f,
-    0x00040005,0x0000000f,0x6c6f4361,0x0000726f,0x00030005,0x00000015,0x00565561,0x00060005,
-    0x00000019,0x505f6c67,0x65567265,0x78657472,0x00000000,0x00060006,0x00000019,0x00000000,
-    0x505f6c67,0x7469736f,0x006e6f69,0x00030005,0x0000001b,0x00000000,0x00040005,0x0000001c,
-    0x736f5061,0x00000000,0x00060005,0x0000001e,0x73755075,0x6e6f4368,0x6e617473,0x00000074,
-    0x00050006,0x0000001e,0x00000000,0x61635375,0x0000656c,0x00060006,0x0000001e,0x00000001,
-    0x61725475,0x616c736e,0x00006574,0x00030005,0x00000020,0x00006370,0x00040047,0x0000000b,
-    0x0000001e,0x00000000,0x00040047,0x0000000f,0x0000001e,0x00000002,0x00040047,0x00000015,
-    0x0000001e,0x00000001,0x00050048,0x00000019,0x00000000,0x0000000b,0x00000000,0x00030047,
-    0x00000019,0x00000002,0x00040047,0x0000001c,0x0000001e,0x00000000,0x00050048,0x0000001e,
-    0x00000000,0x00000023,0x00000000,0x00050048,0x0000001e,0x00000001,0x00000023,0x00000008,
-    0x00030047,0x0000001e,0x00000002,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,
-    0x00030016,0x00000006,0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040017,
-    0x00000008,0x00000006,0x00000002,0x0004001e,0x00000009,0x00000007,0x00000008,0x00040020,
-    0x0000000a,0x00000003,0x00000009,0x0004003b,0x0000000a,0x0000000b,0x00000003,0x00040015,
-    0x0000000c,0x00000020,0x00000001,0x0004002b,0x0000000c,0x0000000d,0x00000000,0x00040020,
-    0x0000000e,0x00000001,0x00000007,0x0004003b,0x0000000e,0x0000000f,0x00000001,0x00040020,
-    0x00000011,0x00000003,0x00000007,0x0004002b,0x0000000c,0x00000013,0x00000001,0x00040020,
-    0x00000014,0x00000001,0x00000008,0x0004003b,0x00000014,0x00000015,0x00000001,0x00040020,
-    0x00000017,0x00000003,0x00000008,0x0003001e,0x00000019,0x00000007,0x00040020,0x0000001a,
-    0x00000003,0x00000019,0x0004003b,0x0000001a,0x0000001b,0x00000003,0x0004003b,0x00000014,
-    0x0000001c,0x00000001,0x0004001e,0x0000001e,0x00000008,0x00000008,0x00040020,0x0000001f,
-    0x00000009,0x0000001e,0x0004003b,0x0000001f,0x00000020,0x00000009,0x00040020,0x00000021,
-    0x00000009,0x00000008,0x0004002b,0x00000006,0x00000028,0x00000000,0x0004002b,0x00000006,
-    0x00000029,0x3f800000,0x00050036,0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,
-    0x00000005,0x0004003d,0x00000007,0x00000010,0x0000000f,0x00050041,0x00000011,0x00000012,
-    0x0000000b,0x0000000d,0x0003003e,0x00000012,0x00000010,0x0004003d,0x00000008,0x00000016,
-    0x00000015,0x00050041,0x00000017,0x00000018,0x0000000b,0x00000013,0x0003003e,0x00000018,
-    0x00000016,0x0004003d,0x00000008,0x0000001d,0x0000001c,0x00050041,0x00000021,0x00000022,
-    0x00000020,0x0000000d,0x0004003d,0x00000008,0x00000023,0x00000022,0x00050085,0x00000008,
-    0x00000024,0x0000001d,0x00000023,0x00050041,0x00000021,0x00000025,0x00000020,0x00000013,
-    0x0004003d,0x00000008,0x00000026,0x00000025,0x00050081,0x00000008,0x00000027,0x00000024,
-    0x00000026,0x00050051,0x00000006,0x0000002a,0x00000027,0x00000000,0x00050051,0x00000006,
-    0x0000002b,0x00000027,0x00000001,0x00070050,0x00000007,0x0000002c,0x0000002a,0x0000002b,
-    0x00000028,0x00000029,0x00050041,0x00000011,0x0000002d,0x0000001b,0x0000000d,0x0003003e,
-    0x0000002d,0x0000002c,0x000100fd,0x00010038
-};
-
-static uint32_t __glsl_shader_frag_spv[] =
-{
-    0x07230203,0x00010000,0x00080001,0x0000001e,0x00000000,0x00020011,0x00000001,0x0006000b,
-    0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
-    0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x0000000d,0x00030010,
-    0x00000004,0x00000007,0x00030003,0x00000002,0x000001c2,0x00040005,0x00000004,0x6e69616d,
-    0x00000000,0x00040005,0x00000009,0x6c6f4366,0x0000726f,0x00030005,0x0000000b,0x00000000,
-    0x00050006,0x0000000b,0x00000000,0x6f6c6f43,0x00000072,0x00040006,0x0000000b,0x00000001,
-    0x00005655,0x00030005,0x0000000d,0x00006e49,0x00050005,0x00000016,0x78655473,0x65727574,
-    0x00000000,0x00040047,0x00000009,0x0000001e,0x00000000,0x00040047,0x0000000d,0x0000001e,
-    0x00000000,0x00040047,0x00000016,0x00000022,0x00000000,0x00040047,0x00000016,0x00000021,
-    0x00000000,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,0x00030016,0x00000006,
-    0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x00040020,0x00000008,0x00000003,
-    0x00000007,0x0004003b,0x00000008,0x00000009,0x00000003,0x00040017,0x0000000a,0x00000006,
-    0x00000002,0x0004001e,0x0000000b,0x00000007,0x0000000a,0x00040020,0x0000000c,0x00000001,
-    0x0000000b,0x0004003b,0x0000000c,0x0000000d,0x00000001,0x00040015,0x0000000e,0x00000020,
-    0x00000001,0x0004002b,0x0000000e,0x0000000f,0x00000000,0x00040020,0x00000010,0x00000001,
-    0x00000007,0x00090019,0x00000013,0x00000006,0x00000001,0x00000000,0x00000000,0x00000000,
-    0x00000001,0x00000000,0x0003001b,0x00000014,0x00000013,0x00040020,0x00000015,0x00000000,
-    0x00000014,0x0004003b,0x00000015,0x00000016,0x00000000,0x0004002b,0x0000000e,0x00000018,
-    0x00000001,0x00040020,0x00000019,0x00000001,0x0000000a,0x00050036,0x00000002,0x00000004,
-    0x00000000,0x00000003,0x000200f8,0x00000005,0x00050041,0x00000010,0x00000011,0x0000000d,
-    0x0000000f,0x0004003d,0x00000007,0x00000012,0x00000011,0x0004003d,0x00000014,0x00000017,
-    0x00000016,0x00050041,0x00000019,0x0000001a,0x0000000d,0x00000018,0x0004003d,0x0000000a,
-    0x0000001b,0x0000001a,0x00050057,0x00000007,0x0000001c,0x00000017,0x0000001b,0x00050085,
-    0x00000007,0x0000001d,0x00000012,0x0000001c,0x0003003e,0x00000009,0x0000001d,0x000100fd,
-    0x00010038
-};
 
 struct Vertex {
     glm::vec2 pos;
     glm::vec2 tex;
-    glm::vec4 color;
+    uint8_t color[4];
 };
+
+struct UniformBufferObject {
+    glm::vec2 scale;
+    glm::vec2 translate;
+};
+
+struct FrameRenderBuffers {
+    Buffer* VertexBuffer;
+    Buffer* IndexBuffer;
+    Buffer* UploadBuffer;
+};
+
+struct WindowBuffers
+{
+    uint32_t Index;
+    uint32_t Count;
+    FrameRenderBuffers* FrameBuffers;
+};
+
+struct WindowData
+{
+    int Width;
+    int Height;
+    GraphicsContext* Context;
+    Swapchain* Swapchain;
+    RenderPass* RenderPass;
+    Pipeline* Pipline;
+    glm::vec4 ClearValue;
+    uint32_t FrameIndex;
+    uint32_t ImageCount;
+
+    WindowData()
+    {
+        memset(this, 0, sizeof(*this));
+    }
+};
+
+struct RenderData
+{
+    GraphicsDevice* Device;
+    RenderPass* RenderPass;
+    uint64_t BufferMemoryAlignment;
+    Pipeline* Pipeline;
+
+    Texture* FontImage;
+    TextureView* FontView;
+    Buffer* UploadBuffer;
+
+    WindowBuffers MainWindowBuffers;
+
+    RenderData()
+    {
+        memset(this, 0, sizeof(*this));
+        BufferMemoryAlignment = 256;
+    }
+};
+
+GraphicsDevice* gd;
+GraphicsContext* ctx;
+Shader* vertShader;
+Shader* fragShader;
 
 bool rebuildSwap = false;
 
-bool showDemo = true;
-bool showAnother = false;
-ImVec4 clear = ImVec4(0.45f, 0.55f, 0.6f, 1.0f);
+static void FrameRender(WindowData* wd, RenderData* rd, ImDrawData* drawData)
+{
+    auto ctx = wd->Context;
+    auto rt = wd->Swapchain->GetNextBackbuffer();
+    ctx->Begin(wd->Swapchain->GetImageIndex());
+    ctx->SetRenderTargets(1, &rt, nullptr);
+    ctx->ClearColor(rt, glm::value_ptr(wd->ClearValue));
 
-Texture* fontImage;
-TextureView* fontView;
+    {
+        int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
+        int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
+        if (fb_width <= 0 || fb_height <= 0)
+            return;
+
+        auto wrb = &rd->MainWindowBuffers;
+        if (wrb->FrameBuffers == nullptr)
+        {
+            wrb->Index = 0;
+            wrb->Count = wd->ImageCount;
+            wrb->FrameBuffers = (FrameRenderBuffers*)malloc(sizeof(FrameRenderBuffers) * wrb->Count);
+            memset(wrb->FrameBuffers, 0, sizeof(FrameRenderBuffers) * wrb->Count);
+        }
+
+        wrb->Index = wd->Swapchain->GetImageIndex();
+        auto rb = &wrb->FrameBuffers[wrb->Index];
+
+        if (drawData->TotalVtxCount > 0)
+        {
+            size_t vertex_size = drawData->TotalVtxCount * sizeof(ImDrawVert);
+            size_t index_size = drawData->TotalIdxCount * sizeof(ImDrawIdx);
+            if (rb->VertexBuffer == nullptr || rb->VertexBuffer->GetSize() < vertex_size)
+            {
+                if (rb->VertexBuffer != nullptr)
+                    delete rb->VertexBuffer;
+
+                size_t sizeAligned = ((vertex_size - 1) / rd->BufferMemoryAlignment + 1) * rd->BufferMemoryAlignment;
+                BufferDesc desc = {};
+                desc.Size = sizeAligned;
+                desc.BindFlags = BufferBindFlags::Vertex;
+                rb->VertexBuffer = rd->Device->CreateBuffer(desc, nullptr);
+            }
+            if (rb->IndexBuffer == nullptr || rb->IndexBuffer->GetSize() < index_size)
+            {
+                if (rb->IndexBuffer != nullptr)
+                    delete rb->IndexBuffer;
+
+                size_t sizeAligned = ((index_size - 1) / rd->BufferMemoryAlignment + 1) * rd->BufferMemoryAlignment;
+                BufferDesc desc = {};
+                desc.Size = sizeAligned;
+                desc.BindFlags = BufferBindFlags::Index;
+                rb->IndexBuffer = rd->Device->CreateBuffer(desc, nullptr);
+            }
+
+            ImDrawVert* vtx_dst = nullptr;
+            ImDrawIdx* idx_dst = nullptr;
+            rb->VertexBuffer->MapMemory(0, rb->VertexBuffer->GetSize(), (void**)(&vtx_dst));
+            rb->IndexBuffer->MapMemory(0, rb->IndexBuffer->GetSize(), (void**)(&idx_dst));
+            for (int n = 0; n < drawData->CmdListsCount; n++)
+            {
+                const ImDrawList* cmdList = drawData->CmdLists[n];
+                memcpy(vtx_dst, cmdList->VtxBuffer.Data, cmdList->VtxBuffer.Size * sizeof(ImDrawVert));
+                memcpy(idx_dst, cmdList->IdxBuffer.Data, cmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
+                vtx_dst += cmdList->VtxBuffer.Size;
+                idx_dst += cmdList->IdxBuffer.Size;
+            }
+            rb->VertexBuffer->FlushMemory();
+            rb->IndexBuffer->FlushMemory();
+        }
+        // Setup Render State
+        {
+            ctx->SetPipeline(wd->Pipline);
+
+            if (drawData->TotalVtxCount > 0)
+            {
+                Buffer* vertexBuffers[1] = { rb->VertexBuffer };
+                uint64_t vertexOffset[1] = { 0 };
+                ctx->SetVertexBuffers(0, 1, vertexBuffers, vertexOffset);
+                ctx->SetIndexBuffer(rb->IndexBuffer, 0);
+            }
+
+            {
+                Viewport viewport;
+                viewport.X = 0;
+                viewport.Y = 0;
+                viewport.Width = (float)fb_width;
+                viewport.Height = (float)fb_height;
+                viewport.minDepth = 0.0f;
+                viewport.maxDepth = 1.0f;
+                ctx->SetViewports(1, &viewport, fb_width, fb_height);
+            }
+
+            if (drawData->TotalVtxCount > 0) {
+                float scale[2];
+                scale[0] = 2.0f / drawData->DisplaySize.x;
+                scale[1] = 2.0f / drawData->DisplaySize.y;
+                float translate[2];
+                translate[0] = -1.0f - drawData->DisplayPos.x * scale[0];
+                translate[1] = -1.0f - drawData->DisplayPos.y * scale[1];
+                UniformBufferObject ubo = {};
+                ubo.scale = glm::vec2(scale[0], scale[1]);
+                ubo.translate = glm::vec2(translate[0], translate[1]);
+                
+                ctx->SetPushConstant(ShaderType::Vertex, sizeof(float) * 0, sizeof(float) * 2, scale);
+                ctx->SetPushConstant(ShaderType::Vertex, sizeof(float) * 2, sizeof(float) * 2, translate);
+
+                ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 0, rd->FontImage);
+            }
+        }
+
+        ImVec2 clipOff = drawData->DisplayPos;
+        ImVec2 clipScale = drawData->FramebufferScale;
+
+        int globalVtxOffset = 0;
+        int globalIdxOffset = 0;
+        for (int n = 0; n < drawData->CmdListsCount; n++)
+        {
+            const ImDrawList* cmdList = drawData->CmdLists[n];
+            for (int i = 0; i < cmdList->CmdBuffer.Size; i++)
+            {
+                const ImDrawCmd* cmd = &cmdList->CmdBuffer[i];
+                ImVec2 clipMin((cmd->ClipRect.x - clipOff.x) * clipScale.x, (cmd->ClipRect.y - clipOff.y) * clipScale.y);
+                ImVec2 clipMax((cmd->ClipRect.z - clipOff.x) * clipScale.x, (cmd->ClipRect.w - clipOff.y) * clipScale.y);
+
+                if (clipMin.x < 0.0f) { clipMin.x = 0.0f; }
+                if (clipMin.y < 0.0f) { clipMin.y = 0.0f; }
+                if (clipMax.x > fb_width) { clipMax.x = (float)fb_width; }
+                if (clipMax.y > fb_height) { clipMax.x = (float)fb_height; }
+                if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
+                    continue;
+
+                ctx->SetScissors(1, (uint32_t)clipMin.x, (uint32_t)clipMin.y, (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y));
+
+                DrawIndexAttribs attribs = {};
+                attribs.IndexCount = cmd->ElemCount;
+                attribs.InstanceCount = 1;
+                attribs.FirstIndex = cmd->IdxOffset + globalIdxOffset;
+                attribs.VertexOffset = cmd->VtxOffset + globalVtxOffset;
+                attribs.FirstInstance = 0;
+                ctx->DrawIndexed(attribs);
+            }
+            globalIdxOffset += cmdList->IdxBuffer.Size;
+            globalVtxOffset += cmdList->VtxBuffer.Size;
+        }
+        
+        ctx->SetScissors(1, 0, 0, fb_width, fb_height);
+    }
+
+    ctx->Flush();
+}
+
+static void FramePresent(WindowData* wd)
+{
+    wd->Swapchain->Present(0);
+}
 
 int main() {
-	GraphicsDevice* gd;
-	GraphicsContext* ctx;
-	Swapchain* swap;
-	Buffer* vb = nullptr;
-	Buffer* ib = nullptr;
-	Buffer* ub = nullptr;
-	Pipeline* pipeline;
-	Shader* vertShader;
-	Shader* fragShader;
-	if (!glfwInit())
-		printf("Failed");
+    if (!glfwInit())
+        return 1;
 	if (Curr_API != API::OpenGL)
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "DrawingPad Test", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "DrawingPad Test", NULL, NULL);
 	if (window == NULL) {
 		printf("Window is NULL!\n");
 		std::abort();
 	}
-    // Setup Graphics
-	gd = GraphicsDevice::Create(window, Curr_API);
-	GraphicsContextDesc desc = {};
-	desc.ContextID = 0;
-	desc.Name = "Immediate";
-	ctx = gd->CreateContext(desc);
-    // Create Swapchain
-	SwapchainDesc swapSpec;
-	swap = gd->CreateSwapchain(swapSpec, ctx, window);
+
+    gd = GraphicsDevice::Create(window, Curr_API);
+
+    GraphicsContextDesc ctxDesc = {};
+    ctx = gd->CreateContext(ctxDesc);
+
+    int w, h;
+    glfwGetFramebufferSize(window, &w, &h);
+    SwapchainDesc swapDesc = {};
+    swapDesc.Width = w;
+    swapDesc.Height = h;
+    swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
+    swapDesc.DepthFormat = TextureFormat::None;
+
+    WindowData wData = {};
+    wData.Context = ctx;
+    wData.Swapchain = gd->CreateSwapchain(swapDesc, ctx, window);
 
     // ======== Create Shaders ========
     ShaderDesc sDesc = {};
@@ -169,21 +305,25 @@ int main() {
             0,
             4,
             offsetof(Vertex, color),
-            sizeof(Vertex)
+            sizeof(Vertex),
+            true,
+            ElementDataType::Uint8
         }
     };
 
-    GraphicsPipelineDesc pDesc = {};
-    pDesc.NumViewports = 1;
-    pDesc.NumColors = 1;
-    pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
-    pDesc.DepthFormat = swap->GetDesc().DepthFormat;
-    pDesc.InputLayout.NumElements = 3;
-    pDesc.InputLayout.Elements = vertInputs;
-    pDesc.ShaderCount = 2;
-    pDesc.Shaders[0] = vertShader;
-    pDesc.Shaders[1] = fragShader;
-    pipeline = gd->CreateGraphicsPipeline(pDesc);
+    GraphicsPipelineDesc pipeDesc = {};
+    pipeDesc.NumViewports = 1;
+    pipeDesc.NumColors = 1;
+    pipeDesc.ColorFormats[0] = wData.Swapchain->GetDesc().ColorFormat;
+    pipeDesc.DepthFormat = wData.Swapchain->GetDesc().DepthFormat;
+    pipeDesc.InputLayout.NumElements = 3;
+    pipeDesc.InputLayout.Elements = vertInputs;
+    pipeDesc.ShaderCount = 2;
+    pipeDesc.Shaders[0] = vertShader;
+    pipeDesc.Shaders[1] = fragShader;
+    wData.Pipline = gd->CreateGraphicsPipeline(pipeDesc);
+
+    wData.ImageCount = 3;
 
     // Setup Dear ImGui
     ImGui::CreateContext();
@@ -191,8 +331,11 @@ int main() {
     ImGui::StyleColorsDark();
     
     // Setup Platform/Renderer backents
-    //ImGui_ImplGlfw_InitForVulkan(window, true);
-    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+    ImGui_ImplGlfw_InitForVulkan(window, true);
+    //io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+
+    RenderData data = {};
+    data.Device = gd;
 
     // Upload Fonts
     {
@@ -213,17 +356,21 @@ int main() {
             desc.ArraySize = 1;
             desc.SampleCount = 1;
             desc.BindFlags = BindFlags::ShaderResource;
-            fontImage = gd->CreateTexture(desc, pixels);
+            data.FontImage = gd->CreateTexture(desc, pixels);
         }
 
         {
             TextureViewDesc desc = {};
             desc.Format = TextureFormat::RGBA8Unorm;
-            fontView = fontImage->CreateView(desc);
+            data.FontView = data.FontImage->CreateView(desc);
         }
 
-        io.Fonts->TexID = (ImTextureID)fontImage;
+        io.Fonts->TexID = (ImTextureID)data.FontImage;
     }
+    // Our state
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -231,17 +378,26 @@ int main() {
         if (rebuildSwap)
         {
             //resize
-            rebuildSwap = false;
+            int width, height;
+            glfwGetFramebufferSize(window, &width, &height);
+            if (width > 0 && height > 0)
+            {
+
+                rebuildSwap = false;
+            }
         }
 
         // API NewFrame()
         {/*Noting to do*/}
         // GLFW NewFrame()
         ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-        if (showDemo)
-            ImGui::ShowDemoWindow(&showDemo);
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
 
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
             static float f = 0.0f;
             static int counter = 0;
@@ -249,11 +405,11 @@ int main() {
             ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &showDemo);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &showAnother);
+            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear); // Edit 3 floats representing a color
+            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
             if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
@@ -264,12 +420,13 @@ int main() {
             ImGui::End();
         }
 
-        if (showAnother)
+        // 3. Show another simple window.
+        if (show_another_window)
         {
-            ImGui::Begin("Another Window", &showAnother);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             ImGui::Text("Hello from another window!");
             if (ImGui::Button("Close Me"))
-                showAnother = false;
+                show_another_window = false;
             ImGui::End();
         }
 
@@ -277,100 +434,11 @@ int main() {
         ImDrawData* drawData = ImGui::GetDrawData();
         const bool mini = (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f);
 
-        if (!mini && drawData->TotalVtxCount > 0)
+        if (!mini)
         {
-            uint32_t i = swap->GetNextBackbuffer().first;
-            TextureView* rtv = swap->GetNextBackbuffer().second;
-            TextureView* dsv = swap->GetDepthBufferView();
-            float color[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
-            ctx->Begin(i);
-            ctx->SetRenderTargets(1, &rtv, dsv);
-            ctx->ClearColor(rtv, nullptr);
-            uint32_t vtxSize = drawData->TotalVtxCount * sizeof(ImDrawVert);
-            uint32_t idxSize = drawData->TotalIdxCount * sizeof(ImDrawIdx);
-            if (!vb || vb->GetSize() < vtxSize)
-            {
-                if (!vb)
-                    delete vb;
-                BufferDesc buffDesc = {};
-                buffDesc.Usage = BufferUsageFlags::Default;
-                buffDesc.BindFlags = BufferBindFlags::Vertex;
-                buffDesc.Size = vtxSize;
-                ImDrawVert* dst = new ImDrawVert[drawData->TotalVtxCount];
-                for (int32_t i = 0; i < drawData->CmdListsCount; i++)
-                {
-                    const ImDrawList* cmdLst = drawData->CmdLists[i];
-                    memcpy(dst, cmdLst->VtxBuffer.Data, cmdLst->VtxBuffer.Size * sizeof(ImDrawVert));
-                    dst += cmdLst->VtxBuffer.Size;
-                }
-                vb = gd->CreateBuffer(buffDesc, dst);
-                delete[] dst;
-            }
-            if (!ib || ib->GetSize() < idxSize)
-            {
-                if (!ib)
-                    delete ib;
-                BufferDesc buffDesc = {};
-                buffDesc.Usage = BufferUsageFlags::Default;
-                buffDesc.BindFlags = BufferBindFlags::Index;
-                buffDesc.Size = idxSize;
-                ImDrawIdx* dst = new ImDrawIdx[drawData->TotalIdxCount];
-                for (int32_t i = 0; i < drawData->CmdListsCount; i++)
-                {
-                    const ImDrawList* cmdLst = drawData->CmdLists[i];
-                    memcpy(dst, cmdLst->IdxBuffer.Data, cmdLst->IdxBuffer.Size * sizeof(ImDrawIdx));
-                    dst += cmdLst->IdxBuffer.Size;
-                }
-                ib = gd->CreateBuffer(buffDesc, dst);
-                delete[] dst;
-            }
-            // Get clear color
-            // Render Frame
-            ctx->SetPipeline(pipeline);
-            Buffer* vertexBuffs[] = { vb };
-            uint32_t offsets[] = { 0 };
-            ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
-            ctx->SetIndexBuffer(ib, 0);
-
-            ImVec2 clipOffset = drawData->DisplayPos;
-            ImVec2 clipScale = drawData->FramebufferScale;
-            uint32_t fbWidth = (uint32_t)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
-            uint32_t fbHeight = (uint32_t)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
-            uint32_t vtxOffset = 0, idxOffset = 0;
-            for (int32_t i = 0; i < drawData->CmdListsCount; i++)
-            {
-                const ImDrawList* cmdList = drawData->CmdLists[i];
-                for (int32_t j = 0; j < cmdList->CmdBuffer.Size; j++)
-                {
-                    const ImDrawCmd* cmd = &cmdList->CmdBuffer[j];
-                    ImVec4 clipRect;
-                    clipRect.x = (cmd->ClipRect.x - clipOffset.x) * clipScale.x;
-                    clipRect.y = (cmd->ClipRect.y - clipOffset.y) * clipScale.y;
-                    clipRect.x = (cmd->ClipRect.z - clipOffset.x) * clipScale.x;
-                    clipRect.x = (cmd->ClipRect.w - clipOffset.y) * clipScale.y;
-
-                    if (clipRect.x < fbWidth && clipRect.y < fbHeight && clipRect.z >= 0.0f && clipRect.w >= 0.0f)
-                    {
-                        if (clipRect.x < 0.0f)
-                            clipRect.x = 0.0f;
-                        if (clipRect.y < 0.0f)
-                            clipRect.y = 0.0f;
-
-                        ctx->SetScissors(1, (int32_t)clipRect.x, (int32_t)clipRect.y, (uint32_t)(clipRect.z - clipRect.x), (uint32_t)(clipRect.w - clipRect.y));
-                        DrawAttribs attribs = {};
-                        attribs.VrtIdxCount = cmd->ElemCount;
-                        attribs.InstanceCount = 1;
-                        attribs.FirstVrtIdx = cmd->IdxOffset + idxOffset;
-                        attribs.VertexOffset = cmd->VtxOffset + vtxOffset;
-                        attribs.FirstInstance = 0;
-                        ctx->DrawIndexed(attribs);
-                    }
-                }
-                vtxOffset += cmdList->VtxBuffer.Size;
-                idxOffset += cmdList->IdxBuffer.Size;
-            }
-            // Present Frame
-            swap->Present(0);
+            wData.ClearValue = glm::vec4(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+            FrameRender(&wData, &data, drawData);
+            FramePresent(&wData);
         }
     }
 

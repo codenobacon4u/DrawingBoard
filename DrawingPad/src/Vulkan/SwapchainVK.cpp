@@ -120,7 +120,7 @@ namespace VkAPI
 
 		m_ImageIndex = 0;
 		SwapSupportDetails support = QuerySwapSupport();
-		auto surfaceFormat = ChooseSwapSurfaceFormat(support.formats);
+		auto surfaceFormat = ChooseSwapSurfaceFormat(m_Desc.SurfaceFormats, support.formats);
 		m_PresentMode = ChooseSwapPresentMode(support.presentModes);
 		m_Extent = ChooseSwapExtent(support.capabilities, width, height);
 
@@ -131,7 +131,9 @@ namespace VkAPI
 
 		m_Desc.Width = m_Extent.width;
 		m_Desc.Height = m_Extent.height;
-		m_Desc.DepthFormat = ChooseDepthFormat();
+		if (m_Desc.DepthFormat != TextureFormat::None)
+			m_Desc.DepthFormat = ChooseDepthFormat();
+		//m_Desc.DepthFormat = TextureFormat::Unknown;
 
 		auto old = m_Swap;
 		m_Swap = nullptr;
@@ -252,11 +254,14 @@ namespace VkAPI
 		return details;
 	}
 
-	VkSurfaceFormatKHR SwapchainVK::ChooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableFormats)
+	VkSurfaceFormatKHR SwapchainVK::ChooseSwapSurfaceFormat(std::vector<TextureFormat>& requestedFormats, std::vector<VkSurfaceFormatKHR>& availableFormats)
 	{
-		for (const auto& availableFormat : availableFormats) {
-			if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-				return availableFormat;
+		for (const auto& requestedFormat : requestedFormats) {
+			for (const auto& availableFormat : availableFormats)
+			{
+				if (availableFormat.colorSpace == UtilsVK::Convert(requestedFormat) && availableFormat.format == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+					return availableFormat;
+				}
 			}
 		}
 
@@ -342,7 +347,7 @@ namespace VkAPI
 			DebugMarker::SetName(m_Device->Get(), (uint64_t)rtv->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, name);
 		}
 
-		if (m_Desc.DepthFormat != TextureFormat::Unknown)
+		if (m_Desc.DepthFormat != TextureFormat::None)
 		{
 			TextureDesc depthDesc = {};
 			depthDesc.Type = TextureType::DimTex2D;

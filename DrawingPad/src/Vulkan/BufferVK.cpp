@@ -15,12 +15,12 @@ namespace VkAPI
 		{
 		case BufferBindFlags::Vertex:
 			usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			staging = true;
 			break;
 		case BufferBindFlags::Index:
 			usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+			properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			staging = true;
 			break;
 		case BufferBindFlags::Staging:
@@ -57,7 +57,7 @@ namespace VkAPI
 
 		m_Buffer = CreateBuffer(m_Desc.Size, usage, properties, m_Memory);
 
-		if (staging)
+		if (staging && bufData != nullptr)
 		{
 			VkDeviceMemory stagingMem;
 			VkBuffer stagingBuff = CreateBuffer(m_Desc.Size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingMem);
@@ -85,6 +85,22 @@ namespace VkAPI
 		vkFreeMemory(m_Device->Get(), m_Memory, nullptr);
 	}
 
+	void BufferVK::MapMemory(uint64_t offset, uint64_t size, void** data)
+	{
+		if (vkMapMemory(m_Device->Get(), m_Memory, offset, size, 0, data) != VK_SUCCESS)
+			UtilsVK::Log("validation_layers.log", "Failed to Map Memory!");
+	}
+
+	void BufferVK::FlushMemory()
+	{
+		VkMappedMemoryRange range = {};
+		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		range.memory = m_Memory;
+		range.size = VK_WHOLE_SIZE;
+		vkFlushMappedMemoryRanges(m_Device->Get(), 1, &range);
+		vkUnmapMemory(m_Device->Get(), m_Memory);
+	}
+
 	uint32_t BufferVK::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 		VkPhysicalDeviceMemoryProperties memProperties;
 		vkGetPhysicalDeviceMemoryProperties(m_Device->GetPhysical(), &memProperties);
@@ -100,6 +116,8 @@ namespace VkAPI
 
 	VkBuffer BufferVK::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props, VkDeviceMemory& bufferMemory)
 	{
+		VkDeviceSize alignedSize = ((size - 1) / m_Alignment + 1) * m_Alignment;
+
 		VkBufferCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		createInfo.size = size;
@@ -111,7 +129,8 @@ namespace VkAPI
 
 		VkMemoryRequirements memReq;
 		vkGetBufferMemoryRequirements(m_Device->Get(), buffer, &memReq);
-
+		m_Alignment = (m_Alignment > memReq.alignment) ? m_Alignment : memReq.alignment;
+		//UtilsVK::Log("debug.log", std::to_string((uint64_t)m_Device->GetPhysicalLimits().minUniformBufferOffsetAlignment));
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memReq.size;
@@ -119,6 +138,7 @@ namespace VkAPI
 
 		vkAllocateMemory(m_Device->Get(), &allocInfo, nullptr, &bufferMemory);
 		vkBindBufferMemory(m_Device->Get(), buffer, bufferMemory, 0);
+		//m_Desc.Size = memReq.size;
 		return buffer;
 	}
 

@@ -39,7 +39,7 @@ namespace VkAPI
 		VkQueue GetPresentQueue() { return m_Present; }
 		virtual uint32_t GetImageIndex() override { return m_ImageIndex; }
 
-		virtual std::pair<uint32_t, TextureView*> GetNextBackbuffer() override { return std::make_pair(m_ImageIndex, m_BackBuffers[m_ImageIndex].second); }
+		virtual TextureView* GetNextBackbuffer() override { return m_BackBuffers[m_ImageIndex].second; }
 		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthBuffer; }
 
 		void SetResized(uint32_t width, uint32_t height) { m_Resized = true; m_Desc.Width = width; m_Desc.Height = height; }
@@ -48,7 +48,7 @@ namespace VkAPI
 		void Cleanup();
 
 		SwapSupportDetails QuerySwapSupport();
-		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableFormats);
+		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(std::vector<TextureFormat>& requestedFormats, std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR ChooseSwapPresentMode(std::vector<VkPresentModeKHR>& availablePresentModes);
 		VkExtent2D ChooseSwapExtent(VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
 		TextureFormat ChooseDepthFormat();

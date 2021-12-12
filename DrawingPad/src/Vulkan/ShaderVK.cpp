@@ -477,10 +477,23 @@ namespace VkAPI {
 		for (uint32_t i = 0; i < maxSets; i++)
 			layouts[i] = m_DescCache->GetLayout(resourceSets[i], m_Layout.BindingStagesMask[i]);
 
+		std::vector<VkPushConstantRange> ranges;
+		for (uint32_t i = 0; i < m_Layout.Resources.size(); i++)
+			if (m_Layout.Resources[i].Type == ResourceBindingType::PushConstant)
+			{
+				VkPushConstantRange range = {};
+				range.stageFlags = (uint32_t)m_Layout.Resources[i].Stages;
+				range.offset = m_Layout.Resources[i].Offset;
+				range.size = m_Layout.Resources[i].Size;
+				ranges.push_back(range);
+			}
+
 		VkPipelineLayoutCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		createInfo.setLayoutCount = maxSets;
 		createInfo.pSetLayouts = layouts.data();
+		createInfo.pushConstantRangeCount = ranges.size();
+		createInfo.pPushConstantRanges = ranges.data();
 		vkCreatePipelineLayout(m_Device->Get(), &createInfo, nullptr, &m_PipeLayout);
 	}
 }

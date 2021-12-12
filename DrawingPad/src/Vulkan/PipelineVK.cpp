@@ -17,7 +17,7 @@ namespace VkAPI
 			rKey.SampleCount = desc.SampleCount;
 			for (uint32_t i = 0; i < rKey.NumColors; i++)
 				rKey.ColorFormats[i] = desc.ColorFormats[i];
-			rKey.DepthFormat = desc.DepthFormat;
+			rKey.DepthFormat = desc.DepthFormat != TextureFormat::None ? desc.DepthFormat : TextureFormat::Unknown;
 			renderPass = m_Device->GetRenderPassPool().GetRenderPass(rKey);
 		}
 		VkRenderPass renderpass = ((RenderPassVK*)renderPass)->GetRenderPass();
@@ -56,63 +56,55 @@ namespace VkAPI
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
 		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+		//inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = desc.NumViewports;
-		viewportState.pViewports = nullptr;
 		viewportState.scissorCount = viewportState.viewportCount;
 
 		// Potentially Modify
 		VkPipelineRasterizationStateCreateInfo rasterizationState = {};
 		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationState.depthClampEnable = VK_FALSE;
-		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationState.lineWidth = 1.0f;
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizationState.depthBiasEnable = VK_FALSE;
+		rasterizationState.lineWidth = 1.0f;
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
 		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampleState.sampleShadingEnable = VK_FALSE;
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		colorBlendAttachment.blendEnable = VK_TRUE;
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 		// Potentially Modify
 		VkPipelineColorBlendStateCreateInfo colorBlendState = {};
 		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendState.logicOpEnable = VK_FALSE;
-		colorBlendState.logicOp = VK_LOGIC_OP_COPY;
 		colorBlendState.attachmentCount = 1;
 		colorBlendState.pAttachments = &colorBlendAttachment;
-		colorBlendState.blendConstants[0] = 0.0f;
-		colorBlendState.blendConstants[1] = 0.0f;
-		colorBlendState.blendConstants[2] = 0.0f;
-		colorBlendState.blendConstants[3] = 0.0f;
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
 		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilState.depthTestEnable = VK_TRUE;
-		depthStencilState.depthWriteEnable = VK_TRUE;
-		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
-		depthStencilState.depthBoundsTestEnable = VK_FALSE;
-		depthStencilState.minDepthBounds = 0.0f;
-		depthStencilState.maxDepthBounds = 1.0f;
-		depthStencilState.stencilTestEnable = VK_FALSE;
-		depthStencilState.front = {};
-		depthStencilState.back = {};
+		if (desc.DepthFormat != TextureFormat::None)
+		{
+			depthStencilState.depthTestEnable = VK_TRUE;
+			depthStencilState.depthWriteEnable = VK_TRUE;
+			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
+			depthStencilState.depthBoundsTestEnable = VK_FALSE;
+			depthStencilState.minDepthBounds = 0.0f;
+			depthStencilState.maxDepthBounds = 1.0f;
+			depthStencilState.stencilTestEnable = VK_FALSE;
+			depthStencilState.front = {};
+			depthStencilState.back = {};
+		}
 
 		// Potentially Modify
 		//VkPipelineLayout layout;
@@ -128,8 +120,8 @@ namespace VkAPI
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR,
-			VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-			VK_DYNAMIC_STATE_STENCIL_REFERENCE
+			//VK_DYNAMIC_STATE_BLEND_CONSTANTS,
+			//VK_DYNAMIC_STATE_STENCIL_REFERENCE
 		};
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicState.pDynamicStates = dynamicStates.data();
