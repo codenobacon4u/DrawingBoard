@@ -7,14 +7,11 @@
 #include <vector>
 #include <queue>
 
-#include "CommandList.h"
-
 #include "TextureVK.h"
 #include "FramebufferPoolVK.h"
 #include "RenderPassPoolVK.h"
 #include "DescriptorSetVK.h"
 #include "UtilsVK.h"
-#include "DebugVK.h"
 #include "CommandPoolVK.h"
 
 #include "Instrumentor.h"

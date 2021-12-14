@@ -9,6 +9,7 @@
 #include "ShaderVK.h"
 #include "PipelineVK.h"
 #include "TextureManagerVK.h"
+#include "DebugVK.h"
 
 namespace VkAPI
 {
