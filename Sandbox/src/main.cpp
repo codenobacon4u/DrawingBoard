@@ -212,8 +212,18 @@ int main() {
 	pDesc.Shaders = shaders.data();
 	pipeline = gd->CreateGraphicsPipeline(pDesc);
 
-	Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
-	
+	//Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
+	const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
+	TextureDesc texDesc = {};
+	texDesc.Type = TextureType::DimTex2D;
+	texDesc.Width = 256;
+	texDesc.Height = 256;
+	texDesc.MipLevels = 1;
+	texDesc.Format = TextureFormat::BGRA8Unorm;
+	texDesc.ArraySize = 1;
+	texDesc.BindFlags = BindFlags::ShaderResource;
+	Texture* texture = gd->CreateTexture(texDesc, data);
+
 	auto glfwVersion = glfwGetVersionString();
 	if (Curr_API == API::OpenGL) {
 		glfwMakeContextCurrent(window);
