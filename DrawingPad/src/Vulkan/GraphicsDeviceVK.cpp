@@ -8,7 +8,7 @@
 #include "BufferVK.h"
 #include "ShaderVK.h"
 #include "PipelineVK.h"
-#include "TextureManagerVK.h"
+#include "DebugVK.h"
 
 namespace VkAPI
 {
@@ -48,7 +48,6 @@ namespace VkAPI
 		m_RenderPassPool = DBG_NEW RenderPassPoolVK(*this);
 		m_DescriptorSetPool = DBG_NEW DescriptorSetPoolVK(this);
 		m_TempPool = DBG_NEW CommandPoolVK(this, m_GraphicsIndex, 0);
-		m_TextureManager = DBG_NEW TextureManagerVK(this);
 	}
 
 	GraphicsDeviceVK::~GraphicsDeviceVK()

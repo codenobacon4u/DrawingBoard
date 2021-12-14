@@ -1,17 +1,14 @@
 #pragma once
-#define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 
 #include <vector>
 
 #include "GraphicsContext.h"
 
-#include "CommandList.h"
 #include "Framebuffer.h"
 #include "Swapchain.h"
 #include "Shader.h"
-#include "TextureManager.h"
 
 enum class API {
 	None = 0, OpenGL = 1, Vulkan = 2, DirectX = 3
@@ -38,14 +35,10 @@ public:
 
 	GraphicsContext* CreateContext(const GraphicsContextDesc& desc);
 
-	TextureManager* GetTextureManager() { return m_TextureManager; }
-
 	static GraphicsDevice* Create(GLFWwindow* window, API api);
 	inline static API GetAPI() { return s_API; }
 protected:
 	virtual void SwapBuffers(Swapchain* swapchain) const = 0;
-
-	TextureManager* m_TextureManager;
 
 private:
 	static API s_API;

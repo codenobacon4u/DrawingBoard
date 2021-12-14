@@ -20,7 +20,7 @@ void VkAPI::DebugMarker::Setup(VkDevice device, VkPhysicalDevice physicalDevice)
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
 	std::vector<VkExtensionProperties> extensions(extensionCount);
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, extensions.data());
-	for (auto extension : extensions) {
+	for (const auto extension : extensions) {
 		if (strcmp(extension.extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0) {
 			extensionPresent = true;
 			break;

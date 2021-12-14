@@ -3,6 +3,7 @@
 
 #include "GraphicsDeviceVK.h"
 #include "TextureVK.h"
+#include "DebugVK.h"
 
 namespace VkAPI
 {

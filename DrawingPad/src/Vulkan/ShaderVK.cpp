@@ -253,7 +253,7 @@ namespace VkAPI {
 
 	bool ShaderVK::LoadShaderFromFile(const std::string& path)
 	{
-		shaderc_shader_kind type;
+		shaderc_shader_kind type = shaderc_vertex_shader;
 		switch (m_Desc.Type)
 		{
 		case ShaderType::Fragment:
@@ -312,7 +312,7 @@ namespace VkAPI {
 
 	bool ShaderVK::LoadShaderFromSrc(const std::string& src)
 	{
-		shaderc_shader_kind type;
+		shaderc_shader_kind type = shaderc_vertex_shader;
 		switch (m_Desc.Type)
 		{
 		case ShaderType::Fragment:
@@ -492,7 +492,7 @@ namespace VkAPI {
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		createInfo.setLayoutCount = maxSets;
 		createInfo.pSetLayouts = layouts.data();
-		createInfo.pushConstantRangeCount = ranges.size();
+		createInfo.pushConstantRangeCount = (uint32_t)ranges.size();
 		createInfo.pPushConstantRanges = ranges.data();
 		vkCreatePipelineLayout(m_Device->Get(), &createInfo, nullptr, &m_PipeLayout);
 	}

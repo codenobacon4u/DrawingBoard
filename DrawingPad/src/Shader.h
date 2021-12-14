@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
+#include <vector>
 
 enum class ShaderType : uint32_t {
 	Vertex = 0x0001,
