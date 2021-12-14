@@ -35,7 +35,7 @@ namespace VkAPI
 
 		virtual void SetViewports(uint32_t num, const Viewport* viewports, uint32_t width, uint32_t height) override;
 		virtual void SetScissors(uint32_t num, int32_t offX, int32_t offY, uint32_t width, uint32_t height) override;
-		virtual void SetRenderTargets(uint32_t numTargets, TextureView** targets, TextureView* depthStencil) override;
+		virtual void SetRenderTargets(uint32_t numTargets, TextureView** targets, TextureView* depthStencil, bool clear) override;
 		virtual void SetPipeline(Pipeline* pipeline) override;
 		virtual void SetVertexBuffers(uint32_t start, uint32_t num, Buffer** buffers, const uint64_t* offset) override;
 		virtual void SetIndexBuffer(Buffer* buffer, uint32_t offset) override;

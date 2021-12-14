@@ -86,7 +86,7 @@ namespace VkAPI {
 		m_FrameIndex = frameIdx;
 		m_CmdPool[m_FrameIndex]->Reset();
 		m_DescPool[m_FrameIndex]->ResetPools();
-		SetRenderTargets(0, nullptr, nullptr);
+		SetRenderTargets(0, nullptr, nullptr, true);
 	}
 
 	void GraphicsContextVK::BeginRenderPass(const BeginRenderPassAttribs& attribs)
@@ -119,10 +119,6 @@ namespace VkAPI {
 
 	void GraphicsContextVK::ClearColor(TextureView* tv, const float* color)
 	{
-		static constexpr float defaultColor[4] = { 0.3f, 0.0f, 0.3f, 0.1f };
-		if (color == nullptr)
-			color = defaultColor;
-
 		VerifyCommandBuffer();
 
 		const auto& desc = tv->GetDesc();
@@ -148,17 +144,20 @@ namespace VkAPI {
 					depth.depthStencil = { 1.0f, 0 };
 					clear.emplace_back(depth);
 				}
-				VkClearValue clr = {};
-				clr.color.float32[0] = color[0];
-				clr.color.float32[1] = color[1];
-				clr.color.float32[2] = color[2];
-				clr.color.float32[3] = color[3];
-				clear.emplace_back(clr);
+				if (color != nullptr)
+				{
+					VkClearValue clr = {};
+					clr.color.float32[0] = color[0];
+					clr.color.float32[1] = color[1];
+					clr.color.float32[2] = color[2];
+					clr.color.float32[3] = color[3];
+					clear.emplace_back(clr);
+				}
 
 				if (state.RenderPass != VK_NULL_HANDLE)
 					m_CommandBuffer.EndRenderPass();
 				if (m_vkFramebuffer != VK_NULL_HANDLE)
-					m_CommandBuffer.BeginRenderPass(m_vkRenderPass, m_vkFramebuffer, m_FramebufferWidth, m_FramebufferHeight, clear.size(), clear.data());
+					m_CommandBuffer.BeginRenderPass(m_vkRenderPass, m_vkFramebuffer, m_FramebufferWidth, m_FramebufferHeight, (uint32_t)clear.size(), clear.data());
 			}
 		}
 		else
@@ -277,7 +276,7 @@ namespace VkAPI {
 		m_CommandBuffer.SetScissors(0, num, vp);
 	}
 	
-	void GraphicsContextVK::SetRenderTargets(uint32_t numTargets, TextureView** targets, TextureView* depthStencil)
+	void GraphicsContextVK::SetRenderTargets(uint32_t numTargets, TextureView** targets, TextureView* depthStencil, bool clear)
 	{
 		if (numTargets == 0 && depthStencil == nullptr)
 		{
@@ -338,7 +337,7 @@ namespace VkAPI {
 
 		fKey.AttachmentCount = m_NumRenderTargets + (m_DepthStencil ? 1 : 0);
 		rKey.NumColors = static_cast<uint8_t>(m_NumRenderTargets);
-
+		rKey.ClearEnable = clear;
 		for (uint32_t i = base; i < m_NumRenderTargets + base; i++) {
 			if (auto* rt = m_RenderTargets[i-base])
 			{

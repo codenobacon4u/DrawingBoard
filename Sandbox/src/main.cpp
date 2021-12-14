@@ -199,6 +199,8 @@ int main() {
 		}
 	};
 
+	std::vector<Shader*> shaders = { vertShader, fragShader };
+
 	GraphicsPipelineDesc pDesc = {};
 	pDesc.NumViewports = 1;
 	pDesc.NumColors = 1;
@@ -207,8 +209,7 @@ int main() {
 	pDesc.InputLayout.NumElements = 3;
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
-	pDesc.Shaders[0] = vertShader;
-	pDesc.Shaders[1] = fragShader;
+	pDesc.Shaders = shaders.data();
 	pipeline = gd->CreateGraphicsPipeline(pDesc);
 
 	Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
@@ -237,11 +238,10 @@ int main() {
 		//====RENDER====
 		TextureView* rtv = swap->GetNextBackbuffer();
 		TextureView* dsv = swap->GetDepthBufferView();
-		float color[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
+		float color[4] = { 0.f, 0.f, 0.f, 1.0f };
 		ctx->Begin(swap->GetImageIndex());
-		ctx->SetRenderTargets(1, &rtv, dsv);
-		ctx->ClearColor(rtv, nullptr);
-		ctx->ClearDepth(dsv, ClearDepthStencil::Depth, 1, 0);
+		ctx->SetRenderTargets(1, &rtv, dsv, true);
+		ctx->ClearColor(rtv, color);
 		ctx->SetPipeline(pipeline);
 		Buffer* vertexBuffs[] = { vb };
 		uint64_t offsets[] = { 0 };

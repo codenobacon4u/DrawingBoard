@@ -15,7 +15,7 @@ namespace VkAPI
 		if (GetHash() != rhs.GetHash() ||
 			NumColors != rhs.NumColors ||
 			SampleCount != rhs.SampleCount ||
-			DepthFormat != rhs.DepthFormat)
+			DepthFormat != rhs.DepthFormat || ClearEnable != rhs.ClearEnable)
 			return false;
 		for (uint32_t i = 0; i < NumColors; i++)
 			if (ColorFormats[i] != rhs.ColorFormats[i])
@@ -75,7 +75,7 @@ namespace VkAPI
 				attachments.push_back({ 
 					key.ColorFormats[i],
 					key.SampleCount,
-					AttachmentLoadOp::Clear, 
+					key.ClearEnable ? AttachmentLoadOp::Clear : AttachmentLoadOp::DontCare, 
 					AttachmentStoreOp::Store, 
 					AttachmentLoadOp::Discard, 
 					AttachmentStoreOp::Discard, 
