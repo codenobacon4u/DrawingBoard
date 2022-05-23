@@ -21,6 +21,7 @@ namespace Vulkan {
 		bool LoadShaderFromSrc(const std::string& src);
 
 	private:
+		std::vector<uint32_t> Compile(std::string code);
 		void Reflect(std::vector<uint32_t> spirv);
 
 	private:
