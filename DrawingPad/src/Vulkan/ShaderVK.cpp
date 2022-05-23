@@ -266,51 +266,72 @@ namespace Vulkan {
 
 	bool ShaderVK::LoadShaderFromFile(const std::string& path)
 	{
-		shaderc_shader_kind type = shaderc_vertex_shader;
-		switch (m_Desc.Type)
-		{
-		case ShaderType::Fragment:
-			type = shaderc_fragment_shader;
-			break;
-		case ShaderType::Vertex:
-			type = shaderc_vertex_shader;
-			break;
-		case ShaderType::Geometry:
-			type = shaderc_geometry_shader;
-			break;
-		case ShaderType::TessControl:
-			type = shaderc_tess_control_shader;
-			break;
-		case ShaderType::Mesh:
-			type = shaderc_mesh_shader;
-			break;
-		case ShaderType::RayGen:
-			type = shaderc_raygen_shader;
-			break;
-		case ShaderType::Compute:
-			type = shaderc_compute_shader;
-			break;
-		default:
-			//throw std::runtime_error("Unkown shader stage");
-			break;
+		std::string cachedPath = path + ".cache";
+		std::vector<uint32_t> spirv = {};
+		std::ifstream in(cachedPath.c_str(), std::ios::in | std::ios::binary);
+		if (in.is_open()) {
+			in.seekg(0, std::ios::end);
+			auto size = in.tellg();
+			in.seekg(0, std::ios::beg);
+
+			spirv.resize(size / sizeof(uint32_t));
+			in.read((char*)spirv.data(), size);
+		} else {
+			shaderc_shader_kind type = shaderc_vertex_shader;
+			switch (m_Desc.Type)
+			{
+			case ShaderType::Fragment:
+				type = shaderc_fragment_shader;
+				break;
+			case ShaderType::Vertex:
+				type = shaderc_vertex_shader;
+				break;
+			case ShaderType::Geometry:
+				type = shaderc_geometry_shader;
+				break;
+			case ShaderType::TessControl:
+				type = shaderc_tess_control_shader;
+				break;
+			case ShaderType::Mesh:
+				type = shaderc_mesh_shader;
+				break;
+			case ShaderType::RayGen:
+				type = shaderc_raygen_shader;
+				break;
+			case ShaderType::Compute:
+				type = shaderc_compute_shader;
+				break;
+			default:
+				throw std::runtime_error("Unkown shader stage");
+				break;
+			}
+
+			// Load shader as string from file
+			std::ifstream file(path.c_str());
+			if (!file.is_open())
+				return false;
+			std::string source((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+			// Compile the file data into SPIR-V
+			shaderc::Compiler compiler;
+			shaderc::CompileOptions options;
+			options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
+			options.SetOptimizationLevel(shaderc_optimization_level_performance);
+			shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, type, m_Desc.EntryPoint.c_str(), options);
+			if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+			{
+				std::cerr << result.GetErrorMessage() << std::endl;
+				return false;
+			}
+			spirv = std::vector<uint32_t>(result.cbegin(), result.cend());
+
+			std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
+			if (out.is_open()) {
+				out.write((char*)spirv.data(), spirv.size() * sizeof(uint32_t));
+				out.flush();
+				out.close();
+			}
 		}
 
-		// Load shader as string from file
-		std::ifstream file(path.c_str());
-		if (!file.is_open())
-			return false;
-		std::string source((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		// Compile the file data into SPIR-V
-		shaderc::Compiler compiler;
-		shaderc::CompileOptions options;
-		shaderc::CompilationResult result = compiler.CompileGlslToSpv(source, type, m_Desc.EntryPoint.c_str(), options);
-		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
-		{
-			std::cerr << result.GetErrorMessage() << std::endl;
-			return false;
-		}
-
-		std::vector<uint32_t> spirv = { result.cbegin(), result.cend() };
 		Reflect(spirv);
 
 		VkShaderModuleCreateInfo createInfo = {};
@@ -356,6 +377,8 @@ namespace Vulkan {
 		// Since we are getting the shader from a string already, we don't need to read it in.
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
+		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
+		options.SetOptimizationLevel(shaderc_optimization_level_performance);
 		shaderc::CompilationResult result = compiler.CompileGlslToSpv(src, type, m_Desc.EntryPoint.c_str(), options);
 		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
