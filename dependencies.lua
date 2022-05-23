@@ -5,7 +5,9 @@ IncludeDir["glad"] = "%{wks.location}/DrawingPad/vendor/glad/include"
 IncludeDir["glfw"] = "%{wks.location}/DrawingPad/vendor/glfw/include"
 IncludeDir["glm"] = "%{wks.location}/DrawingPad/vendor/glm"
 IncludeDir["imgui"] = "%{wks.location}/DrawingPad/vendor/imgui"
-IncludeDir["stb_image"] = "%{wks.location}/DrawingPag/vendor/stb_image"
+IncludeDir["stb_image"] = "%{wks.location}/DrawingPad/vendor/stb_image"
+IncludeDir["shaderc"] = "%{wks.location}/DrawingPad/vendor/shaderc/include"
+IncludeDir["SPIRV_Cross"] = "%{wks.location}/DrawingPad/vendor/SPIRV-Cross"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 
 LibraryDir = {}
