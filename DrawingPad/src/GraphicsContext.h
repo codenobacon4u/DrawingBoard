@@ -106,6 +106,7 @@ public:
 	virtual const GraphicsContextDesc& GetDesc() const final { return m_Desc; }
 
 	virtual void Flush() = 0;
+	virtual void FlushDescriptors() = 0;
 
 	virtual void Begin(uint32_t frameIdx) = 0;
 	//virtual void End() = 0;
@@ -124,7 +125,7 @@ public:
 	virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Buffer* buffer) = 0;
 	virtual void SetShaderResource(ResourceBindingType type, uint32_t set, uint32_t binding, Texture* buffer) = 0;
 	virtual void SetPushConstant(ShaderType stage, uint32_t offset, uint32_t size, void* data) = 0;
-	
+	virtual void BindDescriptorSets() = 0;
 	virtual void Draw(const DrawAttribs& attribs) = 0;
 	virtual void DrawIndexed(const DrawIndexAttribs& attribs) = 0;
 	virtual void DrawIndirect(const DrawIndirectAttribs& attribs) = 0;

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <glm/glm/gtx/string_cast.hpp>
 #include <glm/glm/gtx/rotate_vector.hpp>
+#include <RenderTarget.h>
 
 API Curr_API = API::Vulkan;
 
@@ -97,8 +98,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 int main() {
 	GraphicsDevice* gd;
-	GraphicsContext* ctx;
 	Swapchain* swap;
+	RenderTarget* rt;
 	Buffer* vb;
 	Buffer* ib;
 	Buffer* ub;
@@ -117,49 +118,97 @@ int main() {
 	glfwSetKeyCallback(window, key_callback);
 
 	gd = GraphicsDevice::Create(window, Curr_API);
-	GraphicsContextDesc desc = {};
+	/*GraphicsContextDesc desc = {};
 	desc.ContextID = 0;
 	desc.Name = "Immediate";
-	ctx = gd->CreateContext(desc);
-	SwapchainDesc swapSpec;
-	swap = gd->CreateSwapchain(swapSpec, ctx, window);
+	ctx = gd->CreateContext(desc);*/
+	SwapchainDesc swapDesc;
+	swap = gd->CreateSwapchain(swapDesc, window);
 
-	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
-		{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
-		{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
-		{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}, // TL
-		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-		//{{0.f, -1.f, 6.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-		//{{0.f,  5.f, 2.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		//{{3.f,  2.f, 1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+	RenderTargetDesc rtDesc = {};
+	rtDesc.Width = 1920;
+	rtDesc.Height = 1080;
+	rtDesc.Layers = 1;
+	std::vector<AttachmentDesc> attachments = {
+		{
+			swap->GetNextBackbuffer(),
+			swap->GetDesc().ColorFormat,
+			1,
+			AttachmentLoadOp::Clear,
+			AttachmentStoreOp::Store,
+			AttachmentLoadOp::Discard,
+			AttachmentStoreOp::Discard,
+			ImageLayout::Undefined,
+			ImageLayout::PresentSrcKHR
+		},
+		{
+			swap->GetDepthBufferView(),
+			swap->GetDesc().DepthFormat,
+			1,
+			AttachmentLoadOp::Clear,
+			AttachmentStoreOp::DontCare,
+			AttachmentLoadOp::DontCare,
+			AttachmentStoreOp::DontCare,
+			ImageLayout::Undefined,
+			ImageLayout::DepthStencilAttachOptimal
+		}, 
 	};
 
-	const std::vector<uint16_t> indices = {
+	AttachmentReference depthAttach = { 1, ImageLayout::DepthAttachOptimal };
+	SubpassDesc subpass = {};
+	subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+	subpass.DepthStencilAttachment = &depthAttach;
+	subpass.PreserveAttachments = {};
+
+	DependencyDesc dependency = {};
+	dependency.SrcSubpass = ~0U;
+	dependency.DstSubpass = 0;
+	dependency.SrcStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
+	dependency.DstStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
+	dependency.SrcAccess = SubpassAccess::NA;
+	dependency.DstAccess = (SubpassAccess)(SubpassAccess::ColorAttachWrite | SubpassAccess::DepthStencilAttachWrite);
+
+	rtDesc.Attachments = attachments;
+	rtDesc.Subpasses = { subpass };
+	rtDesc.SubpassDependencies = { dependency };
+	rt = gd->CreateRenderTarget(rtDesc);
+
+	//const std::vector<Vertex> vertices = {
+	//	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
+	//	{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
+	//	{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
+	//	{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}, // TL
+	//	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+	//	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+	//	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+	//	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+	//	//{{0.f, -1.f, 6.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	//	//{{0.f,  5.f, 2.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+	//	//{{3.f,  2.f, 1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+	//};
+
+	/*const std::vector<uint16_t> indices = {
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4
-	};
+	};*/
 
-	BufferDesc bufDesc = {};
-	bufDesc.Usage = BufferUsageFlags::Default;
-	// ======== Create Vertex Buffer ========
-	bufDesc.BindFlags = BufferBindFlags::Vertex;
-	bufDesc.Size = static_cast<uint32_t>(sizeof(vertices[0]) * vertices.size());
-	vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
+	//BufferDesc bufDesc = {};
+	//bufDesc.Usage = BufferUsageFlags::Default;
+	//// ======== Create Vertex Buffer ========
+	//bufDesc.BindFlags = BufferBindFlags::Vertex;
+	//bufDesc.Size = static_cast<uint32_t>(sizeof(vertices[0]) * vertices.size());
+	//vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
 
-	// ======== Create Index Buffer ========
-	bufDesc.BindFlags = BufferBindFlags::Index;
-	bufDesc.Size = static_cast<uint32_t>(sizeof(indices[0]) * indices.size());
-	ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
+	//// ======== Create Index Buffer ========
+	//bufDesc.BindFlags = BufferBindFlags::Index;
+	//bufDesc.Size = static_cast<uint32_t>(sizeof(indices[0]) * indices.size());
+	//ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
 
-	// ======== Create Uniform Buffer ========
-	bufDesc.BindFlags = BufferBindFlags::Uniform;
-	bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
-	bufDesc.Buffered = true;
-	ub = gd->CreateBuffer(bufDesc, nullptr);
+	//// ======== Create Uniform Buffer ========
+	//bufDesc.BindFlags = BufferBindFlags::Uniform;
+	//bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
+	//bufDesc.Buffered = true;
+	//ub = gd->CreateBuffer(bufDesc, nullptr);
 
 	// ======== Create Shaders ========
 	ShaderDesc sDesc = {};
@@ -210,10 +259,10 @@ int main() {
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
 	pDesc.Shaders = shaders.data();
-	pipeline = gd->CreateGraphicsPipeline(pDesc);
+	//pipeline = gd->CreateGraphicsPipeline(pDesc);
 
 	//Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
-	const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
+	/*const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
 	TextureDesc texDesc = {};
 	texDesc.Type = TextureType::DimTex2D;
 	texDesc.Width = 256;
@@ -222,7 +271,7 @@ int main() {
 	texDesc.Format = TextureFormat::BGRA8Unorm;
 	texDesc.ArraySize = 1;
 	texDesc.BindFlags = BindFlags::ShaderResource;
-	Texture* texture = gd->CreateTexture(texDesc, data);
+	Texture* texture = gd->CreateTexture(texDesc, data);*/
 
 	auto glfwVersion = glfwGetVersionString();
 	if (Curr_API == API::OpenGL) {
@@ -234,64 +283,67 @@ int main() {
 		printf("GLFW Version: %s\nGL Version: %s\nGL Renderer: %s\nGL Vendor: %s\n", glfwVersion, glVersion, glRenderer, glVendor);
 	}
 
-	DrawIndexAttribs drawAttribs = {};
+	/*DrawIndexAttribs drawAttribs = {};
 	drawAttribs.IndexCount = static_cast<uint32_t>(indices.size());
 	drawAttribs.InstanceCount = 1;
 	drawAttribs.FirstIndex = 0;
-	drawAttribs.FirstInstance = 0;
+	drawAttribs.FirstInstance = 0;*/
 
 	while (!glfwWindowShouldClose(window))
 	{
 		//====UPDATE====
 		glfwPollEvents();
 
-		//====RENDER====
-		TextureView* rtv = swap->GetNextBackbuffer();
-		TextureView* dsv = swap->GetDepthBufferView();
-		float color[4] = { 0.f, 0.f, 0.f, 1.0f };
-		ctx->Begin(swap->GetImageIndex());
-		ctx->SetRenderTargets(1, &rtv, dsv, true);
-		ctx->ClearColor(rtv, color);
-		ctx->SetPipeline(pipeline);
-		Buffer* vertexBuffs[] = { vb };
-		uint64_t offsets[] = { 0 };
-		ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
-		ctx->SetIndexBuffer(ib, 0);
+		////====RENDER====
+		//TextureView* rtv = swap->GetNextBackbuffer();
+		//TextureView* dsv = swap->GetDepthBufferView();
+		//float color[4] = { 0.f, 0.f, 0.f, 1.0f };
+		//ctx->Begin(swap->GetImageIndex());
+		//ctx->SetRenderTargets(1, &rtv, dsv, true);
+		//ctx->ClearColor(rtv, color);
+		//ctx->SetPipeline(pipeline);
+		//Buffer* vertexBuffs[] = { vb };
+		//uint64_t offsets[] = { 0 };
+		//ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
+		//ctx->SetIndexBuffer(ib, 0);
 		
-		{
-			static auto startTime = std::chrono::high_resolution_clock::now();
-			auto currentTime = std::chrono::high_resolution_clock::now();
-			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-			UniformBufferObject ubo = {};
-			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
-			//ubo.view = glm::inverse(glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
-			//ubo.view = glm::lookAt(pos, pos+front, up);
-			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
-			ubo.proj[1][1] *= -1;
-			//ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
-			ctx->UploadBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
-		}
-		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
+		//{
+		//	static auto startTime = std::chrono::high_resolution_clock::now();
+		//	auto currentTime = std::chrono::high_resolution_clock::now();
+		//	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		//	UniformBufferObject ubo = {};
+		//	ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
+		//	//ubo.view = glm::inverse(glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
+		//	//ubo.view = glm::lookAt(pos, pos+front, up);
+		//	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		//	ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
+		//	ubo.proj[1][1] *= -1;
+		//	//ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
+		//	ctx->UploadBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
+		//}
+		/*ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
 		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);
 		ctx->DrawIndexed(drawAttribs);
-		ctx->Flush();
+		ctx->Flush();*/
 
 		//====PRESENT====
-		swap->Present(0);
+		//swap->Present(0);
 	}
 	gd->WaitForIdle();
 	//delete texture;
 	//delete pipeline;
-	//delete swap;
+	delete rt;
+	delete swap;
 	//delete ctx;
 	//delete ib;
 	//delete vb;
 	//delete ub;
-	//delete fragShader;
-	//delete vertShader;
-	//delete gd;
+	delete fragShader;
+	delete vertShader;
+	delete gd;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+	_CrtDumpMemoryLeaks();
 }

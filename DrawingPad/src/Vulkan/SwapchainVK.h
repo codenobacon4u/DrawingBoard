@@ -26,7 +26,7 @@ namespace VkAPI
 	class SwapchainVK : public Swapchain
 	{
 	public:
-		SwapchainVK(GraphicsDeviceVK* device, GraphicsContextVK* context, SwapchainDesc desc, GLFWwindow* window);
+		SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, GLFWwindow* window);
 
 		~SwapchainVK();
 

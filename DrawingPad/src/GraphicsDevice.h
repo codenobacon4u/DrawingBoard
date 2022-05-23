@@ -30,7 +30,7 @@ public:
 	virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) = 0;
 	virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
 	virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) = 0;
-	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window) = 0;
+	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) = 0;
 	virtual Shader* CreateShader(const ShaderDesc& desc) = 0;
 
 	GraphicsContext* CreateContext(const GraphicsContextDesc& desc);

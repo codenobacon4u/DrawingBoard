@@ -5,10 +5,10 @@
 #include "TextureVK.h"
 #include "DebugVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
-	SwapchainVK::SwapchainVK(GraphicsDeviceVK* device, GraphicsContextVK* context, SwapchainDesc desc, GLFWwindow* window)
-		: Swapchain(desc), m_Device(device), m_Swap(nullptr), m_Context(context)
+	SwapchainVK::SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, GLFWwindow* window)
+		: Swapchain(desc), m_Device(device), m_Swap(nullptr)
 	{
 		auto res = glfwCreateWindowSurface(device->GetInstance(), window, nullptr, &m_Surface);
 		if (res == VK_ERROR_INITIALIZATION_FAILED)
@@ -97,8 +97,8 @@ namespace VkAPI
 			vkWaitForFences(m_Device->Get(), 1, &m_ImagesInFlight[m_ImageIndex], VK_TRUE, UINT64_MAX);
 		m_ImagesInFlight[m_ImageIndex] = m_FlightFences[m_CurrFrame];
 
-		m_Context->AddWaitSemaphore(&m_ImageAcquiredSemaphores[m_CurrFrame]);
-		m_Context->AddSubFence(&m_FlightFences[m_CurrFrame]);
+		//m_Context->AddWaitSemaphore(&m_ImageAcquiredSemaphores[m_CurrFrame]);
+		//m_Context->AddSubFence(&m_FlightFences[m_CurrFrame]);
 
 		// Check if a previous frame is using the acquired image (if so... wait)
 		// Mark the image as now in flight using the value of the current frame's 
@@ -134,7 +134,6 @@ namespace VkAPI
 		m_Desc.Height = m_Extent.height;
 		if (m_Desc.DepthFormat != TextureFormat::None)
 			m_Desc.DepthFormat = ChooseDepthFormat();
-		//m_Desc.DepthFormat = TextureFormat::Unknown;
 
 		auto old = m_Swap;
 		m_Swap = nullptr;
@@ -159,17 +158,6 @@ namespace VkAPI
 		createInfo.oldSwapchain = old;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		m_Desc.ColorFormat = UtilsVK::Convert(surfaceFormat.format);
-
-		//QueueFamilyIndices indices = m_Device->FindQueueFamilies();
-		//uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
-		//
-		//if (indices.graphicsFamily != indices.presentFamily) {
-		//	createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		//	createInfo.queueFamilyIndexCount = 2;
-		//	createInfo.pQueueFamilyIndices = queueFamilyIndices;
-		//}
-		//else {
-		//}
 
 		if (vkCreateSwapchainKHR(m_Device->Get(), &createInfo, nullptr, &m_Swap) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create swapchain");

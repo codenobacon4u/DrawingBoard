@@ -1,11 +1,10 @@
 #include "pwpch.h"
 #include "GraphicsDevice.h"
 
-#include "OpenGL/GraphicsDeviceGL.h"
 #include "Vulkan/GraphicsDeviceVK.h"
 #include "Vulkan/GraphicsContextVK.h"
 
-API GraphicsDevice::s_API = API::OpenGL;
+API GraphicsDevice::s_API = API::Vulkan;
 
 void GraphicsDevice::SwapBuffers()
 {
@@ -23,7 +22,7 @@ GraphicsContext* GraphicsDevice::CreateContext(const GraphicsContextDesc& desc)
         return nullptr;
         break;
     case API::Vulkan:
-        return DBG_NEW VkAPI::GraphicsContextVK((VkAPI::GraphicsDeviceVK*)this, desc); 
+        return nullptr;// DBG_NEW VkAPI::GraphicsContextVK((VkAPI::GraphicsDeviceVK*)this, desc);
         break;
     case API::DirectX:
         return nullptr;
@@ -43,10 +42,10 @@ GraphicsDevice* GraphicsDevice::Create(GLFWwindow* window, API api)
         return nullptr;
         break;
     case API::OpenGL:
-        return DBG_NEW GlAPI::GraphicsDeviceGL(window);
+        return nullptr;
         break;
     case API::Vulkan:
-        return DBG_NEW VkAPI::GraphicsDeviceVK();
+        return DBG_NEW Vulkan::GraphicsDeviceVK();
         break;
     case API::DirectX:
         return nullptr;
