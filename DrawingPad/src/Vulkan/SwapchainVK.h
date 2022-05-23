@@ -40,7 +40,7 @@ namespace Vulkan
 		virtual uint32_t GetImageIndex() override { return m_ImageIndex; }
 
 		virtual TextureView* GetNextBackbuffer() override { return m_BackBuffers[m_ImageIndex].second; }
-		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthBuffer; }
+		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthTextureView; }
 
 		void SetResized(uint32_t width, uint32_t height) { m_Resized = true; m_Desc.Width = width; m_Desc.Height = height; }
 	private:
@@ -59,7 +59,8 @@ namespace Vulkan
 		VkSurfaceKHR m_Surface;
 		VkExtent2D m_Extent;
 		std::vector<std::pair<TextureVK*,TextureViewVK*>> m_BackBuffers;
-		TextureViewVK* m_DepthBuffer = VK_NULL_HANDLE;
+		TextureViewVK* m_DepthTextureView = nullptr;
+		TextureVK* m_DepthTexture = nullptr;
 		VkPresentModeKHR m_PresentMode;
 		VkSwapchainKHR m_Swap;
 

@@ -16,7 +16,8 @@ enum class BindFlags : uint32_t
 	UnorderedAccess		= 0x80,
 	IndirectDrawArgs	= 0x100,
 	InputAttachment		= 0x200,
-	RayTracing			= 0x400
+	RayTracing			= 0x400,
+	SwapChain			= 0x600
 };
 
 enum class Usage

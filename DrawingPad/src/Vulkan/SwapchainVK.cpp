@@ -46,6 +46,7 @@ namespace Vulkan
 
 	SwapchainVK::~SwapchainVK()
 	{
+		vkDeviceWaitIdle(m_Device->Get());
 		Cleanup();
 		vkDestroySwapchainKHR(m_Device->Get(), m_Swap, nullptr);
 		vkDestroySurfaceKHR(m_Device->GetInstance(), m_Surface, nullptr);
@@ -200,14 +201,18 @@ namespace Vulkan
 
 	void SwapchainVK::Cleanup()
 	{
+		if (m_Desc.DepthFormat != TextureFormat::None)
+		{
+			delete m_DepthTextureView;
+			delete m_DepthTexture;
+		}
+
 		for (uint32_t i = 0; i < m_BackBuffers.size(); i++)
 		{
-			//delete m_BackBuffers[i].second;
-			//delete m_BackBuffers[i].first;
+			delete m_BackBuffers[i].second;
+			delete m_BackBuffers[i].first;
 		}
 		m_BackBuffers.clear();
-		if (m_DepthBuffer)
-			vkDestroyImageView(m_Device->Get(), m_DepthBuffer->GetView(), nullptr);
 		for (const auto& semaphore : m_ImageAcquiredSemaphores)
 			vkDestroySemaphore(m_Device->Get(), semaphore, nullptr);
 		m_ImageAcquiredSemaphores.clear();
@@ -306,9 +311,8 @@ namespace Vulkan
 		m_SwapImagesInitialized.resize(m_BackBuffers.size(), false);
 		m_ImageAcquiredFenceSubmitted.resize(m_BackBuffers.size(), false);
 		std::vector<VkImage> swapImages(imageCount);
-		auto err = vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &imageCount, swapImages.data());
-		if (err != VK_SUCCESS)
-			throw DBG_NEW std::runtime_error("Failed to get swapchain images");
+		if (vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &imageCount, swapImages.data()) != VK_SUCCESS)
+			throw new std::runtime_error("Failed to get swapchain images");
 		for (uint32_t i = 0; i < imageCount; i++)
 		{	
 			TextureDesc backDesc;
@@ -316,24 +320,17 @@ namespace Vulkan
 			backDesc.Width = m_Desc.Width;
 			backDesc.Height = m_Desc.Height;
 			backDesc.Format = m_Desc.ColorFormat;
-			backDesc.BindFlags = BindFlags::RenderTarget;
+			backDesc.BindFlags = BindFlags::SwapChain;
 			backDesc.MipLevels = 1;
-
-			TextureVK* backTex = static_cast<TextureVK*>(m_Device->CreateTextureFromImage(backDesc, swapImages[i]));
-			m_BackBuffers[i].first = backTex;
-			std::string name = "Backbuffer Image ";
-			name += std::to_string(i);
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)backTex->GetImage(), VK_OBJECT_TYPE_IMAGE, name);
+			m_BackBuffers[i].first = static_cast<TextureVK*>(m_Device->CreateTextureFromImage(backDesc, swapImages[i]));
 			
 			TextureViewDesc tvDesc;
 			tvDesc.ViewType = ViewType::RenderTarget;
 			tvDesc.Format = backDesc.Format;
-			TextureViewVK* rtv = static_cast<TextureViewVK*>(backTex->CreateView(tvDesc));
-			m_BackBuffers[i].second = rtv;
+			m_BackBuffers[i].second = static_cast<TextureViewVK*>(m_BackBuffers[i].first->CreateView(tvDesc));
 
-			name = "Backbuffer Image View ";
-			name += std::to_string(i);
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)rtv->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, name);
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_BackBuffers[i].first->GetImage(), VK_OBJECT_TYPE_IMAGE, string_format("Backbuffer Image {}", i));
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_BackBuffers[i].second->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, string_format("Backbuffer Image View {}", i));
 		}
 
 		if (m_Desc.DepthFormat != TextureFormat::None)
@@ -347,16 +344,15 @@ namespace Vulkan
 			depthDesc.MipLevels = 1;
 			depthDesc.Usage = Usage::Default;
 			depthDesc.BindFlags = BindFlags::DepthStencil;
-			TextureVK* tex = static_cast<TextureVK*>(m_Device->CreateTexture(depthDesc, nullptr));
-			std::string name = "DepthStencil Image";
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)tex->GetImage(), VK_OBJECT_TYPE_IMAGE, name);
+			m_DepthTexture = static_cast<TextureVK*>(m_Device->CreateTexture(depthDesc, nullptr));
 
 			TextureViewDesc tvDesc;
 			tvDesc.ViewType = ViewType::DepthStencil;
 			tvDesc.Format = depthDesc.Format;
-			m_DepthBuffer = static_cast<TextureViewVK*>(tex->CreateView(tvDesc));
-			name = "DepthStencil Image View";
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthBuffer->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, name);
+			m_DepthTextureView = static_cast<TextureViewVK*>(m_DepthTexture->CreateView(tvDesc));
+
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthTexture->GetImage(), VK_OBJECT_TYPE_IMAGE, "DepthStencil Image");
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthTextureView->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, "DepthStencil Image View");
 		}
 	}
 }

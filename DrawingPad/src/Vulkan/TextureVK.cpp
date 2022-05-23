@@ -30,7 +30,7 @@ namespace Vulkan
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = 0;
-		if (m_Desc.BindFlags == BindFlags::RenderTarget)
+		if (m_Desc.BindFlags == BindFlags::RenderTarget || m_Desc.BindFlags == BindFlags::SwapChain)
 			imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		if (m_Desc.BindFlags == BindFlags::DepthStencil)
 			imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -81,7 +81,7 @@ namespace Vulkan
 			submit.pCommandBuffers = &cmd;
 			vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
 			vkQueueWaitIdle(graphics);
-			//m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
+			m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 
 			TextureViewDesc texDesc = {};
 			texDesc.Format = m_Desc.Format;
@@ -111,15 +111,14 @@ namespace Vulkan
 
 	TextureVK::~TextureVK()
 	{
-		if (!((uint32_t)m_Desc.BindFlags & (uint32_t)BindFlags::RenderTarget))
-		{
-			vkUnmapMemory(m_Device->Get(), m_Mem);
-			if (m_Image)
-				vkDestroyImage(m_Device->Get(), m_Image, nullptr);
-			if (m_DefaultView != nullptr)
-				delete m_DefaultView;
+		if (m_Sampler != VK_NULL_HANDLE)
 			vkDestroySampler(m_Device->Get(), m_Sampler, nullptr);
-		}
+		if (m_DefaultView != nullptr)
+			delete m_DefaultView;
+		if (m_Image != VK_NULL_HANDLE && m_Desc.BindFlags != BindFlags::SwapChain)
+			vkDestroyImage(m_Device->Get(), m_Image, nullptr);
+		if (m_Mem != VK_NULL_HANDLE)
+			vkFreeMemory(m_Device->Get(), m_Mem, nullptr);
 	}
 
 	TextureView* TextureVK::CreateView(const TextureViewDesc& desc)
@@ -228,8 +227,6 @@ namespace Vulkan
 
 	TextureViewVK::~TextureViewVK()
 	{
-		if (m_Desc.ViewType == ViewType::DepthStencil || m_Desc.ViewType == ViewType::RenderTarget)
-			m_Device->GetFramebufferPool().DeleteViewEntry(m_View);
 		vkDestroyImageView(m_Device->Get(), m_View, nullptr);
 	}
 }
