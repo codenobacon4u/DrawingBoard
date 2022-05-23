@@ -4,7 +4,7 @@
 #include "GraphicsDeviceVK.h"
 #include "RenderPassPoolVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& desc, RenderPass* renderPass)
 		: Pipeline(desc), m_Device(device), m_Pipeline(VK_NULL_HANDLE)

@@ -9,7 +9,7 @@
 #include <GLFW/glfw3.h>
 #include <Vulkan/vulkan.h>
 
-namespace VkAPI
+namespace Vulkan
 {
 	struct SwapSupportDetails {
 		VkSurfaceCapabilitiesKHR capabilities;

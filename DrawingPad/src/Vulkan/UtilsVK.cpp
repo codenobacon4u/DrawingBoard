@@ -3,7 +3,7 @@
 
 #include <fstream>
 
-namespace VkAPI
+namespace Vulkan
 {
 	void UtilsVK::Log(std::string path, std::string msg)
 	{
@@ -12,7 +12,7 @@ namespace VkAPI
 		ofs.close();
 	}
 
-	VkFormat VkAPI::UtilsVK::Convert(TextureFormat format)
+	VkFormat Vulkan::UtilsVK::Convert(TextureFormat format)
 	{
 		switch (format)
 		{

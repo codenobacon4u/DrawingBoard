@@ -11,12 +11,11 @@
 #include "FramebufferPoolVK.h"
 #include "RenderPassPoolVK.h"
 #include "DescriptorSetVK.h"
+#include "RenderTargetVK.h"
 #include "UtilsVK.h"
 #include "CommandPoolVK.h"
 
-#include "Instrumentor.h"
-
-namespace VkAPI 
+namespace Vulkan
 {
 	struct QueueFamilyIndices {
 		// optional: may or may not have a value stored

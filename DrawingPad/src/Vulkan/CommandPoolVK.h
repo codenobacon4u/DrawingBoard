@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace VkAPI
+namespace Vulkan
 {
 	class GraphicsDeviceVK;
 	class FramebufferVK;

@@ -4,7 +4,7 @@
 #include "CommandPoolVK.h"
 #include "CommandBufferVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 	struct ShaderResourceVK {
 		VkDescriptorBufferInfo Buffer = {};

@@ -2,7 +2,7 @@
 #include "Texture.h"
 #include <vulkan/vulkan.h>
 
-namespace VkAPI
+namespace Vulkan
 {
 	class GraphicsDeviceVK;
 	class TextureViewVK;
@@ -24,11 +24,11 @@ namespace VkAPI
 		void CopyFromBuffer(VkCommandBuffer cmd, VkBuffer buffer, uint32_t width, uint32_t height);
 
 	private:
-		GraphicsDeviceVK* m_Device;
-		const void* m_Data;
-		VkImage m_Image;
-		VkDeviceMemory m_Mem;
-		VkSampler m_Sampler;
+		GraphicsDeviceVK* m_Device = nullptr;
+		const void* m_Data = nullptr;
+		VkImage m_Image = VK_NULL_HANDLE;
+		VkDeviceMemory m_Mem = VK_NULL_HANDLE;
+		VkSampler m_Sampler = VK_NULL_HANDLE;
 	};
 
 	class TextureViewVK : public TextureView
@@ -42,8 +42,8 @@ namespace VkAPI
 		virtual TextureVK* GetTexture() override { return m_Texture; }
 
 	private:
-		GraphicsDeviceVK* m_Device;
-		TextureVK* m_Texture;
-		VkImageView m_View;
+		GraphicsDeviceVK* m_Device = nullptr;
+		TextureVK* m_Texture = nullptr;
+		VkImageView m_View = VK_NULL_HANDLE;
 	};
 }

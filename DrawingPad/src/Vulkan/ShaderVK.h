@@ -3,11 +3,10 @@
 #include "Shader.h"
 
 #include <vulkan/vulkan.h>
-#include <spirv_cross/spirv_cross.hpp>
 
 #include "DescriptorSetVK.h"
 
-namespace VkAPI {
+namespace Vulkan {
 	class GraphicsDeviceVK;
 	class ShaderVK : public Shader
 	{

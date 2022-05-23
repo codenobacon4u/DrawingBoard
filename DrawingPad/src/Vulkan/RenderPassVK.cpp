@@ -4,7 +4,7 @@
 
 #include <array>
 
-namespace VkAPI {
+namespace Vulkan {
 	RenderPassVK::RenderPassVK(GraphicsDevice* device, const RenderPassDesc& desc)
 		: RenderPass(device, desc)
 	{

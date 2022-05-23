@@ -2,10 +2,10 @@
 #include <vulkan/vulkan.h>
 
 #include "Texture.h"
-#include "RenderPass.h"
+#include "RenderTarget.h"
 #include "Pipeline.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 	class UtilsVK
 	{

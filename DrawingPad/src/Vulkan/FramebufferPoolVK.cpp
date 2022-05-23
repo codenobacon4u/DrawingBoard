@@ -5,7 +5,7 @@
 
 #include <chrono>
 
-namespace VkAPI {
+namespace Vulkan {
 	using FloatingPointMicroseconds = std::chrono::duration<double, std::micro>;
 	bool FBKey::operator==(const FBKey& rhs) const
 	{

@@ -2,7 +2,7 @@
 
 #include "RenderPassVK.h"
 
-namespace VkAPI 
+namespace Vulkan 
 {
 	typedef struct RPKey {
 		uint8_t NumColors = 0;

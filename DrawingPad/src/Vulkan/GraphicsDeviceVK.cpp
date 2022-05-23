@@ -9,8 +9,9 @@
 #include "ShaderVK.h"
 #include "PipelineVK.h"
 #include "DebugVK.h"
+#include "RenderTargetVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 #ifdef PW_DEBUG
 	const bool enableValidation = true;
@@ -132,9 +133,9 @@ namespace VkAPI
 		return DBG_NEW PipelineVK(this, desc);
 	}
 
-	Swapchain* GraphicsDeviceVK::CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window)
+	Swapchain* GraphicsDeviceVK::CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window)
 	{
-		return DBG_NEW SwapchainVK(this, (GraphicsContextVK*)context, desc, window);
+		return DBG_NEW SwapchainVK(this, desc, window);
 	}
 
 	Shader* GraphicsDeviceVK::CreateShader(const ShaderDesc& desc)

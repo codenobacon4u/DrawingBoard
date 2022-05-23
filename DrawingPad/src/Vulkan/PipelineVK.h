@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace VkAPI
+namespace Vulkan
 {
     class GraphicsDeviceVK;
     class PipelineVK : public Pipeline

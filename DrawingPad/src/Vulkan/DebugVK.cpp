@@ -13,7 +13,7 @@ static PFN_vkCmdDebugMarkerInsertEXT vkCmdDebugMarkerInsert = VK_NULL_HANDLE;
 static PFN_vkSetDebugUtilsObjectNameEXT SetDebugUtilsObjectNameEXT = VK_NULL_HANDLE;
 static PFN_vkSetDebugUtilsObjectTagEXT SetDebugUtilsObjectTagEXT = VK_NULL_HANDLE;
 
-void VkAPI::DebugMarker::Setup(VkDevice device, VkPhysicalDevice physicalDevice)
+void Vulkan::DebugMarker::Setup(VkDevice device, VkPhysicalDevice physicalDevice)
 {
 	// Check if the debug marker extension is present (which is the case if run from a graphics debugger)
 	uint32_t extensionCount;
@@ -47,7 +47,7 @@ void VkAPI::DebugMarker::Setup(VkDevice device, VkPhysicalDevice physicalDevice)
 	debug = true;
 }
 
-void VkAPI::DebugMarker::SetName(VkDevice device, uint64_t object, VkObjectType objectType, std::string name)
+void Vulkan::DebugMarker::SetName(VkDevice device, uint64_t object, VkObjectType objectType, std::string name)
 {
 	// Check for valid function pointer (may not be present if not running in a debugging application)
 	if (active)
@@ -71,7 +71,7 @@ void VkAPI::DebugMarker::SetName(VkDevice device, uint64_t object, VkObjectType 
 	}
 }
 
-void VkAPI::DebugMarker::SetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, std::string tag)
+void Vulkan::DebugMarker::SetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, std::string tag)
 {
 	// Check for valid function pointer (may not be present if not running in a debugging application)
 	if (active)
@@ -99,7 +99,7 @@ void VkAPI::DebugMarker::SetObjectTag(VkDevice device, uint64_t object, VkObject
 	}
 }
 
-void VkAPI::DebugMarker::BeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, float* color)
+void Vulkan::DebugMarker::BeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, float* color)
 {
 	// Check for valid function pointer (may not be present if not running in a debugging application)
 	if (active)
@@ -112,7 +112,7 @@ void VkAPI::DebugMarker::BeginRegion(VkCommandBuffer cmdbuffer, const char* pMar
 	}
 }
 
-void VkAPI::DebugMarker::Insert(VkCommandBuffer cmdbuffer, std::string markerName, float* color)
+void Vulkan::DebugMarker::Insert(VkCommandBuffer cmdbuffer, std::string markerName, float* color)
 {
 	// Check for valid function pointer (may not be present if not running in a debugging application)
 	if (active)
@@ -125,7 +125,7 @@ void VkAPI::DebugMarker::Insert(VkCommandBuffer cmdbuffer, std::string markerNam
 	}
 }
 
-void VkAPI::DebugMarker::EndRegion(VkCommandBuffer cmdBuffer)
+void Vulkan::DebugMarker::EndRegion(VkCommandBuffer cmdBuffer)
 {
 	// Check for valid function (may not be present if not running in a debugging application)
 	if (vkCmdDebugMarkerEnd)

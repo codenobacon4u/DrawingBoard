@@ -3,7 +3,7 @@
 #include "GraphicsDeviceVK.h"
 #include "RenderPassVK.h"
 
-namespace VkAPI {
+namespace Vulkan {
 	FramebufferVK::FramebufferVK(GraphicsDeviceVK* device, const FramebufferDesc& desc)
 		: Framebuffer(device, desc)
 	{

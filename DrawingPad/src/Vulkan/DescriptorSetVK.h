@@ -5,7 +5,7 @@
 #include <vulkan/vulkan.h>
 #include <unordered_map>
 
-namespace VkAPI {
+namespace Vulkan {
 
 	struct DSLKey {
 		uint32_t SampledImages = 0;

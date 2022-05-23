@@ -4,8 +4,21 @@
 #include "GraphicsDeviceVK.h"
 
 #include <shaderc/shaderc.hpp>
+#ifdef _DEBUG
+#undef calloc
+#undef free
+#undef malloc
+#undef realloc
+#endif
+#include <spirv_cross/spirv_cross.hpp>
+#ifdef _DEBUG
+#define calloc(c, s)       _calloc_dbg(c, s, _NORMAL_BLOCK, __FILE__, __LINE__)
+#define free(p)            _free_dbg(p, _NORMAL_BLOCK)
+#define malloc(s)          _malloc_dbg(s, _NORMAL_BLOCK, __FILE__, __LINE__)
+#define realloc(p, s)      _realloc_dbg(p, s, _NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
 
-namespace VkAPI {
+namespace Vulkan {
 
 	template<ResourceBindingType T>
 	inline void ReadResource(const spirv_cross::Compiler &compiler, ShaderType stage, std::vector<ResourceBinding> &resources, uint32_t* maxSet) {

@@ -5,7 +5,7 @@
 #include "UtilsVK.h"
 #include "BufferVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 	TextureVK::TextureVK(GraphicsDeviceVK* device, const TextureDesc& desc, const unsigned char* data)
 		: Texture(desc), m_Device(device), m_Data(data)

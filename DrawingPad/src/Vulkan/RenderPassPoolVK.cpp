@@ -7,7 +7,7 @@
 #include <chrono>
 #include <array>
 
-namespace VkAPI 
+namespace Vulkan 
 {
 	using FloatingPointMicroseconds = std::chrono::duration<double, std::micro>;
 	bool RPKey::operator==(const RPKey& rhs) const

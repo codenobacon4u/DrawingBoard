@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace VkAPI {
+namespace Vulkan {
 	class GraphicsDeviceVK;
 	class RenderPassVK : public RenderPass
 	{

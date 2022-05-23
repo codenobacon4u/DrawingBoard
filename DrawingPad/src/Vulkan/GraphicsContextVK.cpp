@@ -7,7 +7,7 @@
 #include "PipelineVK.h"
 #include "BufferVK.h"
 
-namespace VkAPI {
+namespace Vulkan {
 	GraphicsContextVK::GraphicsContextVK(GraphicsDeviceVK* device, const GraphicsContextDesc& desc)
 		: GraphicsContext(device, desc), m_vkDevice(device)
 	{

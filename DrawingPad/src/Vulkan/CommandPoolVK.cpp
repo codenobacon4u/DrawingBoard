@@ -4,7 +4,7 @@
 #include "GraphicsDeviceVK.h"
 #include "TextureVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 	CommandPoolVK::CommandPoolVK(GraphicsDeviceVK* device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags)
 		: m_Device(device), m_CmdPool(VK_NULL_HANDLE)

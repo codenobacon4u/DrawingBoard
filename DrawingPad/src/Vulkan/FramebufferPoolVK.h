@@ -5,7 +5,7 @@
 #include <vulkan/vulkan.h>
 #include <unordered_map>
 
-namespace VkAPI {
+namespace Vulkan {
 
 	typedef struct FBKey {
 		VkRenderPass Pass = VK_NULL_HANDLE;

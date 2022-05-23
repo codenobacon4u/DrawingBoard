@@ -3,7 +3,7 @@
 
 #include "GraphicsDeviceVK.h"
 
-namespace VkAPI 
+namespace Vulkan 
 {
 	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, const void* bufData)
 		: Buffer(desc, bufData), m_Device(device)

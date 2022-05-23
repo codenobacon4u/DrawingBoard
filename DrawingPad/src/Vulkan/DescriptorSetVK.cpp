@@ -2,7 +2,7 @@
 #include "DescriptorSetVK.h"
 #include "GraphicsDeviceVK.h"
 
-namespace VkAPI {
+namespace Vulkan {
 	DescriptorSetPoolVK::DescriptorSetPoolVK(GraphicsDeviceVK* device)
 		: m_Device(device)
 	{
