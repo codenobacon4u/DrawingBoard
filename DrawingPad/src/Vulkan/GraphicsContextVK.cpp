@@ -1,9 +1,8 @@
 #include "pwpch.h"
+#ifdef GRAPHICS_CONTEXT
 #include "GraphicsContextVK.h"
 
 #include "RenderPassVK.h"
-#include "FramebufferPoolVK.h"
-#include "RenderPassPoolVK.h"
 #include "PipelineVK.h"
 #include "BufferVK.h"
 
@@ -354,13 +353,13 @@ namespace Vulkan {
 			}
 		}
 
-		auto& fbPool = ((GraphicsDeviceVK*)m_Device)->GetFramebufferPool();
+		/*auto& fbPool = ((GraphicsDeviceVK*)m_Device)->GetFramebufferPool();
 		auto& rpPool = ((GraphicsDeviceVK*)m_Device)->GetRenderPassPool();
 
 		m_vkRenderPass = rpPool.GetRenderPass(rKey)->GetRenderPass();
 		fKey.Pass = m_vkRenderPass;
 		fKey.CommandQueueMask = ~uint64_t{ 0 };
-		m_vkFramebuffer = fbPool.GetFramebuffer(fKey, m_FramebufferWidth, m_FramebufferHeight, m_FramebufferSlices);
+		m_vkFramebuffer = fbPool.GetFramebuffer(fKey, m_FramebufferWidth, m_FramebufferHeight, m_FramebufferSlices);*/
 
 		SetViewports(1, nullptr, 0, 0);
 		SetScissors(1, 0, 0, 0, 0);
@@ -722,3 +721,4 @@ namespace Vulkan {
 		}
 	}
 }
+#endif

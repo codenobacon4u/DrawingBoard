@@ -1,4 +1,5 @@
 #pragma once
+#ifdef GRAPHICS_CONTEXT
 #include "GraphicsContext.h"
 #include "GraphicsDeviceVK.h"
 #include "CommandPoolVK.h"
@@ -101,3 +102,4 @@ namespace Vulkan
 		uint32_t m_FrameIndex = 0;
 	};
 }
+#endif

@@ -1,5 +1,5 @@
 #pragma once
-
+#ifdef GRAPHICS_CONTEXT
 #include "Buffer.h"
 #include "Texture.h"
 #include "RenderPass.h"
@@ -171,3 +171,4 @@ protected:
 
 	GraphicsContextDesc m_Desc;
 };
+#endif
