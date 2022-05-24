@@ -10,6 +10,7 @@ namespace Vulkan
 	{
 	public:
 		FramebufferVK(GraphicsDeviceVK* device, const FramebufferDesc& desc);
+		~FramebufferVK();
 
 		VkFramebuffer Get() const { return m_Buffer; }
 

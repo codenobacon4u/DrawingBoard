@@ -3,12 +3,11 @@
 #include "RenderPass.h"
 
 typedef struct FramebufferDesc {
-	RenderPass* RenderPass = nullptr;
-	uint32_t AttachmentCount;
-	TextureView* const* Attachments = nullptr;
+	std::vector<TextureView*> Attachments = {};
 	uint32_t Width = 0;
 	uint32_t Height = 0;
-	uint32_t ArraySlices = 0;
+	uint32_t Layers = 0;
+	RenderPass* RenderPass = nullptr;
 } FramebufferDesc;
 
 class Framebuffer
