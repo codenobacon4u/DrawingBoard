@@ -9,7 +9,6 @@
 #include "ShaderVK.h"
 #include "PipelineVK.h"
 #include "DebugVK.h"
-#include "RenderTargetVK.h"
 
 namespace Vulkan
 {

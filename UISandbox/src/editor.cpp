@@ -128,7 +128,7 @@ static void _CreateWindow(ImGuiViewport* viewport)
     swapDesc.Height = (uint32_t)viewport->Size.y;
     swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
     swapDesc.DepthFormat = TextureFormat::None;
-    wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, wd->Context, pvd->Window);
+    wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, pvd->Window);
 
     if (old)
         delete old;
@@ -186,7 +186,7 @@ static void _SetWindowSize(ImGuiViewport* viewport, ImVec2 size) {
     swapDesc.Height = (uint32_t)viewport->Size.y;
     swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
     swapDesc.DepthFormat = TextureFormat::None;
-    wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, wd->Context, pvd->Window);
+    wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, pvd->Window);
 
     if (old)
         delete old;
@@ -560,7 +560,7 @@ int main() {
         // CreaetOrResizeWindow()
         // CreateSwapChain
 
-        wd->Swapchain = device->CreateSwapchain(swapDesc, wd->Context, window);
+        wd->Swapchain = device->CreateSwapchain(swapDesc, window);
         wd->ImageCount = 3;
     }
 

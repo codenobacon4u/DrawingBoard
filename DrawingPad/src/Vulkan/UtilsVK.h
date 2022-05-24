@@ -2,7 +2,6 @@
 #include <vulkan/vulkan.h>
 
 #include "Texture.h"
-#include "RenderTarget.h"
 #include "Pipeline.h"
 
 namespace Vulkan

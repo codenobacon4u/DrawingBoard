@@ -11,7 +11,6 @@
 #include <iostream>
 #include <glm/glm/gtx/string_cast.hpp>
 #include <glm/glm/gtx/rotate_vector.hpp>
-#include <RenderTarget.h>
 
 API Curr_API = API::Vulkan;
 
@@ -99,7 +98,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 int main() {
 	GraphicsDevice* gd;
 	Swapchain* swap;
-	RenderTarget* rt;
 	Buffer* vb;
 	Buffer* ib;
 	Buffer* ub;
@@ -124,7 +122,7 @@ int main() {
 	ctx = gd->CreateContext(desc);*/
 	SwapchainDesc swapDesc;
 	swap = gd->CreateSwapchain(swapDesc, window);
-
+	/*
 	RenderTargetDesc rtDesc = {};
 	rtDesc.Width = 1920;
 	rtDesc.Height = 1080;
@@ -172,7 +170,7 @@ int main() {
 	rtDesc.Subpasses = { subpass };
 	rtDesc.SubpassDependencies = { dependency };
 	rt = gd->CreateRenderTarget(rtDesc);
-
+	*/
 	//const std::vector<Vertex> vertices = {
 	//	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
 	//	{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
@@ -332,7 +330,7 @@ int main() {
 	gd->WaitForIdle();
 	//delete texture;
 	//delete pipeline;
-	delete rt;
+	//delete rt;
 	delete swap;
 	//delete ctx;
 	//delete ib;

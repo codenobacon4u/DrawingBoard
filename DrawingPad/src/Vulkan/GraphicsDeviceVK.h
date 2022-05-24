@@ -11,7 +11,6 @@
 #include "FramebufferPoolVK.h"
 #include "RenderPassPoolVK.h"
 #include "DescriptorSetVK.h"
-#include "RenderTargetVK.h"
 #include "UtilsVK.h"
 #include "CommandPoolVK.h"
 
@@ -41,7 +40,6 @@ namespace Vulkan
 		//virtual CommandList* CreateCommandList() override;
 		virtual Buffer* CreateBuffer(const BufferDesc& desc, void* data) override;
 		virtual Texture* CreateTexture(const TextureDesc& desc, const unsigned char* data) override;
-		virtual RenderTargetVK* CreateRenderTarget(const RenderTargetDesc& desc) override;
 		virtual RenderPassVK* CreateRenderPass(const RenderPassDesc& desc) override;
 		virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) override;
 		virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;

@@ -19,7 +19,7 @@ namespace GlAPI {
 		virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) override;
 		virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
 		virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) override;
-		virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GraphicsContext* context, GLFWwindow* window) override;
+		virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) override;
 		virtual Shader* CreateShader(const ShaderDesc& desc) override;
 
 	protected:
