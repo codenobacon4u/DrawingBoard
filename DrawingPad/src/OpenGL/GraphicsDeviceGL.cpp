@@ -35,7 +35,7 @@ namespace GlAPI
 		return nullptr;
 	}
 	
-	Pipeline* GraphicsDeviceGL::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
+	Pipeline* GraphicsDeviceGL::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc, RenderPass* renderpass)
 	{
 		return nullptr;
 	}

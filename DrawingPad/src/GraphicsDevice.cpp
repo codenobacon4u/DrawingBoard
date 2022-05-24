@@ -10,7 +10,7 @@ void GraphicsDevice::SwapBuffers()
 {
 	
 }
-
+/*
 GraphicsContext* GraphicsDevice::CreateContext(const GraphicsContextDesc& desc)
 {
     switch (s_API)
@@ -32,7 +32,7 @@ GraphicsContext* GraphicsDevice::CreateContext(const GraphicsContextDesc& desc)
         break;
     }
 }
-
+*/
 GraphicsDevice* GraphicsDevice::Create(GLFWwindow* window, API api)
 {
     s_API = api;

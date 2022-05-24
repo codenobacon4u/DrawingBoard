@@ -101,6 +101,7 @@ int main() {
 	Buffer* vb;
 	Buffer* ib;
 	Buffer* ub;
+	RenderPass* rp;
 	Pipeline* pipeline;
 	Shader* vertShader;
 	Shader* fragShader;
@@ -122,14 +123,10 @@ int main() {
 	ctx = gd->CreateContext(desc);*/
 	SwapchainDesc swapDesc;
 	swap = gd->CreateSwapchain(swapDesc, window);
-	/*
-	RenderTargetDesc rtDesc = {};
-	rtDesc.Width = 1920;
-	rtDesc.Height = 1080;
-	rtDesc.Layers = 1;
-	std::vector<AttachmentDesc> attachments = {
+	
+	RenderPassDesc rpDesc = {};
+	std::vector<RenderPassAttachmentDesc> attachments = {
 		{
-			swap->GetNextBackbuffer(),
 			swap->GetDesc().ColorFormat,
 			1,
 			AttachmentLoadOp::Clear,
@@ -140,7 +137,6 @@ int main() {
 			ImageLayout::PresentSrcKHR
 		},
 		{
-			swap->GetDepthBufferView(),
 			swap->GetDesc().DepthFormat,
 			1,
 			AttachmentLoadOp::Clear,
@@ -166,11 +162,11 @@ int main() {
 	dependency.SrcAccess = SubpassAccess::NA;
 	dependency.DstAccess = (SubpassAccess)(SubpassAccess::ColorAttachWrite | SubpassAccess::DepthStencilAttachWrite);
 
-	rtDesc.Attachments = attachments;
-	rtDesc.Subpasses = { subpass };
-	rtDesc.SubpassDependencies = { dependency };
-	rt = gd->CreateRenderTarget(rtDesc);
-	*/
+	rpDesc.Attachments = attachments;
+	rpDesc.Subpasses = { subpass };
+	rpDesc.SubpassDependencies = { dependency };
+	rp = gd->CreateRenderPass(rpDesc);
+	
 	//const std::vector<Vertex> vertices = {
 	//	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
 	//	{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
@@ -257,7 +253,7 @@ int main() {
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
 	pDesc.Shaders = shaders.data();
-	//pipeline = gd->CreateGraphicsPipeline(pDesc);
+	pipeline = gd->CreateGraphicsPipeline(pDesc, rp);
 
 	//Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
 	/*const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
@@ -329,8 +325,8 @@ int main() {
 	}
 	gd->WaitForIdle();
 	//delete texture;
-	//delete pipeline;
-	//delete rt;
+	delete pipeline;
+	delete rp;
 	delete swap;
 	//delete ctx;
 	//delete ib;

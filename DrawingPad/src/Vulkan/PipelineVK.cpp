@@ -2,25 +2,14 @@
 #include "PipelineVK.h"
 
 #include "GraphicsDeviceVK.h"
-#include "RenderPassPoolVK.h"
+#include "RenderPassVK.cpp"
 
 namespace Vulkan
 {
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& desc, RenderPass* renderPass)
 		: Pipeline(desc), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
 	{
-		if (renderPass == nullptr)
-		{
-
-			RPKey rKey = {};
-			rKey.NumColors = desc.NumColors;
-			rKey.SampleCount = desc.SampleCount;
-			for (uint32_t i = 0; i < rKey.NumColors; i++)
-				rKey.ColorFormats[i] = desc.ColorFormats[i];
-			rKey.DepthFormat = desc.DepthFormat != TextureFormat::None ? desc.DepthFormat : TextureFormat::Unknown;
-			renderPass = m_Device->GetRenderPassPool().GetRenderPass(rKey);
-		}
-		VkRenderPass renderpass = ((RenderPassVK*)renderPass)->GetRenderPass();
+		VkRenderPass renderpass = ((RenderPassVK*)renderPass)->Get();
 
 		std::vector<VkVertexInputBindingDescription> bindingDesc;
 		std::vector<VkVertexInputAttributeDescription> attribDesc;

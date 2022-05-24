@@ -3,6 +3,7 @@
 
 #include "Texture.h"
 #include "Pipeline.h"
+#include "RenderPass.h"
 
 namespace Vulkan
 {

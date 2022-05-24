@@ -17,7 +17,7 @@ namespace GlAPI {
 		virtual Texture* CreateTexture(const TextureDesc& desc, const unsigned char* data) override;
 		virtual RenderPass* CreateRenderPass(const RenderPassDesc& desc) override;
 		virtual Framebuffer* CreateFramebuffer(const FramebufferDesc& desc) override;
-		virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
+		virtual Pipeline* CreateGraphicsPipeline(const GraphicsPipelineDesc& desc, RenderPass* renderpass) override;
 		virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) override;
 		virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) override;
 		virtual Shader* CreateShader(const ShaderDesc& desc) override;

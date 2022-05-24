@@ -8,6 +8,8 @@
 #include "BufferVK.h"
 #include "ShaderVK.h"
 #include "PipelineVK.h"
+#include "RenderPassVK.h"
+#include "FramebufferVK.h"
 #include "DebugVK.h"
 
 namespace Vulkan
@@ -40,24 +42,15 @@ namespace Vulkan
 		CreateInstance();
 		CreatePhysicalDevice();
 		CreateDevice();
-		if (enableValidation)
+		if (enableValidation) {
 			DebugMarker::Setup(m_Device, m_PhysicalDevice);
-		CreateDescriptiorPool();
-		CreateCommandPool();
-		m_FramebufferPool = DBG_NEW FramebufferPoolVK(*this);
-		m_RenderPassPool = DBG_NEW RenderPassPoolVK(*this);
-		m_DescriptorSetPool = DBG_NEW DescriptorSetPoolVK(this);
+		}
 		m_TempPool = DBG_NEW CommandPoolVK(this, m_GraphicsIndex, 0);
 	}
 
 	GraphicsDeviceVK::~GraphicsDeviceVK()
 	{
-		std::cout << "DELETING GRAPHICS DEVICE" << std::endl;
 		vkDeviceWaitIdle(m_Device);
-
-		delete m_FramebufferPool;
-		delete m_RenderPassPool;
-		delete m_DescriptorSetPool;
 		delete m_TempPool;
 
 		vkDestroyDevice(m_Device, nullptr);
@@ -112,7 +105,7 @@ namespace Vulkan
 		throw std::runtime_error("Failed to find suitable memory type!");
 	}
 
-	RenderPassVK* GraphicsDeviceVK::CreateRenderPass(const RenderPassDesc& desc)
+	RenderPass* GraphicsDeviceVK::CreateRenderPass(const RenderPassDesc& desc)
 	{
 		return DBG_NEW RenderPassVK(this, desc);
 	}
@@ -122,9 +115,9 @@ namespace Vulkan
 		return DBG_NEW FramebufferVK(this, desc);
 	}
 
-	Pipeline* GraphicsDeviceVK::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
+	Pipeline* GraphicsDeviceVK::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc, RenderPass* renderpass)
 	{
-		return DBG_NEW PipelineVK(this, desc);
+		return DBG_NEW PipelineVK(this, desc, renderpass);
 	}
 
 	Pipeline* GraphicsDeviceVK::CreateComputePipeline(const ComputePipelineDesc& desc)
@@ -225,6 +218,7 @@ namespace Vulkan
 			throw std::runtime_error("failed to create instance");
 		}
 
+
 		if (!enableValidation) return;
 		CreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkCreateDebugUtilsMessengerEXT"));
 		DestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT"));
@@ -243,44 +237,96 @@ namespace Vulkan
 
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
-		m_PhysicalDevice = devices[0];
+		
+		for (const auto& device : devices)
+		{
+			auto props = VkPhysicalDeviceProperties{};
+			vkGetPhysicalDeviceProperties(device, &props);
+			if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+				m_PhysicalDevice = device;
+			}
+			else if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+				m_PhysicalDevice = device;
+			} else {
+				m_PhysicalDevice = devices[0];
+			}
+		}
 
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
+		std::string vendor, type;
+		switch (props.vendorID) {
+		case 0x1002:
+			vendor = "AMD";
+			break;
+		case 0x1010:
+			vendor = "ImgTec";
+			break;
+		case 0x10DE:
+			vendor = "NVIDIA";
+			break;
+		case 0x13B5:
+			vendor = "ARM";
+			break;
+		case 0x5143:
+			vendor = "Qualcomm";
+			break;
+		case 0x8086:
+			vendor = "INTEL";
+			break;
+		default:
+			vendor = "UNKOWN";
+			break;
+		}
+		switch (props.deviceType) {
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_CPU:
+			type = "CPU";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+			type = "Discrete";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+			type = "Integrated";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+			type = "Virtual";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_OTHER:
+		default:
+			type = "Other";
+			break;
+		}
+		std::cout
+			<< "Device Name: " << props.deviceName << "\n"
+			<< "Device Type: " << type << "\n"
+			<< "Driver Version: " << props.driverVersion << "\n"
+			<< "Vulkan Version: " << props.apiVersion << "\n"
+			<< "Vender ID: " << vendor << "\n"
+			<< "Device ID: " << props.deviceID << "\n"
+			<< std::endl;
 		m_Limits = props.limits;
 	}
 	
 	void GraphicsDeviceVK::CreateDevice()
 	{
 		QueueFamilyIndices indices = FindQueueFamilies(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-		//
-		//std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		//std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.computeFamily.value() };
-
 		const float queuePriority = 1.0f;
-		//for (uint32_t queueFamily : uniqueQueueFamilies) {
-		//	VkDeviceQueueCreateInfo queueCreateInfo;
-		//	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		//	queueCreateInfo.queueFamilyIndex = queueFamily;
-		//	queueCreateInfo.queueCount = 1;
-		//	queueCreateInfo.pQueuePriorities = &queuePriority;
-		//	queueCreateInfos.push_back(queueCreateInfo);
-		//}
 		VkDeviceQueueCreateInfo queueCreateInfo = {};
 		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		queueCreateInfo.flags = 0;
 		queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
 		queueCreateInfo.queueCount = 1;
 		queueCreateInfo.pQueuePriorities = &queuePriority;
+
 		VkPhysicalDeviceFeatures physicalFeatures;
 		vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &physicalFeatures);
-		VkPhysicalDeviceFeatures deviceFeatures = {};
+
 		VkDeviceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.flags = 0;
-		createInfo.queueCreateInfoCount = 1;//static_cast<uint32_t>(queueCreateInfos.size());
-		createInfo.pQueueCreateInfos = &queueCreateInfo;//queueCreateInfos.data();
-		createInfo.pEnabledFeatures = &deviceFeatures;
+		createInfo.queueCreateInfoCount = 1;
+		createInfo.pQueueCreateInfos = &queueCreateInfo;
+		createInfo.pEnabledFeatures = &physicalFeatures;
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		createInfo.enabledLayerCount = 0;
@@ -290,37 +336,6 @@ namespace Vulkan
 		}
 
 		vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
-	}
-	
-	void GraphicsDeviceVK::CreateDescriptiorPool()
-	{
-	}
-	
-	void GraphicsDeviceVK::CreateCommandPool()
-	{
-		//VkCommandPoolCreateInfo createInfo;
-		//createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		//createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		//createInfo.queueFamilyIndex = m_GraphicsIndex;
-		//if (vkCreateCommandPool(m_Device, &createInfo, nullptr, &m_CommandPool) != VK_SUCCESS)
-		//	throw std::runtime_error("Unable to create command pool");
-	}
-	
-	VkFence GraphicsDeviceVK::GetNextSubFence()
-	{
-		if (!m_SubFences.empty()) {
-			VkFence res = m_SubFences.back();
-			m_SubFences.pop_back();
-			return res;
-		}
-		else {
-			VkFence fence;
-			VkFenceCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			if (vkCreateFence(m_Device, &createInfo, nullptr, &fence))
-				throw std::runtime_error("Failed to create submission fence");
-			return fence;
-		}
 	}
 
 	bool GraphicsDeviceVK::IsExtensionAvailable(const char* extName) const
@@ -415,6 +430,6 @@ namespace Vulkan
 	
 	void GraphicsDeviceVK::SwapBuffers(Swapchain* swapchain) const
 	{
-		swapchain->Present(60);
+		swapchain->Present(0);
 	}
 }

@@ -12,7 +12,7 @@ namespace Vulkan
     class PipelineVK : public Pipeline
     {
     public:
-        PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& createInfo, RenderPass* renderPass = nullptr);
+        PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& createInfo, RenderPass* renderPass);
         PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& createInfo);
         PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo);
         ~PipelineVK();
