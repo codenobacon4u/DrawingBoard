@@ -1,28 +1,26 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-
-#include <vector>
+#include <GLFW/glfw3.h>
 
 #include "Framebuffer.h"
-#include "Swapchain.h"
-#include "Shader.h"
 #include "Pipeline.h"
+#include "Shader.h"
+#include "Swapchain.h"
 
 enum class API {
 	None = 0, OpenGL = 1, Vulkan = 2, DirectX = 3
 };
 
+class GraphicsContext;
 class GraphicsDevice 
 {
 public:
 	virtual ~GraphicsDevice() {}
-
-	void SwapBuffers();
 	
 	virtual void WaitForIdle() = 0;
 	virtual void Present() = 0;
 
+	virtual GraphicsContext* CreateGraphicsContext(Swapchain* swap) = 0;
 	virtual Buffer* CreateBuffer(const BufferDesc& desc, void* data) = 0;
 	virtual Texture* CreateTexture(const TextureDesc& desc, const unsigned char* data) = 0;
 	virtual RenderPass* CreateRenderPass(const RenderPassDesc& desc) = 0;
@@ -31,8 +29,6 @@ public:
 	virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) = 0;
 	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) = 0;
 	virtual Shader* CreateShader(const ShaderDesc& desc) = 0;
-
-	//GraphicsContext* CreateContext(const GraphicsContextDesc& desc);
 
 	static GraphicsDevice* Create(GLFWwindow* window, API api);
 	inline static API GetAPI() { return s_API; }

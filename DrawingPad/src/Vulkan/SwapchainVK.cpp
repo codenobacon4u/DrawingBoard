@@ -40,8 +40,6 @@ namespace Vulkan
 		vkGetDeviceQueue(m_Device->Get(), m_PresentIndex, 0, &m_Present);
 
 		RecreateSwap(desc.Width, desc.Height);
-
-		AcquireNextImage();
 	}
 
 	SwapchainVK::~SwapchainVK()
@@ -55,7 +53,6 @@ namespace Vulkan
 	void SwapchainVK::Resize(uint32_t width, uint32_t height)
 	{
 		RecreateSwap(width, height);
-		AcquireNextImage();
 	}
 
 	void SwapchainVK::Present(uint32_t sync)
@@ -76,47 +73,47 @@ namespace Vulkan
 		else if (result != VK_SUCCESS)
 			throw std::runtime_error("Failed to present swap image!");
 
-		m_CurrFrame = (m_CurrFrame + 1) % FRAMES_IN_FLIGHT;
-
-		AcquireNextImage();
+		m_CurrFrame = (m_CurrFrame + 1) % m_BackBuffers.size();
 	}
 
-	bool SwapchainVK::AcquireNextImage()
+	bool SwapchainVK::AcquireNextImage(VkSemaphore acquired)
 	{
-		// Add waiting for the fences here so that we much wait for the current frame's fence to signal
-		vkWaitForFences(m_Device->Get(), 1, &m_FlightFences[m_CurrFrame], VK_TRUE, UINT64_MAX);
 		// We need the imageAcquired semaphores to be sent out for the command buffer submission
-		VkResult result = vkAcquireNextImageKHR(m_Device->Get(), m_Swap, ULONG_MAX, m_ImageAcquiredSemaphores[m_CurrFrame], VK_NULL_HANDLE, &m_ImageIndex);
+		VkResult result = vkAcquireNextImageKHR(m_Device->Get(), m_Swap, ULONG_MAX, acquired, VK_NULL_HANDLE, &m_ImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
 			RecreateSwap(m_Desc.Width, m_Desc.Height);
-			return false;
+			result = vkAcquireNextImageKHR(m_Device->Get(), m_Swap, ULONG_MAX, acquired, VK_NULL_HANDLE, &m_ImageIndex);
+		}
+		if (result != VK_SUCCESS)
+			throw std::runtime_error("Could not get next image from the swapchain");
+		return true;
+	}
+
+	void SwapchainVK::Present(VkSemaphore render)
+	{
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &render;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &m_Swap;
+		presentInfo.pImageIndices = &m_ImageIndex;
+		auto result = vkQueuePresentKHR(m_Present, &presentInfo);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Resized)
+		{
+			m_Resized = false;
+			RecreateSwap(m_Desc.Width, m_Desc.Height);
 		}
 		else if (result != VK_SUCCESS)
-			throw std::runtime_error("Could not  next image from the swapchain");
+			throw std::runtime_error("Failed to present swap image!");
 
-		if (m_ImagesInFlight[m_ImageIndex] != VK_NULL_HANDLE)
-			vkWaitForFences(m_Device->Get(), 1, &m_ImagesInFlight[m_ImageIndex], VK_TRUE, UINT64_MAX);
-		m_ImagesInFlight[m_ImageIndex] = m_FlightFences[m_CurrFrame];
-
-		//m_Context->AddWaitSemaphore(&m_ImageAcquiredSemaphores[m_CurrFrame]);
-		//m_Context->AddSubFence(&m_FlightFences[m_CurrFrame]);
-
-		// Check if a previous frame is using the acquired image (if so... wait)
-		// Mark the image as now in flight using the value of the current frame's 
-		// inFlight fence and the index of the image.
-
-		return true;
+		m_CurrFrame = (m_CurrFrame + 1) % m_BackBuffers.size();
 	}
 
 	void SwapchainVK::RecreateSwap(uint32_t width, uint32_t height)
 	{
-		if (m_Swap != nullptr) {
-			m_Device->WaitForIdle();
-			for (uint32_t i = 0; i < m_FlightFences.size(); i++)
-				if (m_FlightFences[i])
-					if (vkGetFenceStatus(m_Device->Get(), m_FlightFences[i]) == VK_NOT_READY)
-						vkWaitForFences(m_Device->Get(), 1, &m_FlightFences[i], VK_TRUE, UINT64_MAX);
-		}
+		m_Device->WaitForIdle();
 
 		Cleanup();
 
@@ -177,24 +174,6 @@ namespace Vulkan
 		vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &swapImageCount, nullptr);
 		if (swapImageCount != m_Desc.BufferCount)
 			m_Desc.BufferCount = swapImageCount;
-		m_ImageAcquiredSemaphores.resize(FRAMES_IN_FLIGHT);
-		m_DrawCompleteSemaphores.resize(FRAMES_IN_FLIGHT);
-		m_FlightFences.resize(FRAMES_IN_FLIGHT);
-		m_ImagesInFlight.resize(swapImageCount, VK_NULL_HANDLE);
-		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++)
-		{ 
-			VkSemaphoreCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-			vkCreateSemaphore(m_Device->Get(), &createInfo, nullptr, &m_ImageAcquiredSemaphores[i]);
-			vkCreateSemaphore(m_Device->Get(), &createInfo, nullptr, &m_DrawCompleteSemaphores[i]);
-
-			VkFenceCreateInfo fenceInfo = {};
-			fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-			fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-			vkCreateFence(m_Device->Get(), &fenceInfo, nullptr, &m_FlightFences[i]);
-		}
 
 		CreatePresentResources(surfaceFormat);
 	}
@@ -213,16 +192,6 @@ namespace Vulkan
 			delete m_BackBuffers[i].first;
 		}
 		m_BackBuffers.clear();
-		for (const auto& semaphore : m_ImageAcquiredSemaphores)
-			vkDestroySemaphore(m_Device->Get(), semaphore, nullptr);
-		m_ImageAcquiredSemaphores.clear();
-		for (const auto& semaphore : m_DrawCompleteSemaphores)
-			vkDestroySemaphore(m_Device->Get(), semaphore, nullptr);
-		m_DrawCompleteSemaphores.clear();
-		for (const auto& fence : m_FlightFences)
-			vkDestroyFence(m_Device->Get(), fence, nullptr);
-		m_FlightFences.clear();
-		m_ImagesInFlight.clear();
 	}
 
 	SwapSupportDetails SwapchainVK::QuerySwapSupport()
@@ -308,8 +277,6 @@ namespace Vulkan
 		uint32_t imageCount;
 		vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &imageCount, nullptr);
 		m_BackBuffers.resize(imageCount);
-		m_SwapImagesInitialized.resize(m_BackBuffers.size(), false);
-		m_ImageAcquiredFenceSubmitted.resize(m_BackBuffers.size(), false);
 		std::vector<VkImage> swapImages(imageCount);
 		if (vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &imageCount, swapImages.data()) != VK_SUCCESS)
 			throw new std::runtime_error("Failed to get swapchain images");

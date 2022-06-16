@@ -214,7 +214,7 @@ static void _RenderWindow(ImGuiViewport* viewport, void*)
     WindowData* wd = &vd->Window;
     //GraphicsContext* ctx = wd->Context;
 
-    auto* rtv = wd->Swapchain->GetNextBackbuffer();
+    auto* rtv = wd->Swapchain->GetBackbuffer();
     //ctx->Begin(wd->Swapchain->GetImageIndex());
     //ctx->SetRenderTargets(1, &rtv, nullptr, wd->ClearEnable);
     auto clear = wd->ClearEnable ? glm::value_ptr(wd->ClearValue) : nullptr;
@@ -301,6 +301,7 @@ static void _RenderWindow(ImGuiViewport* viewport, void*)
             }
 
             {
+				/*
                 Viewport viewport;
                 viewport.X = 0;
                 viewport.Y = 0;
@@ -309,6 +310,7 @@ static void _RenderWindow(ImGuiViewport* viewport, void*)
                 viewport.minDepth = 0.0f;
                 viewport.maxDepth = 1.0f;
                 //ctx->SetViewports(1, &viewport, fb_width, fb_height);
+				*/
             }
 
             if (drawData->TotalVtxCount > 0) {
@@ -347,13 +349,15 @@ static void _RenderWindow(ImGuiViewport* viewport, void*)
 
                 //ctx->SetScissors(1, (uint32_t)clipMin.x, (uint32_t)clipMin.y, (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y));
                 //ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 0, (Texture*)cmd->TextureId);
-                DrawIndexAttribs attribs = {};
+                /*
+				DrawIndexAttribs attribs = {};
                 attribs.IndexCount = cmd->ElemCount;
                 attribs.InstanceCount = 1;
                 attribs.FirstIndex = cmd->IdxOffset + globalIdxOffset;
                 attribs.VertexOffset = cmd->VtxOffset + globalVtxOffset;
                 attribs.FirstInstance = 0;
                 //ctx->DrawIndexed(attribs);
+				*/
             }
             globalIdxOffset += cmdList->IdxBuffer.Size;
             globalVtxOffset += cmdList->VtxBuffer.Size;
@@ -378,7 +382,7 @@ static void FrameRender(WindowData* wd, ImDrawData* drawData)
     HZ_PROFILE_FUNCTION();
     RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
     //auto ctx = wd->Context;
-    auto rt = wd->Swapchain->GetNextBackbuffer();
+    auto rt = wd->Swapchain->GetBackbuffer();
     //ctx->Begin(wd->Swapchain->GetImageIndex());
     //ctx->SetRenderTargets(1, &rt, nullptr, false);
     //ctx->ClearColor(rt, glm::value_ptr(wd->ClearValue));
@@ -462,6 +466,7 @@ static void FrameRender(WindowData* wd, ImDrawData* drawData)
             }
 
             {
+				/*
                 Viewport viewport;
                 viewport.X = 0;
                 viewport.Y = 0;
@@ -470,6 +475,7 @@ static void FrameRender(WindowData* wd, ImDrawData* drawData)
                 viewport.minDepth = 0.0f;
                 viewport.maxDepth = 1.0f;
                 //ctx->SetViewports(1, &viewport, fb_width, fb_height);
+				*/
             }
 
             if (drawData->TotalVtxCount > 0) {
@@ -508,12 +514,14 @@ static void FrameRender(WindowData* wd, ImDrawData* drawData)
                         continue;
 
                     //ctx->SetScissors(1, (uint32_t)clipMin.x, (uint32_t)clipMin.y, (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y));
+					/*
                     DrawIndexAttribs attribs = {};
                     attribs.IndexCount = cmd->ElemCount;
                     attribs.InstanceCount = 1;
                     attribs.FirstIndex = cmd->IdxOffset + globalIdxOffset;
                     attribs.VertexOffset = cmd->VtxOffset + globalVtxOffset;
                     attribs.FirstInstance = 0;
+					*/
                     //ctx->DrawIndexed(attribs);
                 }
                 globalIdxOffset += cmdList->IdxBuffer.Size;
@@ -550,10 +558,11 @@ int main() {
     {// Setup Vulkan
         device = GraphicsDevice::Create(window, Curr_API);
     }
-
+	/*
     GraphicsContextDesc ctxDesc = {};
     ctxDesc.Name = "MainContext";
     ctxDesc.ContextID = 0;
+	*/
 
     int w, h;
     glfwGetFramebufferSize(window, &w, &h);
@@ -628,7 +637,7 @@ int main() {
         };
 
         std::vector<Shader*> shaders = { vertShader, fragShader };
-
+		/*
         GraphicsPipelineDesc pDesc = {};
         pDesc.NumViewports = 1;
         pDesc.NumColors = 1;
@@ -639,6 +648,7 @@ int main() {
         pDesc.ShaderCount = 2;
         pDesc.Shaders = shaders.data();
         pipe = device->CreateGraphicsPipeline(pDesc);
+		*/
     }
 
     // Setup Dear ImGui
@@ -742,7 +752,7 @@ int main() {
                         ElementDataType::Uint8
                     }
                 };
-
+				/*
                 GraphicsPipelineDesc pipeDesc = {};
                 pipeDesc.ShaderCount = (uint32_t)shaders.size();
                 pipeDesc.Shaders = shaders.data();
@@ -756,6 +766,7 @@ int main() {
                 pipeDesc.DepthFormat = wd->Swapchain->GetDesc().DepthFormat;
 
                 bd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc);
+				*/
             }
         }
 
@@ -817,13 +828,13 @@ int main() {
     ub = device->CreateBuffer(bufDesc, nullptr);
 
     HZ_PROFILE_END_SESSION();
-
+	/*
     DrawIndexAttribs drawAttribs = {};
     drawAttribs.IndexCount = 6;
     drawAttribs.InstanceCount = 1;
     drawAttribs.FirstIndex = 0;
     drawAttribs.FirstInstance = 0;
-
+	*/
     HZ_PROFILE_BEGIN_SESSION("Runtime", "DrawingPadProfile-Runtime.json");
     while (!glfwWindowShouldClose(window))
     {
@@ -833,7 +844,7 @@ int main() {
         {
             HZ_PROFILE_SCOPE("FirstRender");
             //auto fb = renderBuffers[wd->Swapchain->GetImageIndex()]->GetDefaultView();
-            auto fb = wd->Swapchain->GetNextBackbuffer();
+            auto fb = wd->Swapchain->GetBackbuffer();
             //auto ctx = wd->Context;
             //ctx->Begin(wd->Swapchain->GetImageIndex());
             //ctx->SetRenderTargets(1, &fb, nullptr, true);

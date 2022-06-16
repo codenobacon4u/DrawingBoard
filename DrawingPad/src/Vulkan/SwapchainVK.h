@@ -1,13 +1,11 @@
 #pragma once
-
 #include "Swapchain.h"
-
-#include "GraphicsContextVK.h"
-#include "TextureVK.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <Vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
+
+#include "TextureVK.h"
 
 namespace Vulkan
 {
@@ -31,18 +29,19 @@ namespace Vulkan
 		~SwapchainVK();
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
-
 		virtual void Present(uint32_t sync) override;
-		bool AcquireNextImage();
 
-		void* GetNative() { return &m_Swap; }
-		VkQueue GetPresentQueue() { return m_Present; }
+		virtual void* GetNative() { return &m_Swap; }
 		virtual uint32_t GetImageIndex() override { return m_ImageIndex; }
-
-		virtual TextureView* GetNextBackbuffer() override { return m_BackBuffers[m_ImageIndex].second; }
+		virtual TextureView* GetBackbuffer() override { return m_BackBuffers[m_ImageIndex].second; }
 		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthTextureView; }
 
+		VkQueue GetPresentQueue() { return m_Present; }
+		size_t GetBackbufferCount() { return m_BackBuffers.size(); }
+
+		bool AcquireNextImage(VkSemaphore acquired);
 		void SetResized(uint32_t width, uint32_t height) { m_Resized = true; m_Desc.Width = width; m_Desc.Height = height; }
+		void Present(VkSemaphore render);
 	private:
 		void RecreateSwap(uint32_t width, uint32_t height);
 		void Cleanup();
@@ -64,21 +63,11 @@ namespace Vulkan
 		VkPresentModeKHR m_PresentMode;
 		VkSwapchainKHR m_Swap;
 
-		std::vector<VkSemaphore> m_ImageAcquiredSemaphores;
-		std::vector<VkSemaphore> m_DrawCompleteSemaphores;
-		std::vector<VkFence> m_FlightFences;
-		std::vector<VkFence> m_ImagesInFlight;
-
-		std::vector<bool> m_SwapImagesInitialized;
-		std::vector<bool> m_ImageAcquiredFenceSubmitted;
-
 		VkQueue m_Present;
 		uint32_t m_PresentIndex;
 
 		uint32_t m_ImageIndex = 0;
 		uint32_t m_CurrFrame = 0;
 		bool m_Resized = false;
-		const uint32_t FRAMES_IN_FLIGHT = 3;
-		GraphicsContextVK* m_Context;
 	};
 }

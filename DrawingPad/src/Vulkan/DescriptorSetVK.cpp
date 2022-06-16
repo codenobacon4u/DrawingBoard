@@ -252,17 +252,15 @@ namespace Vulkan {
 	{
 		if (Hash == 0)
 		{
-			Hasher h;
-			h.AddHash(SampledImages);
-			h.AddHash(StorageImages);
-			h.AddHash(UniformBuffers);
-			h.AddHash(StorageBuffers);
-			h.AddHash(SampledBuffers);
-			h.AddHash(InputAttachments);
-			h.AddHash(Samplers);
-			h.AddHash(SeparateImages);
-			h.AddHash(Stages);
-			Hash = h.Get();
+			hash_combine(Hash, SampledImages);
+			hash_combine(Hash, StorageImages);
+			hash_combine(Hash, UniformBuffers);
+			hash_combine(Hash, StorageBuffers);
+			hash_combine(Hash, SampledBuffers);
+			hash_combine(Hash, InputAttachments);
+			hash_combine(Hash, Samplers);
+			hash_combine(Hash, SeparateImages);
+			hash_combine(Hash, Stages);
 		}
 		return Hash;
 	}

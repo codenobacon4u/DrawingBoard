@@ -8,6 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <sstream>
+#include "pwpch.h"
 
 namespace Hazel {
 

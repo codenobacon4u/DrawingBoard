@@ -19,7 +19,7 @@ public:
 	virtual void Present(uint32_t sync) = 0;
 	virtual void* GetNative() = 0;
 	virtual uint32_t GetImageIndex() = 0;
-	virtual TextureView* GetNextBackbuffer() = 0;
+	virtual TextureView* GetBackbuffer() = 0;
 	virtual TextureView* GetDepthBufferView() = 0;
 	
 	void SetVSync(bool enabled) { m_VSync = enabled; }

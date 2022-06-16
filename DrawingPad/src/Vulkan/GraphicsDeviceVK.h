@@ -1,16 +1,16 @@
 #pragma once
-
 #include "GraphicsDevice.h"
 
-#include <vulkan/vulkan.h>
 #include <optional>
 #include <vector>
-#include <queue>
 
-#include "TextureVK.h"
-#include "DescriptorSetVK.h"
-#include "UtilsVK.h"
+#include <vulkan/vulkan.h>
+
 #include "CommandPoolVK.h"
+#include "DescriptorSetVK.h"
+#include "FramebufferPoolVK.h"
+#include "TextureVK.h"
+#include "UtilsVK.h"
 
 namespace Vulkan
 {
@@ -35,6 +35,7 @@ namespace Vulkan
 		virtual void WaitForIdle() override;
 		virtual void Present() override;
 
+		virtual GraphicsContext* CreateGraphicsContext(Swapchain* swap) override;
 		virtual Buffer* CreateBuffer(const BufferDesc& desc, void* data) override;
 		virtual Texture* CreateTexture(const TextureDesc& desc, const unsigned char* data) override;
 		virtual RenderPass* CreateRenderPass(const RenderPassDesc& desc) override;
@@ -56,6 +57,7 @@ namespace Vulkan
 		VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
 
 		CommandPoolVK& GetTempCommandPool() { return *m_TempPool; }
+		FramebufferPoolVK& GetFramebufferPool() { return *m_FramebufferPool; }
 
 		VkPhysicalDeviceLimits GetPhysicalLimits() { return m_Limits; }
 		VkPhysicalDeviceProperties GetPhysicalProperties() { return m_Props; }
@@ -86,6 +88,7 @@ namespace Vulkan
 		VkQueue m_GraphicsQueue;
 
 		CommandPoolVK* m_TempPool;
+		FramebufferPoolVK* m_FramebufferPool;
 
 		VkPhysicalDeviceLimits m_Limits;
 		VkPhysicalDeviceProperties m_Props;

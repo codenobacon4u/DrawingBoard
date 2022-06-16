@@ -1,10 +1,10 @@
 #pragma once
 #include "Pipeline.h"
 
+#include <vulkan/vulkan.h>
+
 #include "RenderPass.h"
 #include "ShaderVK.h"
-
-#include <vulkan/vulkan.h>
 
 namespace Vulkan
 {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Texture.h"
-#include "Shader.h"
 #include "RenderPass.h"
+#include "Shader.h"
+#include "Texture.h"
 
 enum class ElementDataType : uint8_t
 {
@@ -56,19 +56,27 @@ class Pipeline
 {
 public:
 	Pipeline(const GraphicsPipelineDesc& desc)
-		: m_GraphicsDesc(desc) {}
+		: m_GraphicsDesc(desc) {
+		m_Type = PipelineBindPoint::Graphics;
+	}
 	Pipeline(const ComputePipelineDesc& desc)
-		: m_ComputeDesc(desc) {}
+		: m_ComputeDesc(desc) {
+		m_Type = PipelineBindPoint::Compute;
+	}
 	Pipeline(const RaytracingPipelineDesc& desc)
-		: m_RaytracingDesc(desc) {}
+		: m_RaytracingDesc(desc) {
+		m_Type = PipelineBindPoint::Raytracing;
+	}
 
 	virtual ~Pipeline() {}
 
+	const PipelineBindPoint& GetBindPoint() const { return m_Type; }
 	const GraphicsPipelineDesc& GetGraphicsDesc() const { return m_GraphicsDesc; }
 	const ComputePipelineDesc& GetComputeDesc() const { return m_ComputeDesc; }
 	const RaytracingPipelineDesc& GetRaytracingDesc() const { return m_RaytracingDesc; }
 
 protected:
+	PipelineBindPoint m_Type;
 	GraphicsPipelineDesc m_GraphicsDesc = {};
 	ComputePipelineDesc m_ComputeDesc = {};
 	RaytracingPipelineDesc m_RaytracingDesc = {};

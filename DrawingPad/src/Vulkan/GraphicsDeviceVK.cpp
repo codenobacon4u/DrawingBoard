@@ -3,14 +3,15 @@
 
 #include <set>
 
-#include "SwapchainVK.h"
-#include "TextureVK.h"
 #include "BufferVK.h"
-#include "ShaderVK.h"
+#include "DebugVK.h"
+#include "FramebufferVK.h"
+#include "GraphicsContextVK.h"
 #include "PipelineVK.h"
 #include "RenderPassVK.h"
-#include "FramebufferVK.h"
-#include "DebugVK.h"
+#include "ShaderVK.h"
+#include "SwapchainVK.h"
+#include "TextureVK.h"
 
 namespace Vulkan
 {
@@ -46,6 +47,7 @@ namespace Vulkan
 			DebugMarker::Setup(m_Device, m_PhysicalDevice);
 		}
 		m_TempPool = DBG_NEW CommandPoolVK(this, m_GraphicsIndex, 0);
+		m_FramebufferPool = DBG_NEW FramebufferPoolVK(this);
 	}
 
 	GraphicsDeviceVK::~GraphicsDeviceVK()
@@ -76,6 +78,11 @@ namespace Vulkan
 
 	void GraphicsDeviceVK::Present()
 	{
+	}
+
+	GraphicsContext* GraphicsDeviceVK::CreateGraphicsContext(Swapchain* swap)
+	{
+		return DBG_NEW GraphicsContextVK(this, swap);
 	}
 
 	Buffer* GraphicsDeviceVK::CreateBuffer(const BufferDesc& desc, void* data)

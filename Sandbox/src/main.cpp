@@ -46,7 +46,7 @@ void main() {
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 color;
-	glm::vec2 tex;
+	//glm::vec2 tex;
 };
 
 struct UniformBufferObject {
@@ -97,6 +97,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 int main() {
 	GraphicsDevice* gd;
+	GraphicsContext* ctx;
 	Swapchain* swap;
 	Buffer* vb;
 	Buffer* ib;
@@ -123,6 +124,7 @@ int main() {
 	ctx = gd->CreateContext(desc);*/
 	SwapchainDesc swapDesc;
 	swap = gd->CreateSwapchain(swapDesc, window);
+	ctx = gd->CreateGraphicsContext(swap);
 	
 	RenderPassDesc rpDesc = {};
 	std::vector<RenderPassAttachmentDesc> attachments = {
@@ -148,7 +150,7 @@ int main() {
 		}, 
 	};
 
-	AttachmentReference depthAttach = { 1, ImageLayout::DepthAttachOptimal };
+	AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
 	SubpassDesc subpass = {};
 	subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
 	subpass.DepthStencilAttachment = &depthAttach;
@@ -164,57 +166,58 @@ int main() {
 
 	rpDesc.Attachments = attachments;
 	rpDesc.Subpasses = { subpass };
-	rpDesc.SubpassDependencies = { dependency };
 	rp = gd->CreateRenderPass(rpDesc);
 	
-	//const std::vector<Vertex> vertices = {
-	//	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
-	//	{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
-	//	{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
-	//	{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}, // TL
-	//	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	//	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	//	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	//	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-	//	//{{0.f, -1.f, 6.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	//	//{{0.f,  5.f, 2.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	//	//{{3.f,  2.f, 1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-	//};
+	const std::vector<Vertex> vertices = {
+		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // BL
+		{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, //BR
+		{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // TR
+		{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}, // TL
 
-	/*const std::vector<uint16_t> indices = {
+		{{-1.0f, -1.0f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{ 1.0f, -1.0f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{ 1.0f,  1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-1.0f,  1.0f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+
+		//{{0.f, -1.f, 6.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+		//{{0.f,  5.f, 2.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		//{{3.f,  2.f, 1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+	};
+
+	const std::vector<uint16_t> indices = {
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4
-	};*/
+	};
 
-	//BufferDesc bufDesc = {};
-	//bufDesc.Usage = BufferUsageFlags::Default;
-	//// ======== Create Vertex Buffer ========
-	//bufDesc.BindFlags = BufferBindFlags::Vertex;
-	//bufDesc.Size = static_cast<uint32_t>(sizeof(vertices[0]) * vertices.size());
-	//vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
+	BufferDesc bufDesc = {};
+	bufDesc.Usage = BufferUsageFlags::Default;
+	// ======== Create Vertex Buffer ========
+	bufDesc.BindFlags = BufferBindFlags::Vertex;
+	bufDesc.Size = static_cast<uint32_t>(sizeof(vertices[0]) * vertices.size());
+	vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
 
-	//// ======== Create Index Buffer ========
-	//bufDesc.BindFlags = BufferBindFlags::Index;
-	//bufDesc.Size = static_cast<uint32_t>(sizeof(indices[0]) * indices.size());
-	//ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
+	// ======== Create Index Buffer ========
+	bufDesc.BindFlags = BufferBindFlags::Index;
+	bufDesc.Size = static_cast<uint32_t>(sizeof(indices[0]) * indices.size());
+	ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
 
-	//// ======== Create Uniform Buffer ========
-	//bufDesc.BindFlags = BufferBindFlags::Uniform;
-	//bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
-	//bufDesc.Buffered = true;
-	//ub = gd->CreateBuffer(bufDesc, nullptr);
+	// ======== Create Uniform Buffer ========
+	bufDesc.BindFlags = BufferBindFlags::Uniform;
+	bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
+	bufDesc.Buffered = true;
+	ub = gd->CreateBuffer(bufDesc, nullptr);
 
 	// ======== Create Shaders ========
 	ShaderDesc sDesc = {};
 	sDesc.EntryPoint = "main";
 	sDesc.Name = "Basic Vert";
 	//sDesc.Src = vertSrc;
-	sDesc.Path = "shaders/textured.vert";
+	sDesc.Path = "shaders/square.vert";
 	sDesc.Type = ShaderType::Vertex;
 	vertShader = gd->CreateShader(sDesc);
 	sDesc.Name = "Basic Frag";
 	//sDesc.Src = fragSrc;
-	sDesc.Path = "shaders/textured.frag";
+	sDesc.Path = "shaders/square.frag";
 	sDesc.Type = ShaderType::Fragment;
 	fragShader = gd->CreateShader(sDesc);
 
@@ -232,14 +235,16 @@ int main() {
 			3, // Num Components
 			offsetof(Vertex, color),  // Offset
 			sizeof(Vertex) // Stride
-		},
-		{
+		}
+		/*
+		,{
 			2,
 			0,
 			2,
 			offsetof(Vertex, tex),
 			sizeof(Vertex)
 		}
+		*/
 	};
 
 	std::vector<Shader*> shaders = { vertShader, fragShader };
@@ -249,7 +254,7 @@ int main() {
 	pDesc.NumColors = 1;
 	pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
 	pDesc.DepthFormat = swap->GetDesc().DepthFormat;
-	pDesc.InputLayout.NumElements = 3;
+	pDesc.InputLayout.NumElements = 2;
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
 	pDesc.Shaders = shaders.data();
@@ -288,18 +293,20 @@ int main() {
 		//====UPDATE====
 		glfwPollEvents();
 
-		////====RENDER====
-		//TextureView* rtv = swap->GetNextBackbuffer();
-		//TextureView* dsv = swap->GetDepthBufferView();
-		//float color[4] = { 0.f, 0.f, 0.f, 1.0f };
-		//ctx->Begin(swap->GetImageIndex());
-		//ctx->SetRenderTargets(1, &rtv, dsv, true);
-		//ctx->ClearColor(rtv, color);
-		//ctx->SetPipeline(pipeline);
-		//Buffer* vertexBuffs[] = { vb };
-		//uint64_t offsets[] = { 0 };
-		//ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
-		//ctx->SetIndexBuffer(ib, 0);
+		//====RENDER====
+		TextureView* rtv = swap->GetBackbuffer();
+		TextureView* dsv = swap->GetDepthBufferView();
+		float color[4] = { 0.f, 0.f, 0.f, 1.0f };
+		Viewport vp = { 0, 0, rtv->GetTexture()->GetDesc().Width, rtv->GetTexture()->GetDesc().Height, 0.0f, 1.0f };
+		auto cmd = ctx->Begin();
+		cmd->Begin();
+		cmd->BeginRenderPass(rp, { rtv, dsv }, { { 0.0f, 0.0f, 0.0f, 1.0f }, { 1.0f, 0 } });
+		cmd->SetViewports(0, 1, {vp});
+		cmd->BindPipeline(pipeline);
+		std::vector<Buffer*> vertexBuffs = { vb };
+		std::vector<uint64_t> offsets = { 0 };
+		cmd->BindVertexBuffer(0, 1, vertexBuffs, offsets);
+		cmd->BindIndexBuffer(ib, 0);
 		
 		//{
 		//	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -316,9 +323,11 @@ int main() {
 		//	ctx->UploadBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
 		//}
 		/*ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
-		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);
-		ctx->DrawIndexed(drawAttribs);
-		ctx->Flush();*/
+		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);*/
+		cmd->DrawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		cmd->EndRenderPass();
+		cmd->End();
+		ctx->Submit({ cmd });
 
 		//====PRESENT====
 		//swap->Present(0);
@@ -328,12 +337,12 @@ int main() {
 	delete pipeline;
 	delete rp;
 	delete swap;
-	//delete ctx;
-	//delete ib;
-	//delete vb;
-	//delete ub;
+	delete ib;
+	delete vb;
+	delete ub;
 	delete fragShader;
 	delete vertShader;
+	delete ctx;
 	delete gd;
 
 	glfwDestroyWindow(window);

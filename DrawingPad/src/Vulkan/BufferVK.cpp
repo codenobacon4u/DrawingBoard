@@ -1,6 +1,7 @@
 #include "pwpch.h"
 #include "BufferVK.h"
 
+#include "CommandBufferVK.h"
 #include "GraphicsDeviceVK.h"
 
 namespace Vulkan 
@@ -145,8 +146,12 @@ namespace Vulkan
 	void BufferVK::CopyFrom(VkBuffer src, VkDeviceSize size)
 	{
 		VkQueue graphics = m_Device->GetGraphicsQueue();
-		VkCommandBuffer cmd = m_Device->GetTempCommandPool().GetBuffer();
+		VkCommandBuffer cmd = static_cast<CommandBufferVK*>(m_Device->GetTempCommandPool().RequestCommandBuffer())->Get();
 		VkBufferCopy copy{ 0, 0, size };
+		VkCommandBufferBeginInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(cmd, &info);
 		vkCmdCopyBuffer(cmd, src, m_Buffer, 1, &copy);
 		vkEndCommandBuffer(cmd);
 		VkSubmitInfo submit = {};

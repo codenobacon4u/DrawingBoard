@@ -68,7 +68,7 @@ namespace Vulkan
 			vkUnmapMemory(m_Device->Get(), staging.GetMemory());
 
 			VkQueue graphics = m_Device->GetGraphicsQueue();
-			VkCommandBuffer cmd = m_Device->GetTempCommandPool().GetBuffer();
+			VkCommandBuffer cmd = static_cast<CommandBufferVK*>(m_Device->GetTempCommandPool().RequestCommandBuffer())->Get();
 			
 			TransistionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 			CopyFromBuffer(cmd, staging.Get(), m_Desc.Width, m_Desc.Height);
@@ -81,7 +81,6 @@ namespace Vulkan
 			submit.pCommandBuffers = &cmd;
 			vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
 			vkQueueWaitIdle(graphics);
-			m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 
 			TextureViewDesc texDesc = {};
 			texDesc.Format = m_Desc.Format;
