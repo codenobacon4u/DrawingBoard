@@ -50,5 +50,7 @@ namespace Vulkan
 	void CommandPoolVK::Reset()
 	{
 		vkResetCommandPool(m_Device->Get(), m_Pool, 0);
+		m_ActivePrimaryCount = 0;
+		m_ActiveSecondaryCount = 0;
 	}
 }

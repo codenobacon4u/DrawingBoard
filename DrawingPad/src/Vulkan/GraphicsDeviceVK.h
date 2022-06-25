@@ -62,6 +62,8 @@ namespace Vulkan
 		VkPhysicalDeviceLimits GetPhysicalLimits() { return m_Limits; }
 		VkPhysicalDeviceProperties GetPhysicalProperties() { return m_Props; }
 
+		VkSampleCountFlags GetMaxMSAA() { return m_SampleCount; }
+
 		QueueFamilyIndices FindQueueFamilies(VkQueueFlags flags);
 		bool QueryPresentSupport(uint32_t index, VkSurfaceKHR surface);
 	private:
@@ -73,7 +75,7 @@ namespace Vulkan
 		bool IsLayerAvailable(const char* lyrName) const;
 
 		std::vector<const char*> InitInstanceExtensions(std::vector<const char*> extns);
-		std::vector<const char*> InitInstanceLayers(std::vector<const char*> lyrs);
+		std::vector<const char*> InitInstanceLayers(std::vector<const char*>& lyrs);
 	protected:
 		virtual void SwapBuffers(Swapchain* swapchain) const override;
 	private:
@@ -92,10 +94,11 @@ namespace Vulkan
 
 		VkPhysicalDeviceLimits m_Limits;
 		VkPhysicalDeviceProperties m_Props;
+		VkSampleCountFlags m_SampleCount;
 
 		std::vector<VkExtensionProperties> m_ExtensionProps;
 		std::vector<VkLayerProperties> m_LayerProps;
-		std::vector<const char*> m_EnabledExtensions = InitInstanceExtensions(std::vector<const char*>());
-		std::vector<const char*> m_EnabledLayers = InitInstanceLayers(std::vector<const char*>());
+		std::vector<const char*> m_EnabledExtensions;
+		std::vector<const char*> m_EnabledLayers;
 	};
 }

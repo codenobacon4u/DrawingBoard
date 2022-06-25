@@ -27,7 +27,7 @@ namespace Vulkan
 		virtual CommandBuffer* Begin() override;
 		virtual void Submit(CommandBuffer& commandBuffer) override;
 		virtual void Submit(const std::vector<CommandBuffer*>& commandBuffers) override;
-		virtual void End() override;
+		virtual void Present() override;
 
 		virtual CommandBuffer* GetCommandBuffer(CommandBufferType type = CommandBufferType::Primary, uint32_t threadIndex = 0) override;
 

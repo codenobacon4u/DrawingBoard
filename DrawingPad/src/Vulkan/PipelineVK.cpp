@@ -2,7 +2,6 @@
 #include "PipelineVK.h"
 
 #include "GraphicsDeviceVK.h"
-#include "RenderPassVK.cpp"
 
 namespace Vulkan
 {
@@ -55,30 +54,43 @@ namespace Vulkan
 		// Potentially Modify
 		VkPipelineRasterizationStateCreateInfo rasterizationState = {};
 		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationState.depthClampEnable = VK_FALSE;
+		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizationState.lineWidth = 1.0f;
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
 		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-		rasterizationState.lineWidth = 1.0f;
+		rasterizationState.depthBiasEnable = VK_FALSE;
+		rasterizationState.depthBiasConstantFactor = 0.0f;
+		rasterizationState.depthBiasClamp = 0.0f;
+		rasterizationState.depthBiasSlopeFactor = 0.0f;
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
 		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		//multisampleState.sampleShadingEnable = VK_FALSE;
 		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		colorBlendAttachment.blendEnable = VK_TRUE;
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 		// Potentially Modify
 		VkPipelineColorBlendStateCreateInfo colorBlendState = {};
 		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendState.logicOpEnable = VK_FALSE;
+		colorBlendState.logicOp = VK_LOGIC_OP_COPY;
 		colorBlendState.attachmentCount = 1;
 		colorBlendState.pAttachments = &colorBlendAttachment;
+		colorBlendState.blendConstants[0] = 1.f;
+		colorBlendState.blendConstants[1] = 1.f;
+		colorBlendState.blendConstants[2] = 1.f;
+		colorBlendState.blendConstants[3] = 1.f;
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
 		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -88,21 +100,12 @@ namespace Vulkan
 			depthStencilState.depthWriteEnable = VK_TRUE;
 			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
 			depthStencilState.depthBoundsTestEnable = VK_FALSE;
-			depthStencilState.minDepthBounds = 0.0f;
+			depthStencilState.minDepthBounds = -1.0f;
 			depthStencilState.maxDepthBounds = 1.0f;
 			depthStencilState.stencilTestEnable = VK_FALSE;
 			depthStencilState.front = {};
 			depthStencilState.back = {};
 		}
-
-		// Potentially Modify
-		//VkPipelineLayout layout;
-		//VkPipelineLayoutCreateInfo layoutInfo = {};
-		//layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		//layoutInfo.setLayoutCount = 0;
-		//layoutInfo.pushConstantRangeCount = 0;
-		//
-		//vkCreatePipelineLayout(m_Device->Get(), &layoutInfo, nullptr, &layout);
 
 		VkPipelineDynamicStateCreateInfo dynamicState = {};
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -143,12 +146,12 @@ namespace Vulkan
 	}
 
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& createInfo)
-		: Pipeline(createInfo)
+		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE), m_Program(nullptr)
 	{
 	}
 
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo)
-		: Pipeline(createInfo)
+		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE), m_Program(nullptr)
 	{
 	}
 

@@ -13,7 +13,7 @@ public:
 	virtual CommandBuffer* Begin() = 0;
 	virtual void Submit(CommandBuffer& commandBuffer) = 0;
 	virtual void Submit(const std::vector<CommandBuffer*>& commandBuffers) = 0;
-	virtual void End() = 0;
+	virtual void Present() = 0;
 
 	virtual CommandBuffer* GetCommandBuffer(CommandBufferType type = CommandBufferType::Primary, uint32_t threadIndex = 0) = 0;
 };

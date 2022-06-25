@@ -27,7 +27,15 @@ namespace Vulkan {
 
 	GraphicsContextVK::~GraphicsContextVK()
 	{
-		m_Frames.clear();
+		for (auto& frame : m_Frames) {
+			delete frame.DescriptorPool;
+			vkDestroySemaphore(m_Device->Get(), frame.ImageAcquired, nullptr);
+			vkDestroySemaphore(m_Device->Get(), frame.RenderFinished, nullptr);
+			vkDestroyFence(m_Device->Get(), frame.FrameFence, nullptr);
+			for (auto& pool : frame.CommandPools)
+				delete pool;
+
+		}
 	}
 
 	CommandBuffer* GraphicsContextVK::Begin()
@@ -42,7 +50,6 @@ namespace Vulkan {
 			vkResetFences(m_Device->Get(), 1, &m_Frames[m_Index].FrameFence);
 			for (auto pool : m_Frames[m_Index].CommandPools)
 				pool->Reset();
-			m_Frames[m_Index].DescriptorPool->ResetPools();
 		}
 
 		return m_Frames[m_Index].CommandPools[0]->RequestCommandBuffer();
@@ -71,11 +78,9 @@ namespace Vulkan {
 		subInfo.pSignalSemaphores = &m_Frames[m_Index].RenderFinished;
 
 		vkQueueSubmit(m_Device->GetGraphicsQueue(), 1, &subInfo, m_Frames[m_Index].FrameFence);
-
-		End();
 	}
 
-	void GraphicsContextVK::End()
+	void GraphicsContextVK::Present()
 	{
 		m_Swap->Present(m_Frames[m_Index].RenderFinished);
 		m_FrameActive = false;

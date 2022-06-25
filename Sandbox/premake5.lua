@@ -19,7 +19,8 @@ project "Sandbox"
         "%{IncludeDir.glad}",
         "%{IncludeDir.glm}",
         "%{IncludeDir.glfw}",
-    	"%{IncludeDir.stb_image}"
+    	"%{IncludeDir.stb_image}",
+        "%{wks.location}/Sandbox/vendor/tiny_obj_loader"
     }
 
     links {
@@ -47,11 +48,6 @@ project "Sandbox"
         defines "PW_DEBUG"
         runtime "Debug"
         symbols "on"
-
-        postbuildcommands
-        {
-            "{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\""
-        }
 
     filter "configurations:Release"
         defines "PW_RELEASE"

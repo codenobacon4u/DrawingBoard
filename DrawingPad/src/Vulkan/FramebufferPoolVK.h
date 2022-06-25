@@ -40,7 +40,6 @@ namespace Vulkan {
 			std::size_t operator()(const FBKey& key) const { return key.GetHash(); }
 		};
 
-		std::vector<std::pair<FBKey, VkFramebuffer>> m_Array;
 		std::unordered_map<FBKey, VkFramebuffer, FBKeyHash> m_Map = {};
 		std::unordered_multimap<VkImageView, FBKey> m_VTKMap = {};
 	};

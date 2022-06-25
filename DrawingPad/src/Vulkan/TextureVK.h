@@ -22,7 +22,7 @@ namespace Vulkan
 	private:
 		void TransistionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout);
 		void CopyFromBuffer(VkCommandBuffer cmd, VkBuffer buffer, uint32_t width, uint32_t height);
-
+		void GenerateMipmaps(VkCommandBuffer cmd);
 	private:
 		GraphicsDeviceVK* m_Device = nullptr;
 		const void* m_Data = nullptr;

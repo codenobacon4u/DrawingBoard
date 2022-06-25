@@ -30,7 +30,7 @@ namespace Vulkan
 	static PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT = nullptr;
 
 	VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+		std::cerr << pCallbackData->pMessage << std::endl;
 		UtilsVK::Log("validation_layers.log", std::string(pCallbackData->pMessage));
 		return VK_FALSE;
 	}
@@ -141,7 +141,7 @@ namespace Vulkan
 	{
 		return DBG_NEW ShaderVK(this, desc);
 	}
-	
+
 	QueueFamilyIndices GraphicsDeviceVK::FindQueueFamilies(VkQueueFlags flags)
 	{
 		QueueFamilyIndices indices;
@@ -186,7 +186,7 @@ namespace Vulkan
 			features.enabledValidationFeatureCount = 1;
 			features.pEnabledValidationFeatures = enables;
 		}
-
+		m_EnabledExtensions = InitInstanceExtensions(std::vector<const char*>());
 		VkInstanceCreateInfo instInfo = {};
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -205,13 +205,14 @@ namespace Vulkan
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
 		if (enableValidation) {
+			m_EnabledLayers = InitInstanceLayers(std::vector<const char*>());
 			instInfo.enabledLayerCount = static_cast<uint32_t>(m_EnabledLayers.size());
 			instInfo.ppEnabledLayerNames = m_EnabledLayers.data();
 
 			debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 			debugCreateInfo.flags = 0;
 			debugCreateInfo.pNext = nullptr;
-			debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |*/ VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+			debugCreateInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |*/ /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |*/ VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 			debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 			debugCreateInfo.pfnUserCallback = debugCallback;
 			debugCreateInfo.pUserData = nullptr;
@@ -312,6 +313,15 @@ namespace Vulkan
 			<< "Device ID: " << props.deviceID << "\n"
 			<< std::endl;
 		m_Limits = props.limits;
+		
+		VkSampleCountFlags counts = m_Limits.framebufferColorSampleCounts & m_Limits.framebufferDepthSampleCounts;
+		if (counts & VK_SAMPLE_COUNT_64_BIT) m_SampleCount = VK_SAMPLE_COUNT_64_BIT;
+		else if (counts & VK_SAMPLE_COUNT_32_BIT) m_SampleCount = VK_SAMPLE_COUNT_32_BIT;
+		else if (counts & VK_SAMPLE_COUNT_16_BIT) m_SampleCount = VK_SAMPLE_COUNT_16_BIT;
+		else if (counts & VK_SAMPLE_COUNT_8_BIT)  m_SampleCount = VK_SAMPLE_COUNT_8_BIT;
+		else if (counts & VK_SAMPLE_COUNT_4_BIT)  m_SampleCount = VK_SAMPLE_COUNT_4_BIT;
+		else if (counts & VK_SAMPLE_COUNT_2_BIT)  m_SampleCount = VK_SAMPLE_COUNT_2_BIT;
+		else m_SampleCount = VK_SAMPLE_COUNT_1_BIT;
 	}
 	
 	void GraphicsDeviceVK::CreateDevice()
@@ -396,14 +406,13 @@ namespace Vulkan
 		return res;
 	}
 	
-	std::vector<const char*> GraphicsDeviceVK::InitInstanceLayers(std::vector<const char*> lyrs)
+	std::vector<const char*> GraphicsDeviceVK::InitInstanceLayers(std::vector<const char*>& lyrs)
 	{
 		uint32_t layerCount = 0;
 		auto extensions = vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 		m_LayerProps.resize(layerCount);
 		vkEnumerateInstanceLayerProperties(&layerCount, m_LayerProps.data());
 
-		std::vector<const char*> res;
 		if (!lyrs.empty() && (lyrs.size() != 0)) {
 			uint32_t count;
 			vkEnumerateInstanceLayerProperties(&count, nullptr);
@@ -422,17 +431,18 @@ namespace Vulkan
 					UtilsVK::Log("errors.log", "ERROR: Vulkan validation layer not found");
 					throw std::runtime_error("Vulkan validation layer not found");
 				}
-				res.emplace_back(name);
+				lyrs.emplace_back(name);
 			}
 		}
 		else {
 			if (IsLayerAvailable("VK_LAYER_KHRONOS_validation"))
-				res.emplace_back("VK_LAYER_KHRONOS_validation");
-			else
+				lyrs.emplace_back("VK_LAYER_KHRONOS_validation");
+			else {
 				UtilsVK::Log("errors.log", "ERROR: Layer VK_LAYER_KHRONOS_validation not found");
-			//	throw std::runtime_error("Layer VK_LAYER_KHRONOS_validation not found");
+				throw std::runtime_error("Layer VK_LAYER_KHRONOS_validation not found");
+			}
 		}
-		return res;
+		return lyrs;
 	}
 	
 	void GraphicsDeviceVK::SwapBuffers(Swapchain* swapchain) const

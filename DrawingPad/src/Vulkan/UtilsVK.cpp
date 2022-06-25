@@ -508,4 +508,17 @@ namespace Vulkan
 		default: return VK_FORMAT_UNDEFINED;
 		}
 	}
+
+	VkPipelineBindPoint UtilsVK::Convert(PipelineBindPoint bindPoint)
+	{
+		switch (bindPoint) 
+		{
+		case PipelineBindPoint::Graphics:
+			return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		case PipelineBindPoint::Compute:
+			return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		default:
+			return VK_PIPELINE_BIND_POINT_MAX_ENUM;
+		}
+	}
 }

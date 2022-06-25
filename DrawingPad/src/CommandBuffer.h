@@ -36,7 +36,7 @@ public:
 
 	virtual void Begin() = 0;
 	virtual void BeginRenderPass(RenderPass* renderpass, std::vector<TextureView*> renderTargets, std::vector<ClearValue> clearValues) = 0;
-	virtual void BindBuffer(Buffer* buffer, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) = 0;
+	virtual void BindBuffer(Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) = 0;
 	virtual void BindImage(Texture* texture, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) = 0;
 	virtual void BindIndexBuffer(Buffer* buffer, uint64_t offset) = 0;
 	virtual void BindPipeline(Pipeline* pipeline) = 0;

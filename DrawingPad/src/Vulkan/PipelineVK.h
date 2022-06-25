@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "RenderPass.h"
+#include "RenderPassVK.h"
 #include "ShaderVK.h"
 
 namespace Vulkan
@@ -21,9 +21,9 @@ namespace Vulkan
         ShaderProgramVK* GetProgram() { return m_Program; }
 
     private:
-        VkPipeline m_Pipeline;
-        GraphicsDeviceVK* m_Device;
+        VkPipeline m_Pipeline = VK_NULL_HANDLE;
+        GraphicsDeviceVK* m_Device = nullptr;
 
-        ShaderProgramVK* m_Program;
+        ShaderProgramVK* m_Program = nullptr;
     };
 }

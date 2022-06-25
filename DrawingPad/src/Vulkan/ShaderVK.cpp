@@ -1,6 +1,6 @@
 #include "pwpch.h"
-
 #include "ShaderVK.h"
+
 #include "GraphicsDeviceVK.h"
 
 #include <shaderc/shaderc.hpp>
@@ -21,18 +21,23 @@
 namespace Vulkan {
 
 	template<ResourceBindingType T>
-	inline void ReadResource(const spirv_cross::Compiler &compiler, ShaderType stage, std::vector<ResourceBinding> &resources, uint32_t* maxSet) {
+	inline void ReadResource(const spirv_cross::Compiler &compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>> &resources, uint32_t* maxSet) {
 		
 	}
 
+	template<ResourceBindingType T>
+	inline void ReadResource(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ShaderResourceBinding>& resources, uint32_t* maxSet) {
+
+	}
+
 	template <>
-	inline void ReadResource<ResourceBindingType::Input>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().stage_inputs;
+	inline void ReadResource<ResourceBindingType::Input>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ShaderResourceBinding>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().stage_inputs;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::Input;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -49,13 +54,13 @@ namespace Vulkan {
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::InputAttachment>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().subpass_inputs;
+	inline void ReadResource<ResourceBindingType::InputAttachment>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().subpass_inputs;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::InputAttachment;
 			res.Stages = ShaderType::Fragment;
 			res.Name = resource.name;
@@ -68,18 +73,18 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::Output>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().stage_outputs;
+	inline void ReadResource<ResourceBindingType::Output>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ShaderResourceBinding>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().stage_outputs;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::Output;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -96,13 +101,13 @@ namespace Vulkan {
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::Image>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().separate_images;
+	inline void ReadResource<ResourceBindingType::Image>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().separate_images;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::Image;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -114,18 +119,18 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::ImageSampler>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().sampled_images;
+	inline void ReadResource<ResourceBindingType::ImageSampler>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().sampled_images;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::ImageSampler;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -137,18 +142,18 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::ImageStorage>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().storage_images;
+	inline void ReadResource<ResourceBindingType::ImageStorage>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().storage_images;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::ImageStorage;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -162,18 +167,18 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::Sampler>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().separate_samplers;
+	inline void ReadResource<ResourceBindingType::Sampler>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().separate_samplers;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::Sampler;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -185,18 +190,18 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::UniformBuffer>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().uniform_buffers;
+	inline void ReadResource<ResourceBindingType::UniformBuffer>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().uniform_buffers;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::UniformBuffer;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -209,18 +214,18 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
 	template <>
-	inline void ReadResource<ResourceBindingType::StorageBuffer>(const spirv_cross::Compiler& compiler, ShaderType stage, std::vector<ResourceBinding>& resources, uint32_t* maxSet) {
-		auto cResources = compiler.get_shader_resources().storage_buffers;
+	inline void ReadResource<ResourceBindingType::StorageBuffer>(const spirv_cross::Compiler& compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>>& resources, uint32_t* maxSet) {
+		auto& cResources = compiler.get_shader_resources().storage_buffers;
 		for (auto& resource : cResources)
 		{
 			const auto& type = compiler.get_type_from_variable(resource.id);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::StorageBuffer;
 			res.Stages = stage;
 			res.Name = resource.name;
@@ -234,7 +239,7 @@ namespace Vulkan {
 
 			*maxSet = res.Set > *maxSet ? res.Set : *maxSet;
 
-			resources.push_back(res);
+			resources[res.Set].emplace(res.Binding, res);
 		}
 	}
 
@@ -257,6 +262,12 @@ namespace Vulkan {
 			m_Stage.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		m_Stage.module = m_Module;
 		m_Stage.pName = desc.EntryPoint.c_str();
+
+		hash_combine(m_Hash, m_Desc.Type);
+		hash_combine(m_Hash, m_Desc.Name);
+		hash_combine(m_Hash, m_Desc.EntryPoint);
+		hash_combine(m_Hash, m_Desc.Path);
+		hash_combine(m_Hash, m_Desc.Src);
 	}
 
 	ShaderVK::~ShaderVK()
@@ -372,8 +383,8 @@ namespace Vulkan {
 		// Get shader resources for reflection
 		spirv_cross::Compiler comp(spirv);
 		uint32_t sets = 0;
-		ReadResource<ResourceBindingType::Input>(comp, m_Desc.Type, m_Layout.Resources, &sets);
-		ReadResource<ResourceBindingType::Output>(comp, m_Desc.Type, m_Layout.Resources, &sets);
+		ReadResource<ResourceBindingType::Input>(comp, m_Desc.Type, m_Layout.Inputs, &sets);
+		ReadResource<ResourceBindingType::Output>(comp, m_Desc.Type, m_Layout.Outputs, &sets);
 		ReadResource<ResourceBindingType::InputAttachment>(comp, m_Desc.Type, m_Layout.Resources, &sets);
 		ReadResource<ResourceBindingType::Image>(comp, m_Desc.Type, m_Layout.Resources, &sets);
 		ReadResource<ResourceBindingType::ImageSampler>(comp, m_Desc.Type, m_Layout.Resources, &sets);
@@ -382,7 +393,7 @@ namespace Vulkan {
 		ReadResource<ResourceBindingType::UniformBuffer>(comp, m_Desc.Type, m_Layout.Resources, &sets);
 		ReadResource<ResourceBindingType::StorageBuffer>(comp, m_Desc.Type, m_Layout.Resources, &sets);
 		
-		auto push_constants = comp.get_shader_resources().push_constant_buffers;
+		auto& push_constants = comp.get_shader_resources().push_constant_buffers;
 
 		for (auto &resource : push_constants)
 		{
@@ -391,7 +402,7 @@ namespace Vulkan {
 			for (auto i = 0; i < type.member_types.size(); i++)
 				offset = std::min(offset, comp.get_member_decoration(type.self, i, spv::DecorationOffset));
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::PushConstant;
 			res.Stages = m_Desc.Type;
 			res.Name = resource.name;
@@ -401,7 +412,7 @@ namespace Vulkan {
 
 			res.Size -= res.Offset;
 
-			m_Layout.Resources.push_back(res);
+			m_Layout.Constants.push_back(res);
 		}
 
 		auto special_constants = comp.get_specialization_constants();
@@ -411,7 +422,7 @@ namespace Vulkan {
 			auto& value = comp.get_constant(resource.id);
 			auto& type = comp.get_type(value.constant_type);
 
-			ResourceBinding res = {};
+			ShaderResourceBinding res = {};
 			res.Type = ResourceBindingType::SpecialConstant;
 			res.Stages = m_Desc.Type;
 			res.Name = comp.get_name(resource.id);
@@ -437,7 +448,7 @@ namespace Vulkan {
 				break;
 			}
 
-			m_Layout.Resources.push_back(res);
+			m_Layout.Constants.push_back(res);
 		}
 		m_Layout.SetCount = sets;
 	}
@@ -450,6 +461,8 @@ namespace Vulkan {
 
 	ShaderProgramVK::~ShaderProgramVK()
 	{
+		for (auto& temp : m_UpdateTemplates)
+			vkDestroyDescriptorUpdateTemplate(m_Device->Get(), temp, nullptr);
 		delete m_DescCache;
 		vkDestroyPipelineLayout(m_Device->Get(), m_PipeLayout, nullptr);
 	}
@@ -461,42 +474,143 @@ namespace Vulkan {
 
 	void ShaderProgramVK::Build()
 	{
+		auto merge = [](std::vector<ShaderResourceBinding>& src, std::vector<ShaderResourceBinding>& dst) {
+			for (auto& binding : src) {
+				auto& it = std::find(dst.begin(), dst.end(), binding);
+				if (it != dst.end())
+					it->Stages |= binding.Stages;
+				else
+					dst.push_back(binding);
+			}
+		};
+
 		uint32_t maxSets = 1;
 		for (auto const& [type, shader] : m_Shaders)
 		{
-			maxSets = std::max(maxSets, shader->GetLayout().SetCount);
-			for (ResourceBinding resource : shader->GetLayout().Resources)
-				m_Layout.Resources.emplace_back(resource);
+			auto& layout = shader->GetLayout();
+			maxSets = std::max(maxSets, layout.SetCount);
+
+			for (auto& [set, bindings] : layout.Resources)
+				for (auto& [binding, resource] : bindings)
+					if (resource == m_Layout.Resources[set][binding])
+						m_Layout.Resources[set][binding].Stages |= resource.Stages;
+					else
+						m_Layout.Resources[set][binding] = resource;
+
+			merge(layout.Inputs, m_Layout.Inputs);
+			merge(layout.Outputs, m_Layout.Outputs);
+			merge(layout.Constants, m_Layout.Constants);
 		}
-		std::vector<std::vector<ResourceBinding>> resourceSets(maxSets);
-		std::vector<VkDescriptorSetLayout> layouts(maxSets);
-		for (uint32_t i = 0; i < m_Layout.Resources.size(); i++)
-		{
-			uint32_t binding = m_Layout.Resources[i].Binding;
-			uint32_t set = m_Layout.Resources[i].Set;
-			m_Layout.BindingStagesMask[set][binding] |= (uint32_t)m_Layout.Resources[i].Stages;
-			resourceSets[m_Layout.Resources[i].Set].emplace_back(m_Layout.Resources[i]);
-		}
+
+		std::vector<std::vector<ShaderResourceBinding>> resourceSets(maxSets);
+		m_SetLayouts.resize(maxSets);
+
+		//resourceSets[0].insert(resourceSets[0].end(), m_Layout.Inputs.begin(), m_Layout.Inputs.end());
+		//resourceSets[0].insert(resourceSets[0].end(), m_Layout.Outputs.begin(), m_Layout.Outputs.end());
+		//resourceSets[0].insert(resourceSets[0].end(), m_Layout.Constants.begin(), m_Layout.Constants.end());
+
+		for (auto& [set, bindings] : m_Layout.Resources)
+			for (auto& [binding, resource] : bindings)
+				resourceSets[set].push_back(resource);
+
 		for (uint32_t i = 0; i < maxSets; i++)
-			layouts[i] = m_DescCache->GetLayout(resourceSets[i], m_Layout.BindingStagesMask[i]);
+			m_SetLayouts[i] = m_DescCache->GetLayout(resourceSets[i]);
 
 		std::vector<VkPushConstantRange> ranges;
-		for (uint32_t i = 0; i < m_Layout.Resources.size(); i++)
-			if (m_Layout.Resources[i].Type == ResourceBindingType::PushConstant)
+		for (uint32_t i = 0; i < m_Layout.Constants.size(); i++)
+			if (m_Layout.Constants[i].Type == ResourceBindingType::PushConstant)
 			{
 				VkPushConstantRange range = {};
-				range.stageFlags = (uint32_t)m_Layout.Resources[i].Stages;
-				range.offset = m_Layout.Resources[i].Offset;
-				range.size = m_Layout.Resources[i].Size;
+				range.stageFlags = (uint32_t)m_Layout.Constants[i].Stages;
+				range.offset = m_Layout.Constants[i].Offset;
+				range.size = m_Layout.Constants[i].Size;
 				ranges.push_back(range);
 			}
 
 		VkPipelineLayoutCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		createInfo.setLayoutCount = maxSets;
-		createInfo.pSetLayouts = layouts.data();
+		createInfo.pSetLayouts = m_SetLayouts.data();
 		createInfo.pushConstantRangeCount = (uint32_t)ranges.size();
 		createInfo.pPushConstantRanges = ranges.data();
 		vkCreatePipelineLayout(m_Device->Get(), &createInfo, nullptr, &m_PipeLayout);
+
+		CreateUpdateTemplate();
+	}
+
+	size_t ShaderProgramVK::GetHash()
+	{
+		if (m_Hash == 0) 
+			for (auto& it : m_Shaders)
+				hash_combine(m_Hash, it.second->GetHash());
+		return m_Hash;
+	}
+
+	void ShaderProgramVK::CreateUpdateTemplate()
+	{
+		m_UpdateTemplates.resize(m_Layout.SetCount + 1);
+		for (auto& [set, bindings] : m_Layout.Resources) {
+			std::vector<VkDescriptorUpdateTemplateEntry> entries = {};
+
+			for (auto& [binding, resource] : bindings) {
+				VkDescriptorType type;
+				size_t offset = 0;
+				switch (resource.Type)
+				{
+				case ResourceBindingType::ImageSampler:
+					type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				case ResourceBindingType::ImageStorage:
+					type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				case ResourceBindingType::UniformBuffer:
+					type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					offset = offsetof(BindingInfoVK, bufferInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				case ResourceBindingType::StorageBuffer:
+					type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+					offset = offsetof(BindingInfoVK, bufferInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				case ResourceBindingType::InputAttachment:
+					type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				case ResourceBindingType::Sampler:
+					type = VK_DESCRIPTOR_TYPE_SAMPLER;
+					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				case ResourceBindingType::Image:
+					type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					break;
+				default:
+					throw std::runtime_error("Unknown Resource Binding Type");
+					break;
+				}
+				VkDescriptorUpdateTemplateEntry entry = {};
+				entry.descriptorType = type;
+				entry.dstBinding = binding;
+				entry.dstArrayElement = 0;
+				entry.descriptorCount = resource.ArraySize;
+				entry.offset = offset;
+				entry.stride = sizeof(BindingInfoVK);
+
+				entries.push_back(entry);
+			}
+
+			VkDescriptorUpdateTemplateCreateInfo createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO;
+			createInfo.descriptorUpdateEntryCount = static_cast<uint32_t>(entries.size());
+			createInfo.pDescriptorUpdateEntries = entries.data();
+			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET;
+			createInfo.descriptorSetLayout = m_SetLayouts[set];
+			createInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			createInfo.pipelineLayout = m_PipeLayout;
+			createInfo.set = set;
+
+			vkCreateDescriptorUpdateTemplate(m_Device->Get(), &createInfo, nullptr, &m_UpdateTemplates[set]);\
+		}
 	}
 }

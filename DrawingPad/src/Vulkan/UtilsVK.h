@@ -18,5 +18,6 @@ namespace Vulkan
 		static VkImageLayout Convert(ImageLayout format);
 		static SampleCount Convert(uint8_t samples);
 		static VkFormat Convert(ElementDataType type, uint32_t num, bool normalized);
+		static VkPipelineBindPoint Convert(PipelineBindPoint bindPoint);
 	};
 }

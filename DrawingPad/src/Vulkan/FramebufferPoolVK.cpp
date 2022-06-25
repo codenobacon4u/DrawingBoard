@@ -24,7 +24,11 @@ namespace Vulkan {
 	{
 		if (Hash == 0)
 		{
-
+			hash_combine(Hash, Pass);
+			hash_combine(Hash, AttachmentCount);
+			for (uint32_t i = 0; i < AttachmentCount; i++)
+				hash_combine(Hash, Attachments[i]);
+			hash_combine(Hash, CommandQueueMask);
 		}
 		return Hash;
 	}
@@ -52,7 +56,6 @@ namespace Vulkan {
 
 	VkFramebuffer FramebufferPoolVK::GetFramebuffer(const FBKey& key, uint32_t width, uint32_t height, uint32_t layers)
 	{
-#if 1
 		auto it = m_Map.find(key);
 		if (it != m_Map.end())
 			return it->second;
@@ -76,32 +79,5 @@ namespace Vulkan {
 
 			return fb;
 		}
-#else
-		auto it = m_Array.begin();
-		for (; it != m_Array.end(); it++) {
-			if (it->first == key)
-				return it->second;
-		}
-		if (it == m_Array.end())
-		{
-			VkFramebufferCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			createInfo.flags = 0;
-			createInfo.renderPass = key.Pass;
-			createInfo.attachmentCount = key.AttachmentCount;
-			createInfo.pAttachments = key.Attachments;
-			createInfo.width = width;
-			createInfo.height = height;
-			createInfo.layers = layers;
-			VkFramebuffer fb;
-			vkCreateFramebuffer(m_Device.Get(), &createInfo, nullptr, &fb);
-			m_Array.emplace_back(std::make_pair(key, std::move(fb)));
-
-			for (uint32_t i = 0; i < key.AttachmentCount; i++)
-				m_VTKMap.emplace(key.Attachments[i], key);
-
-			return fb;
-		}
-#endif
 	}
 }

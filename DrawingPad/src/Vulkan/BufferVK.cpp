@@ -27,6 +27,7 @@ namespace Vulkan
 		case BufferBindFlags::Staging:
 			usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			properties |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			break;
 		case BufferBindFlags::Uniform:
 			usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			properties |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -94,11 +95,11 @@ namespace Vulkan
 
 	void BufferVK::FlushMemory()
 	{
-		VkMappedMemoryRange range = {};
-		range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		range.memory = m_Memory;
-		range.size = VK_WHOLE_SIZE;
-		vkFlushMappedMemoryRanges(m_Device->Get(), 1, &range);
+		//VkMappedMemoryRange range = {};
+		//range.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		//range.memory = m_Memory;
+		//range.size = rangeSize;
+		//vkFlushMappedMemoryRanges(m_Device->Get(), 1, &range);
 		vkUnmapMemory(m_Device->Get(), m_Memory);
 	}
 

@@ -21,10 +21,10 @@ print("\nUpdating submodules...")
 if (premakeInstalled):
     if platform.system() == "Windows":
         print("\nRunning premake...")
-        subprocess.call([os.path.abspath("./SetupScripts/GenerateProjects.bat"), "nopause"])
+        #subprocess.call([os.path.abspath("./SetupScripts/GenerateProjects.bat"), "nopause"])
     elif platform.system() == "Linux":
         print("\nRunning premake...")
-        subprocess.call([os.path.abspath("./SetupScripts/GenerateProjects.sh"), "nopause"])
+        #subprocess.call([os.path.abspath("./SetupScripts/GenerateProjects.sh"), "nopause"])
 
     print("\nSetup completed!")
 else:

@@ -3,6 +3,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <fstream>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
@@ -22,4 +23,11 @@ std::string string_format(const std::string& format, Args ... args)
 	std::unique_ptr<char[]> buf(new char[size]);
 	std::snprintf(buf.get(), size, format.c_str(), args ...);
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+}
+
+static void FLog(std::string path, std::string msg)
+{
+	std::ofstream ofs(path.c_str(), std::ios_base::out | std::ios_base::app);
+	ofs << msg << '\n';
+	ofs.close();
 }

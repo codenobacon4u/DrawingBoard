@@ -30,6 +30,7 @@ namespace Vulkan {
 
 	void CommandBufferVK::Begin()
 	{
+		//m_DescriptorPool->ResetPools();
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.pNext = nullptr;
@@ -81,22 +82,45 @@ namespace Vulkan {
 		vkCmdBeginRenderPass(m_Curr, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void CommandBufferVK::BindBuffer(Buffer* buffer, uint32_t set, uint32_t binding, uint32_t arrayIndex)
+	void CommandBufferVK::BindBuffer(Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding, uint32_t arrayIndex)
 	{
+		m_DirtySets[set] = true;
+		m_BindingSets[set][binding].bufferInfo.buffer = static_cast<BufferVK*>(buffer)->Get();
+		m_BindingSets[set][binding].bufferInfo.offset = offset;
+		m_BindingSets[set][binding].bufferInfo.range = range;
+
+		size_t hash = 0;
+		hash_combine(hash, static_cast<BufferVK*>(buffer)->Get());
+		//hash_combine(hash, offset);
+		//hash_combine(hash, range);
+
+		m_BindingSets[set][binding].hash = hash;
 	}
 
 	void CommandBufferVK::BindImage(Texture* texture, uint32_t set, uint32_t binding, uint32_t arrayIndex)
 	{
+		m_DirtySets[set] = true;
+		m_BindingSets[set][binding].imageInfo.imageView = static_cast<TextureViewVK*>(texture->GetDefaultView())->GetView();
+		m_BindingSets[set][binding].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		m_BindingSets[set][binding].imageInfo.sampler = static_cast<TextureVK*>(texture)->GetSampler();
+
+		size_t hash = 0;
+		hash_combine(hash, static_cast<TextureViewVK*>(texture->GetDefaultView())->GetView());
+		hash_combine(hash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		hash_combine(hash, static_cast<TextureVK*>(texture)->GetSampler());
+
+		m_BindingSets[set][binding].hash = hash;
 	}
 
 	void CommandBufferVK::BindIndexBuffer(Buffer* buffer, uint64_t offset)
 	{
-		vkCmdBindIndexBuffer(m_Curr, static_cast<BufferVK*>(buffer)->Get(), static_cast<VkDeviceSize>(offset), VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(m_Curr, static_cast<BufferVK*>(buffer)->Get(), static_cast<VkDeviceSize>(offset), VK_INDEX_TYPE_UINT32);
 	}
 
 	void CommandBufferVK::BindPipeline(Pipeline* pipeline)
 	{
-		vkCmdBindPipeline(m_Curr, static_cast<VkPipelineBindPoint>(pipeline->GetBindPoint()), static_cast<PipelineVK*>(pipeline)->Get());
+		m_Pipeline = static_cast<PipelineVK*>(pipeline);
+		vkCmdBindPipeline(m_Curr, static_cast<VkPipelineBindPoint>(pipeline->GetBindPoint()), m_Pipeline->Get());
 	}
 
 	void CommandBufferVK::BindVertexBuffer(uint32_t start, uint32_t num, std::vector<Buffer*> buffers, std::vector<uint64_t> offsets)
@@ -110,21 +134,29 @@ namespace Vulkan {
 	void CommandBufferVK::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 	{
 		// flush pipeline, push constants, descriptor sets
+		FlushDescriptorSets();
+
 		vkCmdDraw(m_Curr, vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
 	void CommandBufferVK::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 	{
+		FlushDescriptorSets();
+
 		vkCmdDrawIndexed(m_Curr, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
 	void CommandBufferVK::DrawIndexedIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 	{
+		FlushDescriptorSets();
+
 		vkCmdDrawIndexedIndirect(m_Curr, static_cast<BufferVK*>(buffer)->Get(), offset, drawCount, stride);
 	}
 
 	void CommandBufferVK::DrawIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 	{
+		FlushDescriptorSets();
+
 		vkCmdDrawIndirect(m_Curr, static_cast<BufferVK*>(buffer)->Get(), offset, drawCount, stride);
 	}
 
@@ -152,5 +184,32 @@ namespace Vulkan {
 		for (auto& vp : viewports)
 			vkViewports.push_back({ vp.x, vp.y, vp.width, vp.height, vp.minDepth, vp.maxDepth });
 		vkCmdSetViewport(m_Curr, first, count, vkViewports.data());
+	}
+
+	void CommandBufferVK::FlushDescriptorSets()
+	{
+		for (auto& [set, dirty] : m_DirtySets) {
+
+			size_t hash = 0;
+			for (auto& [binding, resource] : m_BindingSets[set]) {
+				hash_combine(hash, binding);
+				hash_combine(hash, resource.hash);
+			}
+
+			auto& layout = m_Pipeline->GetProgram()->GetSetLayout(set);
+			auto& [cached, descriptor] = m_DescriptorPool->RequestDescriptorSet(layout, hash);
+
+			if (!cached)
+			{
+				auto& updateTemplate = m_Pipeline->GetProgram()->GetUpdateTemplate(set);
+				std::vector<BindingInfoVK> bindings;
+				for (auto it = m_BindingSets[set].begin(); it != m_BindingSets[set].end(); ++it)
+					bindings.push_back(it->second);
+				vkUpdateDescriptorSetWithTemplate(m_Device->Get(), descriptor, updateTemplate, bindings.data());
+			}
+
+			vkCmdBindDescriptorSets(m_Curr, UtilsVK::Convert(m_Pipeline->GetBindPoint()),
+				m_Pipeline->GetProgram()->GetPipelineLayout(), set, 1, &descriptor, 0, nullptr);
+		}
 	}
 }

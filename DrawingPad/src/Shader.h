@@ -1,9 +1,11 @@
 #pragma once
 
-#include <string>
 #include <map>
-#include <glm/glm.hpp>
+#include <string>
 #include <vector>
+#include <glm/glm.hpp>
+
+#include "Utils.h"
 
 enum class ShaderType : uint32_t {
 	Vertex = 0x0001,
@@ -23,6 +25,24 @@ enum class ShaderType : uint32_t {
 	Mesh = 0x0080,
 	Count = 15
 };
+
+inline constexpr ShaderType operator&(ShaderType x, ShaderType y) {
+	return static_cast<ShaderType>(static_cast<uint32_t>(x) & static_cast<uint32_t>(y));
+}
+
+inline constexpr ShaderType operator|(ShaderType x, ShaderType y) {
+	return static_cast<ShaderType>(static_cast<uint32_t>(x) | static_cast<uint32_t>(y));
+}
+
+inline constexpr ShaderType& operator&=(ShaderType& x, ShaderType y) {
+	x = x & y;
+	return x;
+}
+
+inline constexpr ShaderType& operator|=(ShaderType& x, ShaderType y) {
+	x = x | y;
+	return x;
+}
 
 struct ShaderDesc {
 	ShaderType Type = ShaderType::Fragment;
@@ -56,7 +76,7 @@ enum class ResourceBindingMode
 	UpdateAfterBind
 };
 
-struct ResourceBinding
+struct ShaderResourceBinding
 {
 	ShaderType Stages;
 	ResourceBindingType Type;
@@ -73,13 +93,33 @@ struct ResourceBinding
 	uint32_t ConstantId = 0;
 	uint32_t Qualifiers = 0;
 	std::string Name = "";
+
+	bool operator==(const ShaderResourceBinding& rhs) const {
+		return Stages == rhs.Stages &&
+			Type == rhs.Type &&
+			Mode == rhs.Mode &&
+			Set == rhs.Set &&
+			Binding == rhs.Binding &&
+			Location == rhs.Location &&
+			InputAttachIndex == rhs.InputAttachIndex &&
+			VecSize == rhs.VecSize &&
+			Columns == rhs.Columns &&
+			ArraySize == rhs.ArraySize &&
+			Offset == rhs.Offset &&
+			Size == rhs.Size &&
+			ConstantId == rhs.ConstantId &&
+			Qualifiers == rhs.Qualifiers &&
+			Name == rhs.Name;
+	}
 };
 
 struct ShaderLayout
 {
-	std::vector<ResourceBinding> Resources;
+	std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>> Resources;
+	std::vector<ShaderResourceBinding> Inputs;
+	std::vector<ShaderResourceBinding> Outputs;
+	std::vector<ShaderResourceBinding> Constants;
 	uint32_t SetCount = 0;
-	uint32_t BindingStagesMask[4][32] = {};
 };
 
 class Shader {
@@ -92,10 +132,12 @@ public:
 	const ShaderDesc& GetDesc() { return m_Desc; }
 
 	ShaderLayout GetLayout() { return m_Layout; }
+	size_t GetHash() { return m_Hash; }
 
 protected:
 	ShaderDesc m_Desc;
 	ShaderLayout m_Layout;
+	size_t m_Hash = 0;
 };
 
 class ShaderProgram {
@@ -110,6 +152,8 @@ public:
 
 	virtual void AddShader(Shader* shader) = 0;
 	virtual void Build() = 0;
+
+	virtual size_t GetHash() = 0;
 
 protected:
 	std::map<ShaderType, Shader*> m_Shaders;

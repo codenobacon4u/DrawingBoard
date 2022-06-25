@@ -4,9 +4,16 @@
 #include <vulkan/vulkan.h>
 
 #include "DescriptorSetVK.h"
+#include "PipelineVK.h"
 
 namespace Vulkan
 {
+	struct BindingInfoVK {
+		VkDescriptorBufferInfo bufferInfo;
+		VkDescriptorImageInfo imageInfo;
+		size_t hash;
+	};
+
 	class GraphicsDeviceVK;
 	class CommandBufferVK : public CommandBuffer
 	{
@@ -16,7 +23,7 @@ namespace Vulkan
 
 		virtual void Begin() override;
 		virtual void BeginRenderPass(RenderPass* renderpass, std::vector<TextureView*> renderTargets, std::vector<ClearValue> clearValues) override;
-		virtual void BindBuffer(Buffer* buffer, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) override;
+		virtual void BindBuffer(Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) override;
 		virtual void BindImage(Texture* texture, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) override;
 		virtual void BindIndexBuffer(Buffer* buffer, uint64_t offset) override;
 		virtual void BindPipeline(Pipeline* pipeline) override;
@@ -30,6 +37,8 @@ namespace Vulkan
 		virtual void SetScissors(uint32_t first, uint32_t count, std::vector<Rect2D> scissors) override;
 		virtual void SetViewports(uint32_t first, uint32_t count, std::vector<Viewport> viewports) override;
 
+		void FlushDescriptorSets();
+
 		VkCommandBuffer Get() const { return m_Curr; }
 
 	private:
@@ -37,6 +46,10 @@ namespace Vulkan
 		VkCommandPool m_Pool = VK_NULL_HANDLE;
 		VkCommandBuffer m_Curr = VK_NULL_HANDLE;
 
+		PipelineVK* m_Pipeline = nullptr;
+
 		DescriptorSetPoolVK* m_DescriptorPool;
+		std::map<uint32_t, bool> m_DirtySets;
+		std::map<uint32_t, std::map<uint32_t, BindingInfoVK>> m_BindingSets;
 	};
 }
