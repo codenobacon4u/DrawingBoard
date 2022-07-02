@@ -303,6 +303,7 @@ int main() {
 	pDesc.InputLayout.Elements = vertInputs;
 	pDesc.ShaderCount = 2;
 	pDesc.Shaders = shaders.data();
+	pDesc.Face = FrontFace::CounterClockwise;
 	pipeline = gd->CreateGraphicsPipeline(pDesc, rp);
 
 	//Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
@@ -341,12 +342,12 @@ int main() {
 		glfwPollEvents();
 
 		//====RENDER====
+		auto cmd = ctx->Begin();
 		TextureView* rtv = swap->GetBackbuffer();
 		TextureView* dsv = swap->GetDepthBufferView();
 		float color[4] = { 0.f, 0.f, 0.f, 1.0f };
 		Viewport vp = { 0, 0, static_cast<float>(rtv->GetTexture()->GetDesc().Width), static_cast<float>(rtv->GetTexture()->GetDesc().Height), 0.0f, 1.0f };
 		Rect2D sc = { { 0, 0 }, { rtv->GetTexture()->GetDesc().Width, rtv->GetTexture()->GetDesc().Height } };
-		auto cmd = ctx->Begin();
 		cmd->Begin();
 		cmd->BeginRenderPass(rp, { rtv, dsv }, { { 0.0f, 0.0f, 0.0f, 1.0f }, { 1.0f, 0 } });
 		cmd->SetViewports(0, 1, { vp });
@@ -355,7 +356,7 @@ int main() {
 		std::vector<Buffer*> vertexBuffs = { vb };
 		std::vector<uint64_t> offsets = { 0 };
 		cmd->BindVertexBuffer(0, 1, vertexBuffs, offsets);
-		cmd->BindIndexBuffer(ib, 0);
+		cmd->BindIndexBuffer(ib, 0, 1);
 		
 		{
 			static auto startTime = std::chrono::high_resolution_clock::now();

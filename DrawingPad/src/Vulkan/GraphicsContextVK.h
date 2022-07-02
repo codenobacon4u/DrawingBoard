@@ -37,5 +37,6 @@ namespace Vulkan
 		std::vector<FrameData> m_Frames;
 		bool m_FrameActive = false;
 		uint32_t m_Index = 0;
+
 	};
 }

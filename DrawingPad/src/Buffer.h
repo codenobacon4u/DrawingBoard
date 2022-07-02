@@ -69,6 +69,7 @@ public:
 
 	virtual void MapMemory(uint64_t offset, uint64_t size, void** data) = 0;
 	virtual void FlushMemory() = 0;
+	virtual void Expand(uint64_t size) = 0;
 
 	BufferDesc GetDesc() const { return m_Desc; }
 

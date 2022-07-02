@@ -138,7 +138,7 @@ namespace Vulkan
 
 	TextureView* TextureVK::CreateView(const TextureViewDesc& desc)
 	{
-		auto updatedDesc = desc;
+		TextureViewDesc updatedDesc = desc;
 		if (desc.NumMipLevels == 0)
 			if (desc.ViewType == ViewType::ShaderResource)
 				updatedDesc.NumMipLevels = m_Desc.MipLevels - desc.HighestMip;

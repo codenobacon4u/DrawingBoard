@@ -20,7 +20,8 @@ project "UISandbox"
         "%{IncludeDir.glm}",
         "%{IncludeDir.glfw}",
         "%{IncludeDir.imgui}",
-    	"%{IncludeDir.stb_image}"
+    	"%{IncludeDir.stb_image}",
+        "%{wks.location}/Sandbox/vendor/tiny_obj_loader"
     }
 
     links {

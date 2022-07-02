@@ -103,6 +103,61 @@ namespace Vulkan
 		vkUnmapMemory(m_Device->Get(), m_Memory);
 	}
 
+	void BufferVK::Expand(uint64_t size)
+	{
+		if (size > m_Desc.Size)
+		{
+			vkDestroyBuffer(m_Device->Get(), m_Buffer, nullptr);
+			vkFreeMemory(m_Device->Get(), m_Memory, nullptr);
+
+			VkMemoryPropertyFlags properties = 0;
+			VkBufferUsageFlags usage = 0;
+			switch (m_Desc.BindFlags)
+			{
+			case BufferBindFlags::Vertex:
+				usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+				properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;\
+				break;
+			case BufferBindFlags::Index:
+				usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+				properties |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+				break;
+			case BufferBindFlags::Staging:
+				usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+				properties |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+				break;
+			case BufferBindFlags::Uniform:
+				usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+				properties |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+				break;
+			case BufferBindFlags::ShaderResource:
+				if (m_Desc.Mode == BufferModeFlags::Formatted)
+					usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+				else
+					usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				break;
+			case BufferBindFlags::Unordered:
+				if (m_Desc.Mode == BufferModeFlags::Formatted)
+					usage |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+				else
+					usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				break;
+			case BufferBindFlags::IndirectDraw:
+				usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+				break;
+			case BufferBindFlags::RayTracing:
+				usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+				usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+				usage |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
+				break;
+			default:
+				break;
+			}
+			CreateBuffer(size, usage, properties, m_Memory);
+		}
+	}
+
 	uint32_t BufferVK::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 		VkPhysicalDeviceMemoryProperties memProperties;
 		vkGetPhysicalDeviceMemoryProperties(m_Device->GetPhysical(), &memProperties);
@@ -140,7 +195,7 @@ namespace Vulkan
 
 		vkAllocateMemory(m_Device->Get(), &allocInfo, nullptr, &bufferMemory);
 		vkBindBufferMemory(m_Device->Get(), buffer, bufferMemory, 0);
-		//m_Desc.Size = memReq.size;
+		m_Desc.Size = memReq.size;
 		return buffer;
 	}
 

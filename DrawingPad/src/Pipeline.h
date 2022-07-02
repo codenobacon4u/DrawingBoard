@@ -17,6 +17,12 @@ enum class ElementDataType : uint8_t
 	Uint32,
 };
 
+enum class FrontFace : uint8_t
+{
+	CounterClockwise = 0,
+	Clockwise = 1
+};
+
 typedef struct LayoutElement {
 	uint32_t InputIndex = 0;
 	uint32_t BufferSlot = 0;
@@ -40,7 +46,8 @@ typedef struct GraphicsPipelineDesc {
 	uint8_t NumColors = 0;
 	TextureFormat ColorFormats[8];
 	TextureFormat DepthFormat;
-	uint8_t SampleCount = 1;
+	FrontFace Face = FrontFace::CounterClockwise;
+	uint8_t MSAASamples = 0;
 	RenderPass* RenderPass = nullptr;
 } GraphicsPipelineDesc;
 

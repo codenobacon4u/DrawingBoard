@@ -16,6 +16,7 @@ namespace Vulkan
 
 		virtual void MapMemory(uint64_t offset, uint64_t size, void** data);
 		virtual void FlushMemory();
+		virtual void Expand(uint64_t size);
 
 		VkBuffer Get() { return m_Buffer; }
 		VkDeviceMemory GetMemory() { return m_Memory; }

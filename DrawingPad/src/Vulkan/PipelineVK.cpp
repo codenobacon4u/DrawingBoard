@@ -59,7 +59,7 @@ namespace Vulkan
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizationState.lineWidth = 1.0f;
 		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizationState.frontFace = (VkFrontFace)desc.Face;
 		rasterizationState.depthBiasEnable = VK_FALSE;
 		rasterizationState.depthBiasConstantFactor = 0.0f;
 		rasterizationState.depthBiasClamp = 0.0f;
@@ -67,8 +67,7 @@ namespace Vulkan
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
 		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		//multisampleState.sampleShadingEnable = VK_FALSE;
-		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampleState.rasterizationSamples = (desc.MSAASamples != 0) ? (VkSampleCountFlagBits)desc.MSAASamples : VK_SAMPLE_COUNT_1_BIT;
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -76,7 +75,7 @@ namespace Vulkan
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
 		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
@@ -107,22 +106,22 @@ namespace Vulkan
 			depthStencilState.back = {};
 		}
 
-		VkPipelineDynamicStateCreateInfo dynamicState = {};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-			//VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-			//VK_DYNAMIC_STATE_STENCIL_REFERENCE
+			VK_DYNAMIC_STATE_SCISSOR
 		};
+		VkPipelineDynamicStateCreateInfo dynamicState = {};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicState.pDynamicStates = dynamicStates.data();
+		
 		std::vector<VkPipelineShaderStageCreateInfo> stages = {};
 		for (uint32_t i = 0; i < desc.ShaderCount; i++)
 			stages.emplace_back(static_cast<ShaderVK*>(desc.Shaders[i])->GetStage());
 
 		m_Program = DBG_NEW ShaderProgramVK(m_Device, static_cast<ShaderVK*>(desc.Shaders[0]), static_cast<ShaderVK*>(desc.Shaders[1]));
 		m_Program->Build();
+		
 		VkGraphicsPipelineCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		createInfo.stageCount = static_cast<uint32_t>(stages.size());

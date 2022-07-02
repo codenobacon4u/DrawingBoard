@@ -112,9 +112,9 @@ namespace Vulkan {
 		m_BindingSets[set][binding].hash = hash;
 	}
 
-	void CommandBufferVK::BindIndexBuffer(Buffer* buffer, uint64_t offset)
+	void CommandBufferVK::BindIndexBuffer(Buffer* buffer, uint64_t offset, uint32_t indexType)
 	{
-		vkCmdBindIndexBuffer(m_Curr, static_cast<BufferVK*>(buffer)->Get(), static_cast<VkDeviceSize>(offset), VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(m_Curr, static_cast<BufferVK*>(buffer)->Get(), static_cast<VkDeviceSize>(offset), (VkIndexType)indexType);
 	}
 
 	void CommandBufferVK::BindPipeline(Pipeline* pipeline)
@@ -170,11 +170,16 @@ namespace Vulkan {
 		vkCmdEndRenderPass(m_Curr);
 	}
 
+	void CommandBufferVK::SetPushConstant(ShaderType type, uint32_t offset, uint32_t size, void* data)
+	{
+		vkCmdPushConstants(m_Curr, m_Pipeline->GetProgram()->GetPipelineLayout(), (uint32_t)type, offset, size, data);
+	}
+
 	void CommandBufferVK::SetScissors(uint32_t first, uint32_t count, std::vector<Rect2D> scissors)
 	{
 		std::vector<VkRect2D> recs = {};
 		for (auto& s : scissors)
-			recs.push_back({ {s.offset.x, s.offset.x}, { s.extent.x, s.extent.y } });
+			recs.push_back({ {s.offset.x, s.offset.y}, { s.extent.x, s.extent.y } });
 		vkCmdSetScissor(m_Curr, first, count, recs.data());
 	}
 
