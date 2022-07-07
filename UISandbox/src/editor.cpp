@@ -12,11 +12,18 @@
 #include <glm/glm/gtx/string_cast.hpp>
 #include <glm/glm/gtx/rotate_vector.hpp>
 
+#pragma warning(push, 0)
+#pragma warning( disable: 26451 )
+#pragma warning( disable: 6262 )
+#pragma warning( disable: 26498 )
+#pragma warning( disable: 26819 )
+#pragma warning( disable: 26495 )
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#pragma warning(pop)
 
 #include "ImGuiWindow.h"
 #include "ImGuiRenderer.h"
@@ -44,9 +51,11 @@ static Buffer* gVertexBuffer;
 static Buffer* gIndexBuffer;
 static Buffer* gUniformBuffer;
 static Pipeline* gPipeline;
+static RenderPass* gRenderPass;
 
 static Texture* gTexture;
-static Texture* renderTexture;
+static Texture* gRenderColorTexture;
+static Texture* gRenderDepthTexture;
 
 static std::vector<Vertex> gVertices;
 static std::vector<uint32_t> gIndices;
@@ -74,10 +83,7 @@ void RenderScene(CommandBuffer* cmd, TextureView* rtv) {
 		ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
 		ubo.proj[1][1] *= -1;
 
-		void* data;
-		gUniformBuffer->MapMemory(gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), &data);
-		memcpy(data, &ubo, sizeof(ubo));
-		gUniformBuffer->FlushMemory();
+		gUniformBuffer->Update(gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), reinterpret_cast<uint8_t*>(&ubo));
 
 		cmd->BindBuffer(gUniformBuffer, gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), 0, 0);
 	}
@@ -95,9 +101,13 @@ void FrameRender(ImGui_ImplDrawingPad_Window* windowData, ImDrawData* drawData)
 
 	// Begin Command Buffer
 	cmd->Begin();
-	cmd->BeginRenderPass(windowData->RenderPass, { rtv, dsv }, { windowData->ClearValue, { 1.0f, 0 } });
-	
+	cmd->BeginRenderPass(gRenderPass, { gRenderColorTexture->GetDefaultView(), gRenderDepthTexture->GetDefaultView() }, {{0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 0}});
+
 	RenderScene(cmd, rtv);
+
+	cmd->EndRenderPass();
+
+	cmd->BeginRenderPass(windowData->RenderPass, { rtv, dsv }, { windowData->ClearValue, { 1.0f, 0 } });
 
 	// Record Dear ImGui Primitives Into CommandBuffer
 	ImGui_ImplDrawingPad_RenderDrawData(drawData, cmd);
@@ -142,6 +152,13 @@ int main() {
 		wd->Height = h;
 		wd->Swapchain = device->CreateSwapchain(swapDesc, window);
 		wd->Context = device->CreateGraphicsContext(wd->Swapchain);
+
+
+		glfwSetWindowUserPointer(window, wd->Swapchain);
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int width, int height) {
+			Swapchain* swap = (Swapchain*)glfwGetWindowUserPointer(win);
+			swap->SetResized(width, height);
+		});
 
 		RenderPassDesc rpDesc = {};
 		std::vector<RenderPassAttachmentDesc> attachments = {
@@ -232,6 +249,62 @@ int main() {
 					gIndices.push_back(uniqueVertices[hash]);
 				}
 			}
+
+			{
+				RenderPassDesc rpDesc = {};
+				std::vector<RenderPassAttachmentDesc> attachments = {
+					{
+						TextureFormat::RGBA8Unorm,
+						1,
+						AttachmentLoadOp::Clear,
+						AttachmentStoreOp::Store,
+						AttachmentLoadOp::DontCare,
+						AttachmentStoreOp::DontCare,
+						ImageLayout::Undefined,
+						ImageLayout::ShaderReadOnlyOptimal
+					},
+					{
+						wd->Swapchain->GetDesc().DepthFormat,
+						1,
+						AttachmentLoadOp::Clear,
+						AttachmentStoreOp::DontCare,
+						AttachmentLoadOp::DontCare,
+						AttachmentStoreOp::DontCare,
+						ImageLayout::Undefined,
+						ImageLayout::DepthStencilAttachOptimal
+					},
+				};
+
+				AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
+				SubpassDesc subpass = {};
+				subpass.BindPoint = PipelineBindPoint::Graphics;
+				subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+				subpass.DepthStencilAttachment = &depthAttach;
+
+				std::vector<DependencyDesc> dependencies = {
+					{
+						~0U,
+						0,
+						PipelineStage::FragmentShader,
+						PipelineStage::ColorAttachOutput,
+						SubpassAccess::ShaderRead,
+						SubpassAccess::ColorAttachWrite
+					},
+					{
+						0,
+						~0U,
+						PipelineStage::ColorAttachOutput,
+						PipelineStage::FragmentShader,
+						SubpassAccess::ColorAttachWrite,
+						SubpassAccess::ShaderRead
+					}
+				};
+
+				rpDesc.Attachments = attachments;
+				rpDesc.Subpasses = { subpass };
+				rpDesc.SubpassDependencies = dependencies;
+				gRenderPass = device->CreateRenderPass(rpDesc);
+			}
 		}
 
 		BufferDesc bufDesc = {};
@@ -262,6 +335,16 @@ int main() {
 		texDesc.ArraySize = 1;
 		texDesc.BindFlags = BindFlags::ShaderResource;
 		gTexture = device->CreateTexture(texDesc, pixels);
+
+		texDesc.MipLevels = 1;
+		texDesc.Format = TextureFormat::RGBA8Unorm;
+		texDesc.BindFlags = BindFlags::RenderTarget;
+		gRenderColorTexture = device->CreateTexture(texDesc, nullptr);
+
+		texDesc.Format = wd->Swapchain->GetDesc().DepthFormat;
+		texDesc.BindFlags = BindFlags::DepthStencil;
+		gRenderDepthTexture = device->CreateTexture(texDesc, nullptr);
+
 
 		// ======== Create Shaders ========
 		ShaderDesc sDesc = {};
@@ -301,7 +384,7 @@ int main() {
 			}
 		};
 
-		std::vector<Shader*> shaders = { vertShader, fragShader };
+		auto* program = device->CreateShaderProgram(vertShader, fragShader);
 
 		GraphicsPipelineDesc pDesc = {};
 		pDesc.NumViewports = 1;
@@ -310,11 +393,10 @@ int main() {
 		pDesc.DepthFormat = wd->Swapchain->GetDesc().DepthFormat;
 		pDesc.InputLayout.NumElements = 3;
 		pDesc.InputLayout.Elements = vertInputs;
-		pDesc.ShaderCount = 2;
-		pDesc.Shaders = shaders.data();
+		pDesc.Program = program;
 		pDesc.Face = FrontFace::CounterClockwise;
 		//pDesc.MSAASamples = 4;
-		gPipeline = device->CreateGraphicsPipeline(pDesc, wd->RenderPass);
+		gPipeline = device->CreateGraphicsPipeline(pDesc, gRenderPass);
 
 		gSwapchain = wd->Swapchain;
 	}
@@ -405,8 +487,9 @@ int main() {
 			ImGui::Begin("Game Window Settings", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
 			resWidth = static_cast<int>((16.0f / 9.0f) * resHeight);
 			resHeight = static_cast<int>((9.0f / 16.0f) * resWidth);
-			ImGui::SliderInt("Resolution Width: ", &resWidth, 16, 4096);
-			ImGui::SliderInt("Resolution Height: ", &resHeight, 9, 2304);
+			ImGui::SliderInt("Resolution Width", &resWidth, 16, 4096);
+			ImGui::SliderInt("Resolution Height", &resHeight, 9, 2304);
+			ImGui::Image((ImTextureID)gRenderColorTexture, ImVec2(resWidth, resHeight));
 			ImGui::End();
 		}
 

@@ -43,6 +43,9 @@ struct ImGui_ImplDrawingPad_Data
 	uint64_t BufferMemoryAlignment;
 	Pipeline* Pipeline;
 	uint32_t Subpass;
+	ShaderProgram* ShaderProgram;
+	Shader* VertexShader;
+	Shader* FragmentShader;
 
 	Texture* FontTexture;
 	Buffer* UploadBuffer;
@@ -59,7 +62,7 @@ struct ImGui_ImplDrawingPad_Data
 
 void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, uint32_t imageCount);
 void ImGui_ImplDrawingPad_CreateFontsTexture();
-void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cmd);
+void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cmd, Pipeline* pipeline = nullptr);
 void ImGui_ImplDrawingPad_Shutdown();
 
 void ImGui_ImplDrawingPad_CreateOrResizeWindow();

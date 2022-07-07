@@ -21,6 +21,8 @@ public:
 	virtual uint32_t GetImageIndex() = 0;
 	virtual TextureView* GetBackbuffer() = 0;
 	virtual TextureView* GetDepthBufferView() = 0;
+
+	void SetResized(uint32_t width, uint32_t height) { m_Resized = true; m_Desc.Width = width; m_Desc.Height = height; }
 	
 	void SetVSync(bool enabled) { m_VSync = enabled; }
 	bool IsVSync() { return m_VSync; }
@@ -33,5 +35,6 @@ protected:
 
 protected:
 	bool m_VSync = false;
+	bool m_Resized = false;
 	SwapchainDesc m_Desc;
 };

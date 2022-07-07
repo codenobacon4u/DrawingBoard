@@ -40,8 +40,8 @@ namespace Vulkan {
 
 	void CommandBufferVK::BeginRenderPass(RenderPass* renderpass, std::vector<TextureView*> renderTargets, std::vector<ClearValue> clearValues)
 	{
-		assert(clearValues.size() == renderpass->getDesc().Attachments.size());
-		assert(renderTargets.size() > 0);
+		//assert(clearValues.size() == renderpass->getDesc().Attachments.size());
+		//assert(renderTargets.size() > 0);
 
 		uint32_t width = renderTargets[0]->GetTexture()->GetDesc().Width;
 		uint32_t height = renderTargets[0]->GetTexture()->GetDesc().Height;

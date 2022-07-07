@@ -40,8 +40,7 @@ typedef struct InputLayout {
 
 typedef struct GraphicsPipelineDesc {
 	InputLayout InputLayout;
-	uint32_t ShaderCount = 0;
-	Shader** Shaders = nullptr;
+	ShaderProgram* Program = nullptr;
 	uint32_t NumViewports = 0;
 	uint8_t NumColors = 0;
 	TextureFormat ColorFormats[8];

@@ -155,6 +155,8 @@ public:
 
 	virtual size_t GetHash() = 0;
 
+	std::map<ShaderType, Shader*>& GetShaders() { return m_Shaders; }
+
 protected:
 	std::map<ShaderType, Shader*> m_Shaders;
 };

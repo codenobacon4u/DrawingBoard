@@ -12,11 +12,18 @@
 #include <glm/glm/gtx/string_cast.hpp>
 #include <glm/glm/gtx/rotate_vector.hpp>
 
+#pragma warning(push, 0)
+#pragma warning( disable: 26451 )
+#pragma warning( disable: 6262 )
+#pragma warning( disable: 26498 )
+#pragma warning( disable: 26819 )
+#pragma warning( disable: 26495 )
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
+#pragma warning(pop)
 
 API Curr_API = API::Vulkan;
 

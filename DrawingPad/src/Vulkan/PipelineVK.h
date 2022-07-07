@@ -18,12 +18,10 @@ namespace Vulkan
         ~PipelineVK();
 
         VkPipeline Get() { return m_Pipeline; }
-        ShaderProgramVK* GetProgram() { return m_Program; }
+        ShaderProgramVK* GetProgram() { return static_cast<ShaderProgramVK*>(m_GraphicsDesc.Program); }
 
     private:
         VkPipeline m_Pipeline = VK_NULL_HANDLE;
         GraphicsDeviceVK* m_Device = nullptr;
-
-        ShaderProgramVK* m_Program = nullptr;
     };
 }

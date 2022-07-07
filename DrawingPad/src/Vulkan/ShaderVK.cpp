@@ -255,14 +255,6 @@ namespace Vulkan {
 			if (!LoadShaderFromSrc(desc.Src))
 				throw std::runtime_error("Failed to load shader from source");
 
-		m_Stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		if (desc.Type == ShaderType::Fragment)
-			m_Stage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		else if (desc.Type == ShaderType::Vertex)
-			m_Stage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		m_Stage.module = m_Module;
-		m_Stage.pName = desc.EntryPoint.c_str();
-
 		hash_combine(m_Hash, m_Desc.Type);
 		hash_combine(m_Hash, m_Desc.Name);
 		hash_combine(m_Hash, m_Desc.EntryPoint);
@@ -332,6 +324,19 @@ namespace Vulkan {
 			return false;
 
 		return true;
+	}
+
+	VkPipelineShaderStageCreateInfo ShaderVK::GetStage()
+	{
+		VkPipelineShaderStageCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		if (m_Desc.Type == ShaderType::Fragment)
+			info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		else if (m_Desc.Type == ShaderType::Vertex)
+			info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		info.module = m_Module;
+		info.pName = m_Desc.EntryPoint.c_str();
+		return info;
 	}
 
 	std::vector<uint32_t> ShaderVK::Compile(std::string code)
@@ -457,6 +462,7 @@ namespace Vulkan {
 		: ShaderProgram(vertShader, fragShader), m_Device(device)
 	{
 		m_DescCache = DBG_NEW DescriptorSetLayoutCacheVK(m_Device);
+		Build();
 	}
 
 	ShaderProgramVK::~ShaderProgramVK()

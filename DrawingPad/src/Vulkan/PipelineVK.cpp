@@ -116,11 +116,8 @@ namespace Vulkan
 		dynamicState.pDynamicStates = dynamicStates.data();
 		
 		std::vector<VkPipelineShaderStageCreateInfo> stages = {};
-		for (uint32_t i = 0; i < desc.ShaderCount; i++)
-			stages.emplace_back(static_cast<ShaderVK*>(desc.Shaders[i])->GetStage());
-
-		m_Program = DBG_NEW ShaderProgramVK(m_Device, static_cast<ShaderVK*>(desc.Shaders[0]), static_cast<ShaderVK*>(desc.Shaders[1]));
-		m_Program->Build();
+		for (auto& [type, shader] : desc.Program->GetShaders())
+			stages.emplace_back(static_cast<ShaderVK*>(shader)->GetStage());
 		
 		VkGraphicsPipelineCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -133,7 +130,7 @@ namespace Vulkan
 		createInfo.pMultisampleState = &multisampleState;
 		createInfo.pColorBlendState = &colorBlendState;
 		createInfo.pDepthStencilState = &depthStencilState;
-		createInfo.layout = m_Program->GetPipelineLayout();
+		createInfo.layout = static_cast<ShaderProgramVK*>(desc.Program)->GetPipelineLayout();
 		createInfo.renderPass = renderpass;
 		createInfo.subpass = 0;
 		createInfo.pDynamicState = &dynamicState;
@@ -145,18 +142,17 @@ namespace Vulkan
 	}
 
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& createInfo)
-		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE), m_Program(nullptr)
+		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
 	{
 	}
 
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo)
-		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE), m_Program(nullptr)
+		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
 	{
 	}
 
 	PipelineVK::~PipelineVK()
 	{
 		vkDestroyPipeline(m_Device->Get(), m_Pipeline, nullptr);
-		delete m_Program;
 	}
 }

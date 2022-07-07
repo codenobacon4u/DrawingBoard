@@ -18,7 +18,7 @@ namespace Vulkan {
 		bool LoadShaderFromFile(const std::string& path);
 		bool LoadShaderFromSrc(const std::string& src);
 
-		VkPipelineShaderStageCreateInfo& GetStage() { return m_Stage; }
+		VkPipelineShaderStageCreateInfo GetStage();
 
 	private:
 		std::vector<uint32_t> Compile(std::string code);
