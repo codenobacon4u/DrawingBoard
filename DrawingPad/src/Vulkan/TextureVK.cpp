@@ -32,7 +32,9 @@ namespace Vulkan
 		imageInfo.usage = 0;
 		if (m_Desc.BindFlags == BindFlags::RenderTarget || m_Desc.BindFlags == BindFlags::SwapChain)
 			imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		if (m_Desc.BindFlags == BindFlags::DepthStencil)
+		if (m_Desc.BindFlags == BindFlags::RenderTarget)
+			imageInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		if ((uint32_t)m_Desc.BindFlags & (uint32_t)BindFlags::DepthStencil)
 			imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		if (m_Desc.BindFlags == BindFlags::ShaderResource)
 			imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -41,57 +43,52 @@ namespace Vulkan
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.queueFamilyIndexCount = 0;
 		imageInfo.pQueueFamilyIndices = nullptr;
-		vkCreateImage(m_Device->Get(), &imageInfo, nullptr, &m_Image);
 
-		VkMemoryRequirements memReq;
-		vkGetImageMemoryRequirements(m_Device->Get(), m_Image, &memReq);
 
-		VkMemoryAllocateInfo allocInfo = {};
-		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocInfo.allocationSize = memReq.size;
-		allocInfo.memoryTypeIndex = m_Device->FindMemoryType(memReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VmaAllocationCreateInfo memInfo = {};
+		memInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-		vkAllocateMemory(m_Device->Get(), &allocInfo, nullptr, &m_Mem);
+		vmaCreateImage(m_Device->GetMemoryAllocator(), &imageInfo, &memInfo, &m_Image, &m_Alloc, nullptr);
 
-		vkBindImageMemory(m_Device->Get(), m_Image, m_Mem, 0);
-		if (m_Desc.BindFlags != BindFlags::DepthStencil)
-		{
-			BufferDesc bufDesc = {};
-			bufDesc.Usage = BufferUsageFlags::Staging;
-			bufDesc.BindFlags = BufferBindFlags::Staging;
-			bufDesc.Size = m_Desc.Width * m_Desc.Height * 4;
-			BufferVK staging(m_Device, bufDesc, data);
+		if (m_Desc.BindFlags != (BindFlags::SwapChain | BindFlags::DepthStencil)) {
+			if (data != nullptr) {
+				BufferDesc bufDesc = {};
+				bufDesc.Usage = BufferUsageFlags::Staging;
+				bufDesc.BindFlags = BufferBindFlags::Staging;
+				bufDesc.Size = m_Desc.Width * m_Desc.Height * 4;
+				BufferVK staging(m_Device, bufDesc);
 
-			void* temp;
-			vkMapMemory(m_Device->Get(), staging.GetMemory(), 0, bufDesc.Size, 0, &temp);
-			memcpy(temp, data, static_cast<size_t>(bufDesc.Size));
-			vkUnmapMemory(m_Device->Get(), staging.GetMemory());
+				staging.Update(0, bufDesc.Size, data);
 
-			VkQueue graphics = m_Device->GetGraphicsQueue();
-			VkCommandBuffer cmd = static_cast<CommandBufferVK*>(m_Device->GetTempCommandPool().RequestCommandBuffer())->Get();
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-			vkBeginCommandBuffer(cmd, &beginInfo);
-			
-			TransistionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-			CopyFromBuffer(cmd, staging.Get(), m_Desc.Width, m_Desc.Height);
-			if (m_Desc.MipLevels > 1)
-				GenerateMipmaps(cmd);
-			else
-				TransistionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				VkQueue graphics = m_Device->GetGraphicsQueue();
+				VkCommandBuffer cmd = static_cast<CommandBufferVK*>(m_Device->GetTempCommandPool().RequestCommandBuffer())->Get();
+				VkCommandBufferBeginInfo beginInfo = {};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+				vkBeginCommandBuffer(cmd, &beginInfo);
 
-			vkEndCommandBuffer(cmd);
-			VkSubmitInfo submit = {};
-			submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submit.commandBufferCount = 1;
-			submit.pCommandBuffers = &cmd;
-			vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
-			vkQueueWaitIdle(graphics);
+				TransistionLayout(cmd, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				CopyFromBuffer(cmd, staging.Get(), m_Desc.Width, m_Desc.Height);
+				if (m_Desc.MipLevels > 1)
+					GenerateMipmaps(cmd);
+				else
+					TransistionLayout(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				vkEndCommandBuffer(cmd);
+				VkSubmitInfo submit = {};
+				submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+				submit.commandBufferCount = 1;
+				submit.pCommandBuffers = &cmd;
+				vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
+				vkQueueWaitIdle(graphics);
+			}
 
 			TextureViewDesc texDesc = {};
 			texDesc.Format = m_Desc.Format;
-			texDesc.ViewType = ViewType::ShaderResource;
+			if ((uint32_t)m_Desc.BindFlags & (uint32_t)BindFlags::DepthStencil)
+				texDesc.ViewType = ViewType::DepthStencil;
+			else
+				texDesc.ViewType = ViewType::ShaderResource;
 			texDesc.HighestMip = 0;
 			texDesc.NumMipLevels = m_Desc.MipLevels;
 
@@ -130,10 +127,12 @@ namespace Vulkan
 			vkDestroySampler(m_Device->Get(), m_Sampler, nullptr);
 		if (m_DefaultView != nullptr)
 			delete m_DefaultView;
-		if (m_Image != VK_NULL_HANDLE && m_Desc.BindFlags != BindFlags::SwapChain)
-			vkDestroyImage(m_Device->Get(), m_Image, nullptr);
+		if (m_Image != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE && m_Desc.BindFlags != BindFlags::SwapChain)
+			vmaDestroyImage(m_Device->GetMemoryAllocator(), m_Image, m_Alloc);
 		if (m_Mem != VK_NULL_HANDLE)
 			vkFreeMemory(m_Device->Get(), m_Mem, nullptr);
+
+
 	}
 
 	TextureView* TextureVK::CreateView(const TextureViewDesc& desc)

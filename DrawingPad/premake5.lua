@@ -26,6 +26,7 @@ project "DrawingPad"
     includedirs {
         "src",
         "vendor/spdlog/include",
+		"vendor/vma",
         "%{IncludeDir.glad}",
         "%{IncludeDir.glfw}",
         "%{IncludeDir.glm}",

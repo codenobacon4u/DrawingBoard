@@ -21,8 +21,8 @@ namespace Vulkan
 	const bool enableValidation = false;
 #endif
 
-	const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	std::vector<const char*> deviceExtensions = {
+		//VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		//VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
 	};
 
@@ -35,18 +35,34 @@ namespace Vulkan
 		return VK_FALSE;
 	}
 
-	GraphicsDeviceVK::GraphicsDeviceVK()
+	GraphicsDeviceVK::GraphicsDeviceVK(GLFWwindow* window)
+		: m_MainWindow(window)
 	{
+		CreateInstance();
+
 		if (!glfwVulkanSupported())
 			throw std::runtime_error("Vulkan is not supported!");
 
-		CreateInstance();
+		auto res = glfwCreateWindowSurface(m_Instance, window, nullptr, &m_Surface);
+		if (res == VK_ERROR_INITIALIZATION_FAILED)
+		{
+			throw std::runtime_error("API not available");
+		}
+		else if (res == VK_ERROR_EXTENSION_NOT_PRESENT)
+		{
+			throw std::runtime_error("The extension was not available");
+		}
+		else if (res == VK_ERROR_NATIVE_WINDOW_IN_USE_KHR)
+		{
+			throw std::runtime_error("Native window is in use");
+		}
+
 		CreatePhysicalDevice();
 		CreateDevice();
 		if (enableValidation) {
 			DebugMarker::Setup(m_Device, m_PhysicalDevice);
 		}
-		m_TempPool = DBG_NEW CommandPoolVK(this, m_GraphicsIndex, 0);
+		m_TempPool = DBG_NEW CommandPoolVK(this, 0, 0);
 		m_FramebufferPool = DBG_NEW FramebufferPoolVK(this);
 	}
 
@@ -54,6 +70,16 @@ namespace Vulkan
 	{
 		vkDeviceWaitIdle(m_Device);
 		delete m_TempPool;
+		delete m_FramebufferPool;
+
+		if (m_MemAllocator != VK_NULL_HANDLE)
+		{
+			char* memoryInfo;
+			vmaBuildStatsString(m_MemAllocator, &memoryInfo, VK_TRUE);
+			std::cout << memoryInfo << "\n";
+			vmaFreeStatsString(m_MemAllocator, memoryInfo);
+			vmaDestroyAllocator(m_MemAllocator);
+		}
 
 		vkDestroyDevice(m_Device, nullptr);
 		if (enableValidation)
@@ -87,7 +113,7 @@ namespace Vulkan
 
 	Buffer* GraphicsDeviceVK::CreateBuffer(const BufferDesc& desc, void* data)
 	{
-		return DBG_NEW BufferVK(this, desc, data);
+		return DBG_NEW BufferVK(this, desc, reinterpret_cast<uint8_t*>(data));
 	}
 
 	Texture* GraphicsDeviceVK::CreateTexture(const TextureDesc& desc, const unsigned char* data)
@@ -134,12 +160,75 @@ namespace Vulkan
 
 	Swapchain* GraphicsDeviceVK::CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window)
 	{
-		return DBG_NEW SwapchainVK(this, desc, window);
+		VkSurfaceKHR surface;
+		if (window != m_MainWindow)
+			glfwCreateWindowSurface(m_Instance, window, nullptr, &surface);
+		else
+			surface = m_Surface;
+
+		return DBG_NEW SwapchainVK(this, desc, surface);
 	}
 
 	Shader* GraphicsDeviceVK::CreateShader(const ShaderDesc& desc)
 	{
 		return DBG_NEW ShaderVK(this, desc);
+	}
+
+	ShaderProgram* GraphicsDeviceVK::CreateShaderProgram(Shader* vert, Shader* frag)
+	{
+		return DBG_NEW ShaderProgramVK(this, static_cast<ShaderVK*>(vert), static_cast<ShaderVK*>(frag));
+	}
+
+	const uint32_t GraphicsDeviceVK::GetGraphicsIndex()
+	{
+		if (m_GraphicsIndex != ~0U)
+			return m_GraphicsIndex;
+
+		for (auto i = 0; i < m_Queues.size(); i++) {
+			auto const& queue = m_Queues[i][0];
+			if (queue.presentSupport && queue.properties.queueCount > 0)
+			{
+				m_GraphicsIndex = i;
+				return m_GraphicsIndex;
+			}
+		}
+
+		GetGraphicsQueue();
+
+		return m_GraphicsIndex;
+	}
+
+	const VkQueue GraphicsDeviceVK::GetGraphicsQueue()
+	{
+		if (m_GraphicsQueue != VK_NULL_HANDLE)
+			return m_GraphicsQueue;
+
+		for (auto i = 0; i < m_Queues.size(); i++) {
+			auto const& queue = m_Queues[i][0];
+			if (queue.presentSupport && queue.properties.queueCount > 0)
+			{
+				m_GraphicsIndex = i;
+				m_GraphicsQueue = queue.queue;
+				return m_GraphicsQueue;
+			}
+		}
+
+		return GetQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0);
+	}
+
+	const VkQueue GraphicsDeviceVK::GetQueueByFlags(VkQueueFlags flags, uint32_t index)
+	{
+		for (auto i = 0; i < m_Queues.size(); i++) {
+			auto const& queue = m_Queues[i][0];
+			if (((queue.properties.queueCount & flags) == flags) && queue.properties.queueCount > index)
+			{
+				m_GraphicsIndex = i;
+				m_GraphicsQueue = queue.queue;
+				return queue.queue;
+			}
+		}
+
+		throw std::runtime_error("Queue not found");
 	}
 
 	QueueFamilyIndices GraphicsDeviceVK::FindQueueFamilies(VkQueueFlags flags)
@@ -178,7 +267,11 @@ namespace Vulkan
 	
 	void GraphicsDeviceVK::CreateInstance()
 	{
-		VkValidationFeatureEnableEXT enables[] = { VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT };
+		VkValidationFeatureEnableEXT enables[] = { 
+			VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT, 
+			VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+			VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+		};
 		VkValidationFeaturesEXT features = {};
 		features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
 		if (enableValidation)
@@ -191,8 +284,8 @@ namespace Vulkan
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
-		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+		appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
 		appInfo.pApplicationName = "DrawingPad-Test";
 		appInfo.pEngineName = "DrawingPad";
 
@@ -212,8 +305,8 @@ namespace Vulkan
 			debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 			debugCreateInfo.flags = 0;
 			debugCreateInfo.pNext = nullptr;
-			debugCreateInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |*/ /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | */VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-			debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+			debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+			debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 			debugCreateInfo.pfnUserCallback = debugCallback;
 			debugCreateInfo.pUserData = nullptr;
 		}
@@ -260,9 +353,18 @@ namespace Vulkan
 			}
 		}
 
+		vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_PhysicalFeats);
+		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalProps);
+		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_PhysicalMemProps);
+
+		uint32_t queueCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueCount, nullptr);
+		m_QueueFamilyProps = std::vector<VkQueueFamilyProperties>(queueCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueCount, m_QueueFamilyProps.data());
+
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
-		std::string vendor, type;
+		std::string vendor, type, driver;
 		switch (props.vendorID) {
 		case 0x1002:
 			vendor = "AMD";
@@ -280,7 +382,7 @@ namespace Vulkan
 			vendor = "Qualcomm";
 			break;
 		case 0x8086:
-			vendor = "INTEL";
+			vendor = "Intel";
 			break;
 		default:
 			vendor = "UNKOWN";
@@ -304,17 +406,36 @@ namespace Vulkan
 			type = "Other";
 			break;
 		}
+		static std::string const values[] = {
+			"",
+			"AMD Proprietary",
+			"AMD Open Source",
+			"MESA RADV",
+			"NVIDIA Proprietary",
+			"INTEL Proprietary Windows",
+			"INTEL Open Source MESA",
+			"Imagination Proprietary",
+			"Qualcomm Proprietary",
+			"ARM Proprietary",
+			"Google SWIFTSHADER",
+			"GGP Proprietary",
+			"BROADCOM Proprietary",
+			"MESA LLVMPIPE",
+			"MOLTENVK",
+		};
+		driver = props.driverVersion < values->size() ? values[props.driverVersion] : "UNKOWN";
+		std::string api = string_format("%d.%d.%d", props.apiVersion >> 22, (props.apiVersion >> 12) & 0x3ff, props.apiVersion & 0xfff);
 		std::cout
 			<< "Device Name: " << props.deviceName << "\n"
 			<< "Device Type: " << type << "\n"
-			<< "Driver Version: " << props.driverVersion << "\n"
-			<< "Vulkan Version: " << props.apiVersion << "\n"
+			<< "Driver Version: " << driver << "\n"
+			<< "Vulkan Version: " << api << "\n"
 			<< "Vender ID: " << vendor << "\n"
 			<< "Device ID: " << props.deviceID << "\n"
 			<< std::endl;
-		m_Limits = props.limits;
+		m_PhysicalLimits = props.limits;
 		
-		VkSampleCountFlags counts = m_Limits.framebufferColorSampleCounts & m_Limits.framebufferDepthSampleCounts;
+		VkSampleCountFlags counts = m_PhysicalLimits.framebufferColorSampleCounts & m_PhysicalLimits.framebufferDepthSampleCounts;
 		if (counts & VK_SAMPLE_COUNT_64_BIT) m_SampleCount = VK_SAMPLE_COUNT_64_BIT;
 		else if (counts & VK_SAMPLE_COUNT_32_BIT) m_SampleCount = VK_SAMPLE_COUNT_32_BIT;
 		else if (counts & VK_SAMPLE_COUNT_16_BIT) m_SampleCount = VK_SAMPLE_COUNT_16_BIT;
@@ -326,24 +447,27 @@ namespace Vulkan
 	
 	void GraphicsDeviceVK::CreateDevice()
 	{
-		QueueFamilyIndices indices = FindQueueFamilies(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-		const float queuePriority = 1.0f;
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.flags = 0;
-		queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
+		// Create device queues
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(m_QueueFamilyProps.size());
+		std::vector<std::vector<float>> queuePriorities(m_QueueFamilyProps.size());
 
-		VkPhysicalDeviceFeatures physicalFeatures;
-		vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &physicalFeatures);
+		for (auto i = 0; i < m_QueueFamilyProps.size(); i++) {
+			queuePriorities[i].resize(m_QueueFamilyProps[i].queueCount, 0.5f);
+
+			queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfos[i].queueFamilyIndex = i;
+			queueCreateInfos[i].queueCount = m_QueueFamilyProps[i].queueCount;
+			queueCreateInfos[i].pQueuePriorities = queuePriorities[i].data();
+		}
+
+		deviceExtensions = InitDeviceExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
 
 		VkDeviceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.flags = 0;
-		createInfo.queueCreateInfoCount = 1;
-		createInfo.pQueueCreateInfos = &queueCreateInfo;
-		createInfo.pEnabledFeatures = &physicalFeatures;
+		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+		createInfo.pQueueCreateInfos = queueCreateInfos.data();
+		createInfo.pEnabledFeatures = &m_PhysicalFeats;
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		createInfo.enabledLayerCount = 0;
@@ -351,8 +475,56 @@ namespace Vulkan
 		if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create logical device");
 		}
+		m_Queues.resize(m_QueueFamilyProps.size());
+		for (auto fi = 0; fi < m_QueueFamilyProps.size(); fi++) {
+			VkBool32 present;
+			vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, fi, m_Surface, &present);
+			for (uint32_t i = 0; i < m_QueueFamilyProps[fi].queueCount; i++) {
+				Queue queue = {};
+				queue.familyIndex = fi;
+				queue.index = i;
+				queue.presentSupport = present;
+				queue.properties = m_QueueFamilyProps[fi];
+				vkGetDeviceQueue(m_Device, fi, i, &queue.queue);
 
-		vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
+				m_Queues[fi].emplace_back(queue);
+			}
+		}
+
+		VmaVulkanFunctions vmaFunc = {};
+		vmaFunc.vkAllocateMemory = vkAllocateMemory;
+		vmaFunc.vkBindBufferMemory = vkBindBufferMemory;
+		vmaFunc.vkBindImageMemory = vkBindImageMemory;
+		vmaFunc.vkCreateBuffer = vkCreateBuffer;
+		vmaFunc.vkCreateImage = vkCreateImage;
+		vmaFunc.vkDestroyBuffer = vkDestroyBuffer;
+		vmaFunc.vkDestroyImage = vkDestroyImage;
+		vmaFunc.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+		vmaFunc.vkFreeMemory = vkFreeMemory;
+		vmaFunc.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+		vmaFunc.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+		vmaFunc.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		vmaFunc.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		vmaFunc.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+		vmaFunc.vkMapMemory = vkMapMemory;
+		vmaFunc.vkUnmapMemory = vkUnmapMemory;
+		vmaFunc.vkCmdCopyBuffer = vkCmdCopyBuffer;
+
+		VmaAllocatorCreateInfo allocInfo = {};
+		allocInfo.vulkanApiVersion = VK_API_VERSION_1_1;
+		allocInfo.physicalDevice = m_PhysicalDevice;
+		allocInfo.device = m_Device;
+		allocInfo.instance = m_Instance;
+		if (IsExtensionAvailable(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME) && IsExtensionAvailable(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME))
+		{
+			allocInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
+			vmaFunc.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2;
+			vmaFunc.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2;
+		}
+		allocInfo.pVulkanFunctions = &vmaFunc;
+		if (vmaCreateAllocator(&allocInfo, &m_MemAllocator) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create VMA Allocator");
+		}
 	}
 
 	bool GraphicsDeviceVK::IsExtensionAvailable(const char* extName) const
@@ -370,7 +542,25 @@ namespace Vulkan
 				return true;
 		return false;
 	}
-	
+
+	std::vector<const char*> GraphicsDeviceVK::InitDeviceExtensions(std::vector<const char*> extns)
+	{
+		uint32_t extensionCount = 0;
+		auto extensions = vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount, nullptr);
+		std::vector<VkExtensionProperties> deviceExtProps(extensionCount);
+		vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount, deviceExtProps.data());
+
+		m_ExtensionProps.insert(m_ExtensionProps.end(), std::make_move_iterator(deviceExtProps.begin()), std::make_move_iterator(deviceExtProps.end()));
+		
+		if (IsExtensionAvailable(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME) && IsExtensionAvailable(VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME))
+		{
+			extns.emplace_back(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
+			extns.emplace_back(VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME);
+		}
+
+		return extns;
+	}
+
 	std::vector<const char*> GraphicsDeviceVK::InitInstanceExtensions(std::vector<const char*> extns)
 	{
 		uint32_t extensionCount = 0;
@@ -378,7 +568,6 @@ namespace Vulkan
 		m_ExtensionProps.resize(extensionCount);
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, m_ExtensionProps.data());
 
-		std::vector<const char*> res;
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions;
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -388,22 +577,25 @@ namespace Vulkan
 				UtilsVK::Log("errors.log", "ERROR: Required extension not found!");
 				throw std::runtime_error("Required extension not found!");
 			}
-			res.emplace_back(glfwExtensions[i]);
+			extns.emplace_back(glfwExtensions[i]);
 		}
 
+		if (enableValidation && IsExtensionAvailable(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME))
+			extns.emplace_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+
 		if (IsExtensionAvailable(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
-			res.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+			extns.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
 		if (enableValidation) {
 			if (IsExtensionAvailable(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
-				res.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+				extns.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			else
 			{
 				UtilsVK::Log("errors.log", "ERROR: Extension VK_EXT_debug_utils not available");
 				throw std::runtime_error("Extension VK_EXT_debug_utils not available");
 			}
 		}
-		return res;
+		return extns;
 	}
 	
 	std::vector<const char*> GraphicsDeviceVK::InitInstanceLayers(std::vector<const char*>& lyrs)

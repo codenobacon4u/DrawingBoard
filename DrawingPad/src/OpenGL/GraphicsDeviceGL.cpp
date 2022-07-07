@@ -1,6 +1,8 @@
 #include "pwpch.h"
 #include "GraphicsDeviceGL.h"
 
+#include <GLFW/glfw3.h>
+
 namespace GlAPI
 {
 	GraphicsDeviceGL::GraphicsDeviceGL(GLFWwindow* window)

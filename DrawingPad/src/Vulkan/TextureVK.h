@@ -1,6 +1,8 @@
 #pragma once
 #include "Texture.h"
+
 #include <vulkan/vulkan.h>
+#include <vma_mem_alloc.h>
 
 namespace Vulkan
 {
@@ -27,6 +29,7 @@ namespace Vulkan
 		GraphicsDeviceVK* m_Device = nullptr;
 		const void* m_Data = nullptr;
 		VkImage m_Image = VK_NULL_HANDLE;
+		VmaAllocation m_Alloc = VK_NULL_HANDLE;
 		VkDeviceMemory m_Mem = VK_NULL_HANDLE;
 		VkSampler m_Sampler = VK_NULL_HANDLE;
 	};

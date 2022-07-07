@@ -17,7 +17,7 @@ GraphicsDevice* GraphicsDevice::Create(GLFWwindow* window, API api)
         return nullptr;
         break;
     case API::Vulkan:
-        return DBG_NEW Vulkan::GraphicsDeviceVK();
+        return DBG_NEW Vulkan::GraphicsDeviceVK(window);
         break;
     case API::DirectX:
         return nullptr;

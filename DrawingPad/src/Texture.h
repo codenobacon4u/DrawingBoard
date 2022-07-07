@@ -20,6 +20,24 @@ enum class BindFlags : uint32_t
 	SwapChain			= 0x600
 };
 
+inline constexpr BindFlags operator&(BindFlags x, BindFlags y) {
+	return static_cast<BindFlags>(static_cast<uint32_t>(x) & static_cast<uint32_t>(y));
+}
+
+inline constexpr BindFlags operator|(BindFlags x, BindFlags y) {
+	return static_cast<BindFlags>(static_cast<uint32_t>(x) | static_cast<uint32_t>(y));
+}
+
+inline constexpr BindFlags& operator&=(BindFlags& x, BindFlags y) {
+	x = x & y;
+	return x;
+}
+
+inline constexpr BindFlags& operator|=(BindFlags& x, BindFlags y) {
+	x = x | y;
+	return x;
+}
+
 enum class Usage
 {
 	Immutable,

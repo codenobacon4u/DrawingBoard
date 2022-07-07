@@ -1,8 +1,6 @@
 #pragma once
 #include "Swapchain.h"
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
 #include "TextureVK.h"
@@ -24,7 +22,7 @@ namespace Vulkan
 	class SwapchainVK : public Swapchain
 	{
 	public:
-		SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, GLFWwindow* window);
+		SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, VkSurfaceKHR surface);
 
 		~SwapchainVK();
 
@@ -40,8 +38,7 @@ namespace Vulkan
 		size_t GetBackbufferCount() { return m_BackBuffers.size(); }
 
 		bool AcquireNextImage(VkSemaphore acquired);
-		void SetResized(uint32_t width, uint32_t height) { m_Resized = true; m_Desc.Width = width; m_Desc.Height = height; }
-		void Present(VkSemaphore render);
+		void Present(VkQueue queue, VkSemaphore render);
 	private:
 		void RecreateSwap(uint32_t width, uint32_t height);
 		void Cleanup();
@@ -68,6 +65,5 @@ namespace Vulkan
 
 		uint32_t m_ImageIndex = 0;
 		uint32_t m_CurrFrame = 0;
-		bool m_Resized = false;
 	};
 }

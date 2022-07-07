@@ -5,7 +5,10 @@
 
 namespace Vulkan {
 	GraphicsContextVK::GraphicsContextVK(GraphicsDevice* device, Swapchain* swap)
-		: GraphicsContext(device, swap), m_Device(static_cast<GraphicsDeviceVK*>(device)), m_Swap(static_cast<SwapchainVK*>(swap))
+		: GraphicsContext(device, swap), 
+		m_Device(static_cast<GraphicsDeviceVK*>(device)), 
+		m_Swap(static_cast<SwapchainVK*>(swap)), 
+		m_Queue(m_Device->GetGraphicsQueue())
 	{
 		VkSemaphoreCreateInfo semInfo = {};
 		semInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -16,8 +19,9 @@ namespace Vulkan {
 
 		m_Frames.resize(m_Swap->GetBackbufferCount());
 		for (uint32_t i = 0; i < m_Frames.size(); i++) {
+			m_Frames[i].CommandPools.resize(1);
 			m_Frames[i].Index = i;
-			m_Frames[i].CommandPools.push_back(DBG_NEW CommandPoolVK(m_Device, m_Device->GetGraphicsIndex(), 0));
+			m_Frames[i].CommandPools[0][m_Device->GetGraphicsIndex()] = (DBG_NEW CommandPoolVK(m_Device, m_Device->GetGraphicsIndex(), 0));
 			m_Frames[i].DescriptorPool = DBG_NEW DescriptorSetPoolVK(m_Device);
 			vkCreateSemaphore(m_Device->Get(), &semInfo, nullptr, &m_Frames[i].ImageAcquired);
 			vkCreateSemaphore(m_Device->Get(), &semInfo, nullptr, &m_Frames[i].RenderFinished);
@@ -32,9 +36,9 @@ namespace Vulkan {
 			vkDestroySemaphore(m_Device->Get(), frame.ImageAcquired, nullptr);
 			vkDestroySemaphore(m_Device->Get(), frame.RenderFinished, nullptr);
 			vkDestroyFence(m_Device->Get(), frame.FrameFence, nullptr);
-			for (auto& pool : frame.CommandPools)
-				delete pool;
-
+			for (auto& pools : frame.CommandPools)
+				for (auto& [i, pool] : pools)
+					delete pool;
 		}
 	}
 
@@ -48,11 +52,14 @@ namespace Vulkan {
 			m_FrameActive = true;
 
 			vkResetFences(m_Device->Get(), 1, &m_Frames[m_Index].FrameFence);
-			for (auto pool : m_Frames[m_Index].CommandPools)
-				pool->Reset();
+			for (auto& pools : m_Frames[m_Index].CommandPools)
+				for (auto& [i, pool] : pools)
+					pool->Reset();
 		}
 
-		return m_Frames[m_Index].CommandPools[0]->RequestCommandBuffer();
+
+		auto pool = GetCommandPool(m_Device->GetGraphicsIndex(), 0);
+		return pool->RequestCommandBuffer();
 	}
 
 	void GraphicsContextVK::Submit(CommandBuffer& commandBuffer)
@@ -77,21 +84,34 @@ namespace Vulkan {
 		subInfo.signalSemaphoreCount = 1;
 		subInfo.pSignalSemaphores = &m_Frames[m_Index].RenderFinished;
 
-		vkQueueSubmit(m_Device->GetGraphicsQueue(), 1, &subInfo, m_Frames[m_Index].FrameFence);
+		vkQueueSubmit(m_Queue, 1, &subInfo, m_Frames[m_Index].FrameFence);
 	}
 
 	void GraphicsContextVK::Present()
 	{
-		m_Swap->Present(m_Frames[m_Index].RenderFinished);
+		m_Swap->Present(m_Queue, m_Frames[m_Index].RenderFinished);
 		m_FrameActive = false;
 	}
 
-	CommandBuffer* GraphicsContextVK::GetCommandBuffer(CommandBufferType type, uint32_t threadIndex)
+	CommandBuffer* GraphicsContextVK::GetCommandBuffer(uint32_t queueFamilyIndex, CommandBufferType type, uint32_t threadIndex)
 	{
-		auto* pools = &m_Frames[m_Index].CommandPools;
-		if (pools->size() < threadIndex)
-			pools->resize(threadIndex, DBG_NEW CommandPoolVK(m_Device, m_Device->GetGraphicsIndex(), 0));
+		auto* pool = GetCommandPool(queueFamilyIndex, threadIndex);
 
-		return pools->at(threadIndex)->RequestCommandBuffer(type);
+		return pool->RequestCommandBuffer(type);
+	}
+
+	CommandPool* GraphicsContextVK::GetCommandPool(uint32_t queueFamilyIndex, uint32_t threadIndex)
+	{
+		auto& pools = m_Frames[m_Index].CommandPools;
+		if (pools.size() < threadIndex)
+			pools.resize(threadIndex);
+
+		auto& it = pools[threadIndex].find(queueFamilyIndex);
+		if (it != pools[threadIndex].end())
+			return it->second;
+
+		pools[threadIndex][queueFamilyIndex] = DBG_NEW CommandPoolVK(m_Device, queueFamilyIndex, 0);
+
+		return pools[threadIndex][queueFamilyIndex];
 	}
 }

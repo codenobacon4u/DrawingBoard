@@ -1,5 +1,4 @@
 #pragma once
-#include <GLFW/glfw3.h>
 
 #include "Framebuffer.h"
 #include "Pipeline.h"
@@ -9,7 +8,7 @@
 enum class API {
 	None = 0, OpenGL = 1, Vulkan = 2, DirectX = 3
 };
-
+struct GLFWwindow;
 class GraphicsContext;
 class GraphicsDevice 
 {
@@ -28,6 +27,7 @@ public:
 	virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) = 0;
 	virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) = 0;
 	virtual Shader* CreateShader(const ShaderDesc& desc) = 0;
+	virtual ShaderProgram* CreateShaderProgram(Shader* vert, Shader* frag) = 0;
 
 	static GraphicsDevice* Create(GLFWwindow* window, API api);
 	inline static API GetAPI() { return s_API; }

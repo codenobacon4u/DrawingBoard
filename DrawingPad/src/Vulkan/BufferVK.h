@@ -2,6 +2,7 @@
 #include "Buffer.h"
 
 #include <vulkan/vulkan.h>
+#include <vma_mem_alloc.h>
 
 namespace Vulkan 
 {
@@ -9,14 +10,16 @@ namespace Vulkan
 	class BufferVK : public Buffer
 	{
 	public:
-		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, const void* data = nullptr);
+		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, uint8_t* data = nullptr);
 		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, VkBuffer buffer);
 
 		~BufferVK();
 
-		virtual void MapMemory(uint64_t offset, uint64_t size, void** data);
+		virtual void* MapMemory();
+		virtual void UnmapMemory();
 		virtual void FlushMemory();
-		virtual void Expand(uint64_t size);
+
+		virtual void Update(uint64_t offset, uint64_t size, const void* data);
 
 		VkBuffer Get() { return m_Buffer; }
 		VkDeviceMemory GetMemory() { return m_Memory; }
@@ -29,10 +32,12 @@ namespace Vulkan
 	private:
 		GraphicsDeviceVK* m_Device;
 
-		VkBuffer m_Buffer;
-		VkDeviceMemory m_Memory;
+		VkBuffer m_Buffer = VK_NULL_HANDLE;
+		VmaAllocation m_Alloc = VK_NULL_HANDLE;
+		VkDeviceMemory m_Memory = VK_NULL_HANDLE;
 
-		VkDeviceSize m_Alignment = 256;
+		bool m_Mapped = false;
+		bool m_Persist = false;
 
 		void* m_StageData = nullptr;
 	};

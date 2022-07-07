@@ -3,8 +3,10 @@
 
 #include <optional>
 #include <vector>
-
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+#include <vma_mem_alloc.h>
 
 #include "CommandPoolVK.h"
 #include "DescriptorSetVK.h"
@@ -26,8 +28,17 @@ namespace Vulkan
 
 	class GraphicsDeviceVK : public GraphicsDevice
 	{
+	private:
+		struct Queue {
+			uint32_t familyIndex = 0;
+			uint32_t index = 0;
+			VkQueue queue = VK_NULL_HANDLE;
+			VkBool32 presentSupport = VK_FALSE;
+			VkQueueFamilyProperties properties = {};
+		};
+
 	public:
-		GraphicsDeviceVK();
+		GraphicsDeviceVK(GLFWwindow* window);
 		~GraphicsDeviceVK();
 
 		void SubmitCommandBuffer(const VkSubmitInfo& info, VkFence* fences);
@@ -44,6 +55,7 @@ namespace Vulkan
 		virtual Pipeline* CreateComputePipeline(const ComputePipelineDesc& desc) override;
 		virtual Swapchain* CreateSwapchain(const SwapchainDesc& desc, GLFWwindow* window) override;
 		virtual Shader* CreateShader(const ShaderDesc& desc) override;
+		virtual ShaderProgram* CreateShaderProgram(Shader* vert, Shader* frag) override;
 
 		TextureVK* CreateTextureFromImage(const TextureDesc& desc, VkImage img);
 
@@ -53,16 +65,19 @@ namespace Vulkan
 		VkPhysicalDevice GetPhysical() { return m_PhysicalDevice; }
 		VkInstance GetInstance() { return m_Instance; }
 
-		uint32_t GetGraphicsIndex() { return m_GraphicsIndex; }
-		VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
+		VmaAllocator& GetMemoryAllocator() { return m_MemAllocator; }
 
 		CommandPoolVK& GetTempCommandPool() { return *m_TempPool; }
 		FramebufferPoolVK& GetFramebufferPool() { return *m_FramebufferPool; }
 
-		VkPhysicalDeviceLimits GetPhysicalLimits() { return m_Limits; }
-		VkPhysicalDeviceProperties GetPhysicalProperties() { return m_Props; }
+		VkPhysicalDeviceLimits GetPhysicalLimits() { return m_PhysicalLimits; }
+		VkPhysicalDeviceProperties GetPhysicalProperties() { return m_PhysicalProps; }
 
 		VkSampleCountFlags GetMaxMSAA() { return m_SampleCount; }
+
+		const uint32_t GetGraphicsIndex();
+		const VkQueue GetGraphicsQueue();
+		const VkQueue GetQueueByFlags(VkQueueFlags flags, uint32_t index);
 
 		QueueFamilyIndices FindQueueFamilies(VkQueueFlags flags);
 		bool QueryPresentSupport(uint32_t index, VkSurfaceKHR surface);
@@ -76,6 +91,8 @@ namespace Vulkan
 
 		std::vector<const char*> InitInstanceExtensions(std::vector<const char*> extns);
 		std::vector<const char*> InitInstanceLayers(std::vector<const char*>& lyrs);
+
+		std::vector<const char*> InitDeviceExtensions(std::vector<const char*> extns);
 	protected:
 		virtual void SwapBuffers(Swapchain* swapchain) const override;
 	private:
@@ -85,20 +102,31 @@ namespace Vulkan
 		VkPhysicalDevice m_PhysicalDevice;
 		VkDevice m_Device;
 
-		uint32_t m_GraphicsIndex;
-		uint32_t m_ComputeIndex;
-		VkQueue m_GraphicsQueue;
+		uint32_t m_GraphicsIndex = ~0U;
+		uint32_t m_ComputeIndex = ~0U;
+		VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
+		std::vector<std::vector<Queue>> m_Queues = {};
 
 		CommandPoolVK* m_TempPool;
 		FramebufferPoolVK* m_FramebufferPool;
 
-		VkPhysicalDeviceLimits m_Limits;
-		VkPhysicalDeviceProperties m_Props;
+		VkPhysicalDeviceLimits m_PhysicalLimits;
+		VkPhysicalDeviceFeatures m_PhysicalFeats;
+		VkPhysicalDeviceProperties m_PhysicalProps;
+		VkPhysicalDeviceMemoryProperties m_PhysicalMemProps;
+
+		VmaAllocator m_MemAllocator;
+
+		std::vector<VkQueueFamilyProperties> m_QueueFamilyProps;
+		std::vector<VkExtensionProperties> m_DeviceExtensionProps;
+
 		VkSampleCountFlags m_SampleCount;
 
 		std::vector<VkExtensionProperties> m_ExtensionProps;
 		std::vector<VkLayerProperties> m_LayerProps;
 		std::vector<const char*> m_EnabledExtensions;
 		std::vector<const char*> m_EnabledLayers;
+
+		GLFWwindow* m_MainWindow;
 	};
 }

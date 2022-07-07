@@ -15,5 +15,5 @@ public:
 	virtual void Submit(const std::vector<CommandBuffer*>& commandBuffers) = 0;
 	virtual void Present() = 0;
 
-	virtual CommandBuffer* GetCommandBuffer(CommandBufferType type = CommandBufferType::Primary, uint32_t threadIndex = 0) = 0;
+	virtual CommandBuffer* GetCommandBuffer(uint32_t queueFamilyIndex, CommandBufferType type = CommandBufferType::Primary, uint32_t threadIndex = 0) = 0;
 };

@@ -7,36 +7,13 @@
 
 namespace Vulkan
 {
-	SwapchainVK::SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, GLFWwindow* window)
-		: Swapchain(desc), m_Device(device), m_Swap(nullptr)
+	SwapchainVK::SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, VkSurfaceKHR surface)
+		: Swapchain(desc), m_Device(device), m_Swap(nullptr), m_Surface(surface)
 	{
-		auto res = glfwCreateWindowSurface(device->GetInstance(), window, nullptr, &m_Surface);
-		if (res == VK_ERROR_INITIALIZATION_FAILED)
-		{
-			throw std::runtime_error("API not available");
-		}
-		else if (res == VK_ERROR_EXTENSION_NOT_PRESENT)
-		{
-			throw std::runtime_error("The extension was not available");
-		}
-		else if (res == VK_ERROR_NATIVE_WINDOW_IN_USE_KHR)
-		{
-			throw std::runtime_error("Native window is in use");
-		}
-		auto framebufferCallback = [&](GLFWwindow* window, int width, int height) {
-			m_Resized = true;
-		};
-		glfwSetWindowUserPointer(window, this);
-		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int width, int height) {
-			SwapchainVK* swap = (SwapchainVK*)glfwGetWindowUserPointer(win);
-			swap->SetResized(width, height);
-		});
-
 		m_PresentIndex = m_Device->FindQueueFamilies(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT).graphicsFamily.value();
 
 		if (!m_Device->QueryPresentSupport(m_PresentIndex, m_Surface))
 			throw std::runtime_error("Physical Device does not support present capability");
-
 		vkGetDeviceQueue(m_Device->Get(), m_PresentIndex, 0, &m_Present);
 
 		RecreateSwap(desc.Width, desc.Height);
@@ -89,7 +66,7 @@ namespace Vulkan
 		return true;
 	}
 
-	void SwapchainVK::Present(VkSemaphore render)
+	void SwapchainVK::Present(VkQueue queue, VkSemaphore render)
 	{
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -98,7 +75,7 @@ namespace Vulkan
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &m_Swap;
 		presentInfo.pImageIndices = &m_ImageIndex;
-		auto result = vkQueuePresentKHR(m_Present, &presentInfo);
+		auto result = vkQueuePresentKHR(queue, &presentInfo);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Resized)
 		{
@@ -310,7 +287,7 @@ namespace Vulkan
 			depthDesc.SampleCount = 1;
 			depthDesc.MipLevels = 1;
 			depthDesc.Usage = Usage::Default;
-			depthDesc.BindFlags = BindFlags::DepthStencil;
+			depthDesc.BindFlags = BindFlags::DepthStencil | BindFlags::SwapChain;
 			m_DepthTexture = static_cast<TextureVK*>(m_Device->CreateTexture(depthDesc, nullptr));
 
 			TextureViewDesc tvDesc;

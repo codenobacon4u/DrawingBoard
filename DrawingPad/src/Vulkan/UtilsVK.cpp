@@ -3,6 +3,9 @@
 
 #include <fstream>
 
+#define VMA_IMPLEMENTATION
+#include <vma_mem_alloc.h>
+
 namespace Vulkan
 {
 	void UtilsVK::Log(std::string path, std::string msg)
