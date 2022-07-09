@@ -29,6 +29,7 @@ namespace Vulkan
 
 	void SwapchainVK::Resize(uint32_t width, uint32_t height)
 	{
+		m_Device->WaitForIdle();
 		RecreateSwap(width, height);
 	}
 

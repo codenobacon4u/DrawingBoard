@@ -236,89 +236,11 @@ static void ImGui_ImplDrawingPad_SetWindowSize(ImGuiViewport* viewport, ImVec2 s
 	if (vd == nullptr)
 		return;
 	vd->Window.ClearEnable = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? false : true;
-	Swapchain* old = wd->Swapchain;
-	bd->Device->WaitForIdle();
-	if (wd->RenderPass)
-		delete wd->RenderPass;
-	if (wd->Pipeline)
-		delete wd->Pipeline;
-	if (wd->Context)
-		delete wd->Context;
 
 	wd->Width = (int)viewport->Size.x;
 	wd->Height = (int)viewport->Size.y;
 
-	SwapchainDesc swapDesc = {};
-	swapDesc.Width = (uint32_t)viewport->Size.x;
-	swapDesc.Height = (uint32_t)viewport->Size.y;
-	swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
-	swapDesc.DepthFormat = TextureFormat::None;
-	wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, pvd->Window);
-
-	RenderPassDesc rpDesc = {};
-	RenderPassAttachmentDesc attach = {};
-	attach.Format = wd->Swapchain->GetDesc().ColorFormat;
-	attach.Samples = SampleCount::e1Bit;
-	attach.LoadOp = wd->ClearEnable ? AttachmentLoadOp::Clear : AttachmentLoadOp::DontCare;
-	attach.StoreOp = AttachmentStoreOp::Store;
-	attach.StencilLoadOp = AttachmentLoadOp::DontCare;
-	attach.StencilStoreOp = AttachmentStoreOp::DontCare;
-	attach.InitialLayout = ImageLayout::Undefined;
-	attach.FinalLayout = ImageLayout::PresentSrcKHR;
-	rpDesc.Attachments = { attach };
-	SubpassDesc subpass = {};
-	subpass.BindPoint = PipelineBindPoint::Graphics;
-	subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
-	rpDesc.Subpasses = { subpass };
-	DependencyDesc dependency = {};
-	dependency.SrcSubpass = ~0U;
-	dependency.DstSubpass = 0;
-	dependency.SrcStage = PipelineStage::ColorAttachOutput;
-	dependency.DstStage = PipelineStage::ColorAttachOutput;
-	dependency.SrcAccess = SubpassAccess::NA;
-	dependency.DstAccess = SubpassAccess::ColorAttachWrite;
-	rpDesc.SubpassDependencies = { dependency };
-	wd->RenderPass = bd->Device->CreateRenderPass(rpDesc);
-
-	LayoutElement vertInputs[]{
-		{
-			0, // InputIndex Location
-			0, // BufferSlot Binding
-			2, // Num Components
-			offsetof(ImDrawVert, pos), // Offset
-			sizeof(ImDrawVert) // Stride
-		},
-		{
-			1, // InputIndex Location
-			0, // BufferSlot Binding
-			2, // Num Components
-			offsetof(ImDrawVert, uv),  // Offset
-			sizeof(ImDrawVert) // Stride
-		},
-		{
-			2,
-			0,
-			4,
-			offsetof(ImDrawVert, col),
-			sizeof(ImDrawVert),
-			true,
-			ElementDataType::Uint8
-		}
-	};
-
-	GraphicsPipelineDesc pipeDesc = {};
-	pipeDesc.Program = bd->ShaderProgram;
-	pipeDesc.InputLayout.NumElements = 3;
-	pipeDesc.InputLayout.Elements = vertInputs;
-	pipeDesc.NumViewports = 1;
-	pipeDesc.NumColors = 1;
-	pipeDesc.DepthFormat = TextureFormat::None;
-	wd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc, wd->RenderPass);
-
-	wd->Context = bd->Device->CreateGraphicsContext(wd->Swapchain);
-
-	if (old)
-		delete old;
+	wd->Swapchain->Resize(wd->Width, wd->Height);
 }
 
 static void ImGui_ImplDrawingPad_RenderWindow(ImGuiViewport* viewport, void*)

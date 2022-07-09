@@ -46,6 +46,8 @@ struct UniformBufferObject {
 
 API Curr_API = API::Vulkan;
 
+static GraphicsDevice* device;
+
 static Swapchain* gSwapchain;
 static Buffer* gVertexBuffer;
 static Buffer* gIndexBuffer;
@@ -56,9 +58,13 @@ static RenderPass* gRenderPass;
 static Texture* gTexture;
 static Texture* gRenderColorTexture;
 static Texture* gRenderDepthTexture;
+static uint32_t gRenderWidth = 1280;
+static uint32_t gRenderHeight = 720;
 
 static std::vector<Vertex> gVertices;
 static std::vector<uint32_t> gIndices;
+static Texture* oldColor = nullptr;
+static Texture* oldDepth = nullptr;
 
 static void glfw_error_callback(int error, const char* desc) {
 	std::cerr << "GLFW Error: [" << error << "] " << desc;
@@ -67,8 +73,8 @@ static void glfw_error_callback(int error, const char* desc) {
 void RenderScene(CommandBuffer* cmd, TextureView* rtv) {
 	float width = static_cast<float>(rtv->GetTexture()->GetDesc().Width);
 	float height = static_cast<float>(rtv->GetTexture()->GetDesc().Height);
-	cmd->SetViewports(0, 1, { { 0, 0, width, height, 0.0f, 1.0f } });
-	cmd->SetScissors(0, 1, { { { 0, 0 }, { width, height } } });
+	cmd->SetViewports(0, 1, { { 0, 0, (float)gRenderWidth, (float)gRenderHeight, 0.0f, 1.0f } });
+	cmd->SetScissors(0, 1, { { { 0, 0 }, { gRenderWidth, gRenderHeight } } });
 	cmd->BindPipeline(gPipeline);
 	cmd->BindVertexBuffer(0, 1, { gVertexBuffer }, { 0 });
 	cmd->BindIndexBuffer(gIndexBuffer, 0, 1);
@@ -80,7 +86,7 @@ void RenderScene(CommandBuffer* cmd, TextureView* rtv) {
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
+		ubo.proj = glm::perspective(glm::radians(45.0f), (float)gRenderWidth / (float)gRenderHeight, 0.1f, 10.0f);
 		ubo.proj[1][1] *= -1;
 
 		gUniformBuffer->Update(gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), reinterpret_cast<uint8_t*>(&ubo));
@@ -98,10 +104,31 @@ void FrameRender(ImGui_ImplDrawingPad_Window* windowData, ImDrawData* drawData)
 	auto cmd = windowData->Context->Begin();
 	auto rtv = windowData->Swapchain->GetBackbuffer();
 	auto dsv = windowData->Swapchain->GetDepthBufferView();
+	if (gRenderColorTexture->GetDesc().Width != gRenderWidth || gRenderColorTexture->GetDesc().Height != gRenderHeight) {
+
+		if (oldColor) {
+			device->WaitForIdle();
+			delete oldColor;
+			delete oldDepth;
+		}
+
+		TextureDesc mColorTex = gRenderColorTexture->GetDesc();
+		TextureDesc mDepthTex = gRenderDepthTexture->GetDesc();
+		mColorTex.Width = gRenderWidth;
+		mColorTex.Height = gRenderHeight;
+		mDepthTex.Width = gRenderWidth;
+		mDepthTex.Height = gRenderHeight;
+
+		oldColor = gRenderColorTexture;
+		oldDepth = gRenderDepthTexture;
+
+		gRenderColorTexture = device->CreateTexture(mColorTex, nullptr);
+		gRenderDepthTexture = device->CreateTexture(mDepthTex, nullptr);
+	}
 
 	// Begin Command Buffer
 	cmd->Begin();
-	cmd->BeginRenderPass(gRenderPass, { gRenderColorTexture->GetDefaultView(), gRenderDepthTexture->GetDefaultView() }, {{0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 0}});
+	cmd->BeginRenderPass(gRenderPass, { gRenderColorTexture->GetDefaultView(), gRenderDepthTexture->GetDefaultView() }, {{0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0}});
 
 	RenderScene(cmd, rtv);
 
@@ -134,7 +161,7 @@ int main() {
 	if (Curr_API != API::OpenGL)
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(1280, 720, "DrawingPad Editor", NULL, NULL);
-	GraphicsDevice* device = GraphicsDevice::Create(window, Curr_API);
+	device = GraphicsDevice::Create(window, Curr_API);
 
 	int w, h;
 	glfwGetFramebufferSize(window, &w, &h);
@@ -452,50 +479,136 @@ int main() {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
-
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+		/*
 		{
-			static float f = 0.0f;
-			static int counter = 0;
+			// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+			if (show_demo_window)
+				ImGui::ShowDemoWindow(&show_demo_window);
 
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+			// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+			{
+				static float f = 0.0f;
+				static int counter = 0;
 
-			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &show_another_window);
+				ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+				ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+				ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+				ImGui::Checkbox("Another Window", &show_another_window);
 
-			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
+				ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+				ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::End();
+				if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+					counter++;
+				ImGui::SameLine();
+				ImGui::Text("counter = %d", counter);
+
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+				ImGui::End();
+			}
+
+			static int resWidth = 1280;
+			static int resHeight = 720;
+			// 3. Show another simple window.
+			if (show_another_window)
+			{
+				ImGui::Begin("Game Window Settings", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+				resWidth = static_cast<int>((16.0f / 9.0f) * resHeight);
+				resHeight = static_cast<int>((9.0f / 16.0f) * resWidth);
+				ImGui::SliderInt("Resolution Width", &resWidth, 16, 4096);
+				ImGui::SliderInt("Resolution Height", &resHeight, 9, 2304);
+				ImGui::Image((ImTextureID)gRenderColorTexture, ImVec2(resWidth, resHeight));
+				ImGui::End();
+			}
 		}
-
-		static int resWidth = 1280;
-		static int resHeight = 720;
-		// 3. Show another simple window.
-		if (show_another_window)
-		{
-			ImGui::Begin("Game Window Settings", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			resWidth = static_cast<int>((16.0f / 9.0f) * resHeight);
-			resHeight = static_cast<int>((9.0f / 16.0f) * resWidth);
-			ImGui::SliderInt("Resolution Width", &resWidth, 16, 4096);
-			ImGui::SliderInt("Resolution Height", &resHeight, 9, 2304);
-			ImGui::Image((ImTextureID)gRenderColorTexture, ImVec2(resWidth, resHeight));
-			ImGui::End();
-		}
-
-
+		*/
 
 		// Rendering
+		
+		static bool dockspaceOpen = true;
+		static bool opt_fullscreen_p = true;
+		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+		bool opt_fullscreen = opt_fullscreen_p;
+
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		if (opt_fullscreen) {
+			ImGuiViewport* view = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(view->Pos);
+			ImGui::SetNextWindowSize(view->Size);
+			ImGui::SetNextWindowViewport(view->ID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavFocus;
+		}
+
+		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+			window_flags |= ImGuiWindowFlags_NoBackground;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("DockSpace", &dockspaceOpen, window_flags);
+		ImGui::PopStyleVar();
+
+		if (opt_fullscreen)
+			ImGui::PopStyleVar(2);
+
+		auto& io = ImGui::GetIO();
+		auto& style = ImGui::GetStyle();
+		float minWinX = style.WindowMinSize.x;
+		style.WindowMinSize.x = 370.0f;
+		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+			ImGuiID id = ImGui::GetID("DockSpace");
+			ImGui::DockSpace(id, ImVec2(0.0f, 0.0f), dockspace_flags);
+		}
+
+		style.WindowMinSize.x = minWinX;
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("File")) {
+				ImGui::MenuItem("New", "Ctrl+N");
+				ImGui::MenuItem("Open...", "Ctrl+O");
+				ImGui::MenuItem("Save", "Ctrl+S");
+				ImGui::MenuItem("Save As...", "Ctrl+Shift+S");
+				if(ImGui::MenuItem("Exit"))
+					glfwSetWindowShouldClose(window, 1);
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+		ImGui::Begin("Viewport");
+
+		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+		//gRenderWidth = viewportPanelSize.x;
+		//gRenderHeight = viewportPanelSize.y;
+		float width = 0.0f, height = 0.0f;
+		if (viewportPanelSize.x < viewportPanelSize.y) {
+			width = std::min(viewportPanelSize.x, (float)gRenderWidth);
+			height = width * ((float)gRenderHeight / (float)gRenderWidth);
+		} else {
+			height = std::min(viewportPanelSize.y, (float)gRenderHeight);
+			width = height * ((float)gRenderWidth / (float)gRenderHeight);
+		}
+		auto windowSize = ImGui::GetWindowSize();
+		auto oldPos = ImGui::GetCursorPos();
+		ImGui::SetCursorPos(ImVec2((windowSize.x - width) * 0.5f, oldPos.y));
+		ImGui::Image((ImTextureID)gRenderColorTexture, ImVec2(width, height));
+
+		ImGui::End();
+		ImGui::PopStyleColor();
+		ImGui::PopStyleVar();
+
+		ImGui::Begin("Debug");
+		ImGui::Text("Viewport Size %.0f x %.0f", viewportPanelSize.x, viewportPanelSize.y);
+		ImGui::Text("Image Size: %.0f x %.0f", width, height);
+		ImGui::Text("Old Cursor Pos: %.0f x %.0f", oldPos.x, oldPos.y);
+		ImGui::End();
+
+		ImGui::End();
+		
 		ImGui::Render();
 		ImDrawData* main_draw_data = ImGui::GetDrawData();
 		const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f || main_draw_data->DisplaySize.y <= 0.0f);
