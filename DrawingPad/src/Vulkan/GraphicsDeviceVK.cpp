@@ -339,17 +339,26 @@ namespace Vulkan
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
 		
+		std::cout
+			<< "========================================\n"
+			<< "Enumerating Graphics Devices:\n"
+			<< "========================================\n";
+		for (const auto& device : devices)
+		{
+			auto props = VkPhysicalDeviceProperties{};
+			vkGetPhysicalDeviceProperties(device, &props);
+			UtilsVK::PrintDeviceProps(props);
+			std::cout << "========================================\n";
+		}
 		for (const auto& device : devices)
 		{
 			auto props = VkPhysicalDeviceProperties{};
 			vkGetPhysicalDeviceProperties(device, &props);
 			if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 				m_PhysicalDevice = device;
-			}
-			else if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+				break;
+			} else if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
 				m_PhysicalDevice = device;
-			} else {
-				m_PhysicalDevice = devices[0];
 			}
 		}
 
@@ -364,75 +373,11 @@ namespace Vulkan
 
 		VkPhysicalDeviceProperties props;
 		vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
-		std::string vendor, type, driver;
-		switch (props.vendorID) {
-		case 0x1002:
-			vendor = "AMD";
-			break;
-		case 0x1010:
-			vendor = "ImgTec";
-			break;
-		case 0x10DE:
-			vendor = "NVIDIA";
-			break;
-		case 0x13B5:
-			vendor = "ARM";
-			break;
-		case 0x5143:
-			vendor = "Qualcomm";
-			break;
-		case 0x8086:
-			vendor = "Intel";
-			break;
-		default:
-			vendor = "UNKOWN";
-			break;
-		}
-		switch (props.deviceType) {
-		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_CPU:
-			type = "CPU";
-			break;
-		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-			type = "Discrete";
-			break;
-		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-			type = "Integrated";
-			break;
-		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-			type = "Virtual";
-			break;
-		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_OTHER:
-		default:
-			type = "Other";
-			break;
-		}
-		static std::string const values[] = {
-			"",
-			"AMD Proprietary",
-			"AMD Open Source",
-			"MESA RADV",
-			"NVIDIA Proprietary",
-			"INTEL Proprietary Windows",
-			"INTEL Open Source MESA",
-			"Imagination Proprietary",
-			"Qualcomm Proprietary",
-			"ARM Proprietary",
-			"Google SWIFTSHADER",
-			"GGP Proprietary",
-			"BROADCOM Proprietary",
-			"MESA LLVMPIPE",
-			"MOLTENVK",
-		};
-		driver = props.driverVersion < values->size() ? values[props.driverVersion] : "UNKOWN";
-		std::string api = string_format("%d.%d.%d", props.apiVersion >> 22, (props.apiVersion >> 12) & 0x3ff, props.apiVersion & 0xfff);
 		std::cout
-			<< "Device Name: " << props.deviceName << "\n"
-			<< "Device Type: " << type << "\n"
-			<< "Driver Version: " << driver << "\n"
-			<< "Vulkan Version: " << api << "\n"
-			<< "Vender ID: " << vendor << "\n"
-			<< "Device ID: " << props.deviceID << "\n"
-			<< std::endl;
+			<< "Chosen Graphics Device:\n"
+			<< "========================================\n";
+		UtilsVK::PrintDeviceProps(props);
+		
 		m_PhysicalLimits = props.limits;
 		
 		VkSampleCountFlags counts = m_PhysicalLimits.framebufferColorSampleCounts & m_PhysicalLimits.framebufferDepthSampleCounts;
