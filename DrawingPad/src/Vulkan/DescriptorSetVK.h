@@ -47,9 +47,9 @@ namespace Vulkan {
 		~DescriptorSetPoolVK();
 
 		std::pair<bool, VkDescriptorSet> RequestDescriptorSet(VkDescriptorSetLayout layout, size_t hash);
-		VkDescriptorPool GetPool();
+		VkDescriptorPool Get();
 
-		void ResetPools();
+		void Reset();
 
 	private:
 		VkDescriptorPool CreatePool();
@@ -57,7 +57,7 @@ namespace Vulkan {
 	private:
 		GraphicsDeviceVK* m_Device = nullptr;
 		
-		VkDescriptorPool m_CurrPool = VK_NULL_HANDLE;
+		VkDescriptorPool m_Handle = VK_NULL_HANDLE;
 		PoolSizes m_DescSizes;
 		std::vector<VkDescriptorPool> m_FreePools;
 		std::vector<VkDescriptorPool> m_UsedPools;

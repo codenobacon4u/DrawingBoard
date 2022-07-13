@@ -40,7 +40,7 @@ typedef struct InputLayout {
 
 typedef struct GraphicsPipelineDesc {
 	InputLayout InputLayout;
-	ShaderProgram* Program = nullptr;
+	ShaderProgram* ShaderProgram = nullptr;
 	uint32_t NumViewports = 0;
 	uint8_t NumColors = 0;
 	TextureFormat ColorFormats[8];
@@ -51,11 +51,12 @@ typedef struct GraphicsPipelineDesc {
 } GraphicsPipelineDesc;
 
 typedef struct ComputePipelineDesc {
-	void* Rasterizer = nullptr;
+	ShaderProgram* ShaderProgram = nullptr;
 } ComputePipelineDesc;
 
 typedef struct RaytracingPipelineDesc {
-	void* Rasterizer = nullptr;
+	ShaderProgram* ShaderProgram = nullptr;
+	uint32_t MaxRecursion = 0;
 } RaytracingPipelineDesc;
 
 class Pipeline
@@ -77,9 +78,6 @@ public:
 	virtual ~Pipeline() {}
 
 	const PipelineBindPoint& GetBindPoint() const { return m_Type; }
-	const GraphicsPipelineDesc& GetGraphicsDesc() const { return m_GraphicsDesc; }
-	const ComputePipelineDesc& GetComputeDesc() const { return m_ComputeDesc; }
-	const RaytracingPipelineDesc& GetRaytracingDesc() const { return m_RaytracingDesc; }
 
 protected:
 	PipelineBindPoint m_Type;

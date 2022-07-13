@@ -6,7 +6,7 @@
 namespace Vulkan
 {
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& desc, RenderPass* renderPass)
-		: Pipeline(desc), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
+		: Pipeline(desc), m_Device(device), m_Handle(VK_NULL_HANDLE)
 	{
 		VkRenderPass renderpass = ((RenderPassVK*)renderPass)->Get();
 
@@ -29,7 +29,7 @@ namespace Vulkan
 
 			attribDesc[i].binding = elem.BufferSlot;
 			attribDesc[i].location = elem.InputIndex;
-			attribDesc[i].format = UtilsVK::Convert(elem.Type, elem.NumComponents, elem.Normalized);
+			attribDesc[i].format = UtilsVK::AttribFormatToVk(elem.Type, elem.NumComponents, elem.Normalized);
 			attribDesc[i].offset = elem.Offset;
 		}
 
@@ -116,7 +116,7 @@ namespace Vulkan
 		dynamicState.pDynamicStates = dynamicStates.data();
 		
 		std::vector<VkPipelineShaderStageCreateInfo> stages = {};
-		for (auto& [type, shader] : desc.Program->GetShaders())
+		for (auto& [type, shader] : desc.ShaderProgram->GetShaders())
 			stages.emplace_back(static_cast<ShaderVK*>(shader)->GetStage());
 		
 		VkGraphicsPipelineCreateInfo createInfo = {};
@@ -130,29 +130,31 @@ namespace Vulkan
 		createInfo.pMultisampleState = &multisampleState;
 		createInfo.pColorBlendState = &colorBlendState;
 		createInfo.pDepthStencilState = &depthStencilState;
-		createInfo.layout = static_cast<ShaderProgramVK*>(desc.Program)->GetPipelineLayout();
+		createInfo.layout = static_cast<ShaderProgramVK*>(desc.ShaderProgram)->GetPipelineLayout();
 		createInfo.renderPass = renderpass;
 		createInfo.subpass = 0;
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.basePipelineHandle = VK_NULL_HANDLE;
 		createInfo.basePipelineIndex = -1;
 
-		if (vkCreateGraphicsPipelines(m_Device->Get(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_Pipeline) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(m_Device->Get(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_Handle) != VK_SUCCESS)
 			throw std::runtime_error("Failed to create graphics pipeline");
 	}
 
-	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& createInfo)
-		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
+	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& desc)
+		: Pipeline(desc), m_Device(device), m_Handle(VK_NULL_HANDLE)
 	{
+		throw std::runtime_error("Compute shaders are not supported at the moment!");
 	}
 
-	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo)
-		: Pipeline(createInfo), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
+	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& desc)
+		: Pipeline(desc), m_Device(device), m_Handle(VK_NULL_HANDLE)
 	{
+		throw std::runtime_error("Raytracing is not supported at the moment!");
 	}
 
 	PipelineVK::~PipelineVK()
 	{
-		vkDestroyPipeline(m_Device->Get(), m_Pipeline, nullptr);
+		vkDestroyPipeline(m_Device->Get(), m_Handle, nullptr);
 	}
 }

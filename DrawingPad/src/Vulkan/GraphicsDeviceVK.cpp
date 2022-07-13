@@ -5,7 +5,7 @@
 
 #include "BufferVK.h"
 #include "DebugVK.h"
-#include "FramebufferVK.h"
+#include "FramebufferPoolVK.h"
 #include "GraphicsContextVK.h"
 #include "PipelineVK.h"
 #include "RenderPassVK.h"
@@ -29,9 +29,11 @@ namespace Vulkan
 	static PFN_vkCreateDebugUtilsMessengerEXT  CreateDebugUtilsMessengerEXT = nullptr;
 	static PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT = nullptr;
 
+	static std::ofstream debugLog("debug.log", std::ios_base::out | std::ios_base::app);
+
 	VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-		std::cerr << pCallbackData->pMessage << std::endl;
-		UtilsVK::Log("validation_layers.log", std::string(pCallbackData->pMessage));
+		std::cerr << pCallbackData->pMessage << "\n";
+		debugLog << pCallbackData->pMessage << "\n";
 		return VK_FALSE;
 	}
 
@@ -86,6 +88,7 @@ namespace Vulkan
 			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 
 		vkDestroyInstance(m_Instance, nullptr);
+		debugLog.close();
 	}
 
 	void GraphicsDeviceVK::SubmitCommandBuffer(const VkSubmitInfo& info, VkFence* fence)
@@ -100,10 +103,6 @@ namespace Vulkan
 	void GraphicsDeviceVK::WaitForIdle()
 	{
 		vkDeviceWaitIdle(m_Device);
-	}
-
-	void GraphicsDeviceVK::Present()
-	{
 	}
 
 	GraphicsContext* GraphicsDeviceVK::CreateGraphicsContext(Swapchain* swap)
@@ -143,11 +142,6 @@ namespace Vulkan
 		return DBG_NEW RenderPassVK(this, desc);
 	}
 
-	Framebuffer* GraphicsDeviceVK::CreateFramebuffer(const FramebufferDesc& desc)
-	{
-		return DBG_NEW FramebufferVK(this, desc);
-	}
-
 	Pipeline* GraphicsDeviceVK::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc, RenderPass* renderpass)
 	{
 		return DBG_NEW PipelineVK(this, desc, renderpass);
@@ -174,9 +168,12 @@ namespace Vulkan
 		return DBG_NEW ShaderVK(this, desc);
 	}
 
-	ShaderProgram* GraphicsDeviceVK::CreateShaderProgram(Shader* vert, Shader* frag)
+	ShaderProgram* GraphicsDeviceVK::CreateShaderProgram(std::vector<Shader*> shaders)
 	{
-		return DBG_NEW ShaderProgramVK(this, static_cast<ShaderVK*>(vert), static_cast<ShaderVK*>(frag));
+		std::vector<ShaderVK*> transformed = {};
+		for (auto* shader : shaders)
+			transformed.emplace_back(static_cast<ShaderVK*>(shader));
+		return DBG_NEW ShaderProgramVK(this, transformed);
 	}
 
 	const uint32_t GraphicsDeviceVK::GetGraphicsIndex()
@@ -519,7 +516,7 @@ namespace Vulkan
 		for (uint32_t i = 0; i < glfwExtensionCount; i++) {
 			if (!IsExtensionAvailable(glfwExtensions[i]))
 			{
-				UtilsVK::Log("errors.log", "ERROR: Required extension not found!");
+				debugLog << "ERROR: Required extension not found!\n";
 				throw std::runtime_error("Required extension not found!");
 			}
 			extns.emplace_back(glfwExtensions[i]);
@@ -536,7 +533,7 @@ namespace Vulkan
 				extns.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			else
 			{
-				UtilsVK::Log("errors.log", "ERROR: Extension VK_EXT_debug_utils not available");
+				debugLog << "ERROR: Extension VK_EXT_debug_utils not available\n";
 				throw std::runtime_error("Extension VK_EXT_debug_utils not available");
 			}
 		}
@@ -565,7 +562,7 @@ namespace Vulkan
 				}
 				if (!found)
 				{
-					UtilsVK::Log("errors.log", "ERROR: Vulkan validation layer not found");
+					debugLog << "ERROR: Vulkan validation layer not found\n";
 					throw std::runtime_error("Vulkan validation layer not found");
 				}
 				lyrs.emplace_back(name);
@@ -575,15 +572,10 @@ namespace Vulkan
 			if (IsLayerAvailable("VK_LAYER_KHRONOS_validation"))
 				lyrs.emplace_back("VK_LAYER_KHRONOS_validation");
 			else {
-				UtilsVK::Log("errors.log", "ERROR: Layer VK_LAYER_KHRONOS_validation not found");
+				debugLog << "ERROR: Layer VK_LAYER_KHRONOS_validation not found";
 				throw std::runtime_error("Layer VK_LAYER_KHRONOS_validation not found");
 			}
 		}
 		return lyrs;
-	}
-	
-	void GraphicsDeviceVK::SwapBuffers(Swapchain* swapchain) const
-	{
-		swapchain->Present(0);
 	}
 }

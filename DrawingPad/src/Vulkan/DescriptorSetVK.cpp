@@ -24,10 +24,10 @@ namespace Vulkan {
 		if (it != m_DescriptorSets.end())
 			return { true, it->second };
 
-		if (m_CurrPool == VK_NULL_HANDLE)
+		if (m_Handle == VK_NULL_HANDLE)
 		{
-			m_CurrPool = GetPool();
-			m_UsedPools.push_back(m_CurrPool);
+			m_Handle = Get();
+			m_UsedPools.push_back(m_Handle);
 		}
 		
 		VkDescriptorSet descriptor;
@@ -35,7 +35,7 @@ namespace Vulkan {
 		VkDescriptorSetAllocateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		info.pSetLayouts = &layout;
-		info.descriptorPool = m_CurrPool;
+		info.descriptorPool = m_Handle;
 		info.descriptorSetCount = 1;
 
 		VkResult result = vkAllocateDescriptorSets(m_Device->Get(), &info, &descriptor);
@@ -45,8 +45,8 @@ namespace Vulkan {
 			break;
 		case VK_ERROR_FRAGMENTED_POOL:
 		case VK_ERROR_OUT_OF_POOL_MEMORY:
-			m_CurrPool = GetPool();
-			m_UsedPools.push_back(m_CurrPool);
+			m_Handle = Get();
+			m_UsedPools.push_back(m_Handle);
 			vkAllocateDescriptorSets(m_Device->Get(), &info, &descriptor);
 			break;
 		default:
@@ -60,7 +60,7 @@ namespace Vulkan {
 		return { false, m_DescriptorSets[hash] };
 	}
 
-	VkDescriptorPool DescriptorSetPoolVK::GetPool()
+	VkDescriptorPool DescriptorSetPoolVK::Get()
 	{
 		if (m_FreePools.size() > 0)
 		{
@@ -72,14 +72,14 @@ namespace Vulkan {
 			return CreatePool();
 	}
 
-	void DescriptorSetPoolVK::ResetPools()
+	void DescriptorSetPoolVK::Reset()
 	{
 		for (auto pool : m_UsedPools)
 			vkResetDescriptorPool(m_Device->Get(), pool, 0);
 
 		m_FreePools = m_UsedPools;
 		m_UsedPools.clear();
-		m_CurrPool = VK_NULL_HANDLE;
+		m_Handle = VK_NULL_HANDLE;
 	}
 
 	VkDescriptorPool DescriptorSetPoolVK::CreatePool()

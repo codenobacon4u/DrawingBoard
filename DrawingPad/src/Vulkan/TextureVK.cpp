@@ -26,7 +26,7 @@ namespace Vulkan
 			imageInfo.arrayLayers = m_Desc.ArraySize;
 		else
 			imageInfo.arrayLayers = 1;
-		imageInfo.format = UtilsVK::Convert(m_Desc.Format);
+		imageInfo.format = UtilsVK::TextureFormatToVk(m_Desc.Format);
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = 0;
@@ -48,7 +48,7 @@ namespace Vulkan
 		VmaAllocationCreateInfo memInfo = {};
 		memInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-		vmaCreateImage(m_Device->GetMemoryAllocator(), &imageInfo, &memInfo, &m_Image, &m_Alloc, nullptr);
+		vmaCreateImage(m_Device->GetMemoryAllocator(), &imageInfo, &memInfo, &m_Handle, &m_Alloc, nullptr);
 
 		if (m_Desc.BindFlags != (BindFlags::SwapChain | BindFlags::DepthStencil)) {
 			if (data != nullptr) {
@@ -117,7 +117,7 @@ namespace Vulkan
 	}
 
 	TextureVK::TextureVK(GraphicsDeviceVK* device, const TextureDesc& desc, VkImage image)
-		: Texture(desc), m_Device(device), m_Image(image), m_Data(nullptr), m_Mem(VK_NULL_HANDLE)
+		: Texture(desc), m_Device(device), m_Handle(image), m_Data(nullptr), m_Mem(VK_NULL_HANDLE)
 	{
 	}
 
@@ -127,8 +127,8 @@ namespace Vulkan
 			vkDestroySampler(m_Device->Get(), m_Sampler, nullptr);
 		if (m_DefaultView != nullptr)
 			delete m_DefaultView;
-		if (m_Image != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE && m_Desc.BindFlags != BindFlags::SwapChain)
-			vmaDestroyImage(m_Device->GetMemoryAllocator(), m_Image, m_Alloc);
+		if (m_Handle != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE && m_Desc.BindFlags != BindFlags::SwapChain)
+			vmaDestroyImage(m_Device->GetMemoryAllocator(), m_Handle, m_Alloc);
 		if (m_Mem != VK_NULL_HANDLE)
 			vkFreeMemory(m_Device->Get(), m_Mem, nullptr);
 
@@ -163,7 +163,7 @@ namespace Vulkan
 		barrier.newLayout = newLayout;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = m_Image;
+		barrier.image = m_Handle;
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		barrier.subresourceRange.baseMipLevel = 0;
 		barrier.subresourceRange.levelCount = m_Desc.MipLevels;
@@ -208,13 +208,13 @@ namespace Vulkan
 			1
 		};
 
-		vkCmdCopyBufferToImage(cmd, buffer, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		vkCmdCopyBufferToImage(cmd, buffer, m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 	}
 
 	void TextureVK::GenerateMipmaps(VkCommandBuffer cmd)
 	{
 		VkFormatProperties formatProps;
-		vkGetPhysicalDeviceFormatProperties(m_Device->GetPhysical(), UtilsVK::Convert(m_Desc.Format), &formatProps);
+		vkGetPhysicalDeviceFormatProperties(m_Device->GetPhysical(), UtilsVK::TextureFormatToVk(m_Desc.Format), &formatProps);
 
 		if (!(formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
 			throw std::runtime_error("Texture Image Format does not support linear blitting!");
@@ -224,7 +224,7 @@ namespace Vulkan
 
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.image = m_Image;
+		barrier.image = m_Handle;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -255,7 +255,7 @@ namespace Vulkan
 			blit.dstSubresource.baseArrayLayer = 0;
 			blit.dstSubresource.layerCount = 1;
 
-			vkCmdBlitImage(cmd, m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+			vkCmdBlitImage(cmd, m_Handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
 			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -282,9 +282,9 @@ namespace Vulkan
 	{
 		VkImageViewCreateInfo viewInfo = {};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = m_Texture->GetImage();
+		viewInfo.image = m_Texture->Get();
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = UtilsVK::Convert(desc.Format);
+		viewInfo.format = UtilsVK::TextureFormatToVk(desc.Format);
 		if (desc.ViewType == ViewType::DepthStencil)
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		else
@@ -302,11 +302,11 @@ namespace Vulkan
 			viewInfo.subresourceRange.layerCount = 1;
 		}
 
-		vkCreateImageView(device->Get(), &viewInfo, nullptr, &m_View);
+		vkCreateImageView(device->Get(), &viewInfo, nullptr, &m_Handle);
 	}
 
 	TextureViewVK::~TextureViewVK()
 	{
-		vkDestroyImageView(m_Device->Get(), m_View, nullptr);
+		vkDestroyImageView(m_Device->Get(), m_Handle, nullptr);
 	}
 }

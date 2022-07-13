@@ -8,14 +8,9 @@
 namespace Vulkan
 {
 	struct SwapSupportDetails {
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
-	struct SwapBuffer {
-		VkImage image;
-		VkImageView view;
+		VkSurfaceCapabilitiesKHR capabilities = {};
+		std::vector<VkSurfaceFormatKHR> formats = {};
+		std::vector<VkPresentModeKHR> presentModes = {};
 	};
 
 	class GraphicsDeviceVK;
@@ -27,9 +22,7 @@ namespace Vulkan
 		~SwapchainVK();
 
 		virtual void Resize(uint32_t width, uint32_t height) override;
-		virtual void Present(uint32_t sync) override;
 
-		virtual void* GetNative() { return &m_Swap; }
 		virtual uint32_t GetImageIndex() override { return m_ImageIndex; }
 		virtual TextureView* GetBackbuffer() override { return m_BackBuffers[m_ImageIndex].second; }
 		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthTextureView; }
@@ -58,7 +51,7 @@ namespace Vulkan
 		TextureViewVK* m_DepthTextureView = nullptr;
 		TextureVK* m_DepthTexture = nullptr;
 		VkPresentModeKHR m_PresentMode;
-		VkSwapchainKHR m_Swap;
+		VkSwapchainKHR m_Handle;
 
 		VkQueue m_Present;
 		uint32_t m_PresentIndex;

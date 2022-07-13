@@ -15,14 +15,14 @@ namespace Vulkan {
 		for (auto& attachment : m_Desc.Attachments) {
 			VkAttachmentDescription desc = {};
 			desc.flags = 0;
-			desc.format = UtilsVK::Convert(attachment.Format);
+			desc.format = UtilsVK::TextureFormatToVk(attachment.Format);
 			desc.samples = static_cast<VkSampleCountFlagBits>(attachment.Samples);
-			desc.loadOp = UtilsVK::Convert(attachment.LoadOp);
-			desc.storeOp = UtilsVK::Convert(attachment.StoreOp);
-			desc.stencilLoadOp = UtilsVK::Convert(attachment.StencilLoadOp);
-			desc.stencilStoreOp = UtilsVK::Convert(attachment.StencilStoreOp);
-			desc.initialLayout = UtilsVK::Convert(attachment.InitialLayout);
-			desc.finalLayout = UtilsVK::Convert(attachment.FinalLayout);
+			desc.loadOp = UtilsVK::LoadOpToVk(attachment.LoadOp);
+			desc.storeOp = UtilsVK::StoreOpToVk(attachment.StoreOp);
+			desc.stencilLoadOp = UtilsVK::LoadOpToVk(attachment.StencilLoadOp);
+			desc.stencilStoreOp = UtilsVK::StoreOpToVk(attachment.StencilStoreOp);
+			desc.initialLayout = UtilsVK::ImageLayoutToVk(attachment.InitialLayout);
+			desc.finalLayout = UtilsVK::ImageLayoutToVk(attachment.FinalLayout);
 			attachments.push_back(desc);
 		}
 		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -39,22 +39,22 @@ namespace Vulkan {
 			desc.pipelineBindPoint = static_cast<VkPipelineBindPoint>(subpass.BindPoint);
 			desc.inputAttachmentCount = static_cast<uint32_t>(subpass.InputAttachments.size());
 			for (auto input : subpass.InputAttachments) {
-				inputs[i].push_back({ input.Attachment, UtilsVK::Convert(input.Layout) });
+				inputs[i].push_back({ input.Attachment, UtilsVK::ImageLayoutToVk(input.Layout) });
 			}
 			desc.pInputAttachments = inputs[i].data();
 			desc.colorAttachmentCount = static_cast<uint32_t>(subpass.ColorAttachments.size());
 			for (auto input : subpass.ColorAttachments) {
-				colors[i].push_back({ input.Attachment, UtilsVK::Convert(input.Layout) });
+				colors[i].push_back({ input.Attachment, UtilsVK::ImageLayoutToVk(input.Layout) });
 			}
 			desc.pColorAttachments = colors[i].data();
 			for (auto input : subpass.ResolveAttachments) {
-				resolves[i].push_back({ input.Attachment, UtilsVK::Convert(input.Layout) });
+				resolves[i].push_back({ input.Attachment, UtilsVK::ImageLayoutToVk(input.Layout) });
 			}
 			desc.pResolveAttachments = resolves[i].data();
 			VkAttachmentReference depthAttachment = {};
 			if (subpass.DepthStencilAttachment) {
 				depthAttachment.attachment = subpass.DepthStencilAttachment->Attachment;
-				depthAttachment.layout = UtilsVK::Convert(subpass.DepthStencilAttachment->Layout);
+				depthAttachment.layout = UtilsVK::ImageLayoutToVk(subpass.DepthStencilAttachment->Layout);
 				desc.pDepthStencilAttachment = &depthAttachment;
 			}
 			subpasses.push_back(desc);
@@ -77,12 +77,12 @@ namespace Vulkan {
 		createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		createInfo.pDependencies = dependencies.data();
 
-		if (vkCreateRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), &createInfo, nullptr, &m_Pass) != VK_SUCCESS)
+		if (vkCreateRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), &createInfo, nullptr, &m_Handle) != VK_SUCCESS)
 			throw std::runtime_error("Failed to create RenderPass");
 	}
 
 	RenderPassVK::~RenderPassVK()
 	{
-		vkDestroyRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), m_Pass, nullptr);
+		vkDestroyRenderPass(((GraphicsDeviceVK*)m_Device)->Get(), m_Handle, nullptr);
 	}
 }

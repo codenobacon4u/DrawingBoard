@@ -3,7 +3,6 @@
 
 #include "GraphicsDeviceVK.h"
 #include "Vulkan/BufferVK.h"
-#include "Vulkan/FramebufferVK.h"
 #include "Vulkan/PipelineVK.h"
 #include "Vulkan/RenderPassVK.h"
 
@@ -16,14 +15,14 @@ namespace Vulkan {
 		allocInfo.commandPool = m_Pool;
 		allocInfo.level = level;
 		allocInfo.commandBufferCount = 1;
-		vkAllocateCommandBuffers(m_Device->Get(), &allocInfo, &m_Curr);
+		vkAllocateCommandBuffers(m_Device->Get(), &allocInfo, &m_Handle);
 
 		m_DescriptorPool = DBG_NEW DescriptorSetPoolVK(device);
 	}
 
 	CommandBufferVK::~CommandBufferVK()
 	{
-		vkFreeCommandBuffers(m_Device->Get(), m_Pool, 1, &m_Curr);
+		vkFreeCommandBuffers(m_Device->Get(), m_Pool, 1, &m_Handle);
 
 		delete m_DescriptorPool;
 	}
@@ -35,7 +34,7 @@ namespace Vulkan {
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.pNext = nullptr;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		vkBeginCommandBuffer(m_Curr, &beginInfo);
+		vkBeginCommandBuffer(m_Handle, &beginInfo);
 	}
 
 	void CommandBufferVK::BeginRenderPass(RenderPass* renderpass, std::vector<TextureView*> renderTargets, std::vector<ClearValue> clearValues)
@@ -47,7 +46,7 @@ namespace Vulkan {
 		uint32_t height = renderTargets[0]->GetTexture()->GetDesc().Height;
 
 		std::vector<VkImageView> views(renderTargets.size(), VK_NULL_HANDLE);
-		std::transform(renderTargets.begin(), renderTargets.end(), views.begin(), [](TextureView* view) { return static_cast<TextureViewVK*>(view)->GetView(); });
+		std::transform(renderTargets.begin(), renderTargets.end(), views.begin(), [](TextureView* view) { return static_cast<TextureViewVK*>(view)->Get(); });
 
 		FBKey key = {};
 		key.Pass = static_cast<RenderPassVK*>(renderpass)->Get();
@@ -79,7 +78,7 @@ namespace Vulkan {
 			}
 		}
 		beginInfo.pClearValues = values.data();
-		vkCmdBeginRenderPass(m_Curr, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(m_Handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
 	void CommandBufferVK::BindBuffer(Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding, uint32_t arrayIndex)
@@ -100,12 +99,12 @@ namespace Vulkan {
 	void CommandBufferVK::BindImage(Texture* texture, uint32_t set, uint32_t binding, uint32_t arrayIndex)
 	{
 		m_DirtySets[set] = true;
-		m_BindingSets[set][binding].imageInfo.imageView = static_cast<TextureViewVK*>(texture->GetDefaultView())->GetView();
+		m_BindingSets[set][binding].imageInfo.imageView = static_cast<TextureViewVK*>(texture->GetDefaultView())->Get();
 		m_BindingSets[set][binding].imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		m_BindingSets[set][binding].imageInfo.sampler = static_cast<TextureVK*>(texture)->GetSampler();
 
 		size_t hash = 0;
-		hash_combine(hash, static_cast<TextureViewVK*>(texture->GetDefaultView())->GetView());
+		hash_combine(hash, static_cast<TextureViewVK*>(texture->GetDefaultView())->Get());
 		hash_combine(hash, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		hash_combine(hash, static_cast<TextureVK*>(texture)->GetSampler());
 
@@ -114,13 +113,13 @@ namespace Vulkan {
 
 	void CommandBufferVK::BindIndexBuffer(Buffer* buffer, uint64_t offset, uint32_t indexType)
 	{
-		vkCmdBindIndexBuffer(m_Curr, static_cast<BufferVK*>(buffer)->Get(), static_cast<VkDeviceSize>(offset), (VkIndexType)indexType);
+		vkCmdBindIndexBuffer(m_Handle, static_cast<BufferVK*>(buffer)->Get(), static_cast<VkDeviceSize>(offset), (VkIndexType)indexType);
 	}
 
 	void CommandBufferVK::BindPipeline(Pipeline* pipeline)
 	{
 		m_Pipeline = static_cast<PipelineVK*>(pipeline);
-		vkCmdBindPipeline(m_Curr, static_cast<VkPipelineBindPoint>(pipeline->GetBindPoint()), m_Pipeline->Get());
+		vkCmdBindPipeline(m_Handle, static_cast<VkPipelineBindPoint>(pipeline->GetBindPoint()), m_Pipeline->Get());
 	}
 
 	void CommandBufferVK::BindVertexBuffer(uint32_t start, uint32_t num, std::vector<Buffer*> buffers, std::vector<uint64_t> offsets)
@@ -128,7 +127,7 @@ namespace Vulkan {
 		std::vector<VkBuffer> bufs = {};
 		for (auto buffer : buffers)
 			bufs.emplace_back(static_cast<BufferVK*>(buffer)->Get());
-		vkCmdBindVertexBuffers(m_Curr, start, num, bufs.data(), offsets.data());
+		vkCmdBindVertexBuffers(m_Handle, start, num, bufs.data(), offsets.data());
 	}
 
 	void CommandBufferVK::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -136,43 +135,43 @@ namespace Vulkan {
 		// flush pipeline, push constants, descriptor sets
 		FlushDescriptorSets();
 
-		vkCmdDraw(m_Curr, vertexCount, instanceCount, firstVertex, firstInstance);
+		vkCmdDraw(m_Handle, vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
 	void CommandBufferVK::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 	{
 		FlushDescriptorSets();
 
-		vkCmdDrawIndexed(m_Curr, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+		vkCmdDrawIndexed(m_Handle, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
 	void CommandBufferVK::DrawIndexedIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 	{
 		FlushDescriptorSets();
 
-		vkCmdDrawIndexedIndirect(m_Curr, static_cast<BufferVK*>(buffer)->Get(), offset, drawCount, stride);
+		vkCmdDrawIndexedIndirect(m_Handle, static_cast<BufferVK*>(buffer)->Get(), offset, drawCount, stride);
 	}
 
 	void CommandBufferVK::DrawIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 	{
 		FlushDescriptorSets();
 
-		vkCmdDrawIndirect(m_Curr, static_cast<BufferVK*>(buffer)->Get(), offset, drawCount, stride);
+		vkCmdDrawIndirect(m_Handle, static_cast<BufferVK*>(buffer)->Get(), offset, drawCount, stride);
 	}
 
 	void CommandBufferVK::End()
 	{
-		vkEndCommandBuffer(m_Curr);
+		vkEndCommandBuffer(m_Handle);
 	}
 
 	void CommandBufferVK::EndRenderPass()
 	{
-		vkCmdEndRenderPass(m_Curr);
+		vkCmdEndRenderPass(m_Handle);
 	}
 
 	void CommandBufferVK::SetPushConstant(ShaderType type, uint32_t offset, uint32_t size, void* data)
 	{
-		vkCmdPushConstants(m_Curr, m_Pipeline->GetProgram()->GetPipelineLayout(), (uint32_t)type, offset, size, data);
+		vkCmdPushConstants(m_Handle, m_Pipeline->GetShaderProgram()->GetPipelineLayout(), (uint32_t)type, offset, size, data);
 	}
 
 	void CommandBufferVK::SetScissors(uint32_t first, uint32_t count, std::vector<Rect2D> scissors)
@@ -180,7 +179,7 @@ namespace Vulkan {
 		std::vector<VkRect2D> recs = {};
 		for (auto& s : scissors)
 			recs.push_back({ {s.offset.x, s.offset.y}, { s.extent.x, s.extent.y } });
-		vkCmdSetScissor(m_Curr, first, count, recs.data());
+		vkCmdSetScissor(m_Handle, first, count, recs.data());
 	}
 
 	void CommandBufferVK::SetViewports(uint32_t first, uint32_t count, std::vector<Viewport> viewports)
@@ -188,7 +187,7 @@ namespace Vulkan {
 		std::vector<VkViewport> vkViewports = {};
 		for (auto& vp : viewports)
 			vkViewports.push_back({ vp.x, vp.y, vp.width, vp.height, vp.minDepth, vp.maxDepth });
-		vkCmdSetViewport(m_Curr, first, count, vkViewports.data());
+		vkCmdSetViewport(m_Handle, first, count, vkViewports.data());
 	}
 
 	void CommandBufferVK::FlushDescriptorSets()
@@ -201,20 +200,20 @@ namespace Vulkan {
 				hash_combine(hash, resource.hash);
 			}
 
-			auto& layout = m_Pipeline->GetProgram()->GetSetLayout(set);
+			auto& layout = m_Pipeline->GetShaderProgram()->GetSetLayout(set);
 			auto& [cached, descriptor] = m_DescriptorPool->RequestDescriptorSet(layout, hash);
 
 			if (!cached)
 			{
-				auto& updateTemplate = m_Pipeline->GetProgram()->GetUpdateTemplate(set);
+				auto& updateTemplate = m_Pipeline->GetShaderProgram()->GetUpdateTemplate(set);
 				std::vector<BindingInfoVK> bindings;
 				for (auto it = m_BindingSets[set].begin(); it != m_BindingSets[set].end(); ++it)
 					bindings.push_back(it->second);
 				vkUpdateDescriptorSetWithTemplate(m_Device->Get(), descriptor, updateTemplate, bindings.data());
 			}
 
-			vkCmdBindDescriptorSets(m_Curr, UtilsVK::Convert(m_Pipeline->GetBindPoint()),
-				m_Pipeline->GetProgram()->GetPipelineLayout(), set, 1, &descriptor, 0, nullptr);
+			vkCmdBindDescriptorSets(m_Handle, UtilsVK::PipelineBindPointToVk(m_Pipeline->GetBindPoint()),
+				m_Pipeline->GetShaderProgram()->GetPipelineLayout(), set, 1, &descriptor, 0, nullptr);
 		}
 	}
 }

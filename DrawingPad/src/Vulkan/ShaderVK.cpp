@@ -264,7 +264,7 @@ namespace Vulkan {
 
 	ShaderVK::~ShaderVK()
 	{
-		vkDestroyShaderModule(m_Device->Get(), m_Module, nullptr);
+		vkDestroyShaderModule(m_Device->Get(), m_Handle, nullptr);
 	}
 
 	bool ShaderVK::LoadShaderFromFile(const std::string& path)
@@ -304,7 +304,7 @@ namespace Vulkan {
 		createInfo.codeSize = spirv.size() * sizeof(uint32_t);
 		createInfo.pCode = spirv.data();
 
-		if (vkCreateShaderModule(m_Device->Get(), &createInfo, nullptr, &m_Module))
+		if (vkCreateShaderModule(m_Device->Get(), &createInfo, nullptr, &m_Handle))
 			return false;
 		return true;
 	}
@@ -320,7 +320,7 @@ namespace Vulkan {
 		createInfo.codeSize = spirv.size() * sizeof(uint32_t);
 		createInfo.pCode = spirv.data();
 
-		if (vkCreateShaderModule(m_Device->Get(), &createInfo, nullptr, &m_Module))
+		if (vkCreateShaderModule(m_Device->Get(), &createInfo, nullptr, &m_Handle))
 			return false;
 
 		return true;
@@ -334,7 +334,7 @@ namespace Vulkan {
 			info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		else if (m_Desc.Type == ShaderType::Vertex)
 			info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		info.module = m_Module;
+		info.module = m_Handle;
 		info.pName = m_Desc.EntryPoint.c_str();
 		return info;
 	}
@@ -457,10 +457,22 @@ namespace Vulkan {
 		}
 		m_Layout.SetCount = sets;
 	}
-	
-	ShaderProgramVK::ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* vertShader, ShaderVK* fragShader)
-		: ShaderProgram(vertShader, fragShader), m_Device(device)
+
+	ShaderProgramVK::ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* shader)
+		: m_Device(device)
 	{
+		m_Shaders[shader->GetDesc().Type] = shader;
+
+		m_DescCache = DBG_NEW DescriptorSetLayoutCacheVK(m_Device);
+	}
+	
+	ShaderProgramVK::ShaderProgramVK(GraphicsDeviceVK* device, std::vector<ShaderVK*> shaders)
+		: m_Device(device)
+	{
+		for (auto* shader : shaders) {
+			m_Shaders[shader->GetDesc().Type] = shader;
+		}
+
 		m_DescCache = DBG_NEW DescriptorSetLayoutCacheVK(m_Device);
 		Build();
 	}
@@ -511,10 +523,6 @@ namespace Vulkan {
 		std::vector<std::vector<ShaderResourceBinding>> resourceSets(maxSets);
 		m_SetLayouts.resize(maxSets);
 
-		//resourceSets[0].insert(resourceSets[0].end(), m_Layout.Inputs.begin(), m_Layout.Inputs.end());
-		//resourceSets[0].insert(resourceSets[0].end(), m_Layout.Outputs.begin(), m_Layout.Outputs.end());
-		//resourceSets[0].insert(resourceSets[0].end(), m_Layout.Constants.begin(), m_Layout.Constants.end());
-
 		for (auto& [set, bindings] : m_Layout.Resources)
 			for (auto& [binding, resource] : bindings)
 				resourceSets[set].push_back(resource);
@@ -554,7 +562,7 @@ namespace Vulkan {
 
 	void ShaderProgramVK::CreateUpdateTemplate()
 	{
-		m_UpdateTemplates.resize(m_Layout.SetCount + 1);
+		m_UpdateTemplates.resize(static_cast<size_t>(m_Layout.SetCount + 1));
 		for (auto& [set, bindings] : m_Layout.Resources) {
 			std::vector<VkDescriptorUpdateTemplateEntry> entries = {};
 

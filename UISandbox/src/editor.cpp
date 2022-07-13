@@ -460,7 +460,7 @@ int main() {
 			}
 		};
 
-		auto* program = device->CreateShaderProgram(vertShader, fragShader);
+		auto* program = device->CreateShaderProgram({ vertShader, fragShader });
 
 		GraphicsPipelineDesc pDesc = {};
 		pDesc.NumViewports = 1;
@@ -469,7 +469,7 @@ int main() {
 		pDesc.DepthFormat = wd->Swapchain->GetDesc().DepthFormat;
 		pDesc.InputLayout.NumElements = 3;
 		pDesc.InputLayout.Elements = vertInputs;
-		pDesc.Program = program;
+		pDesc.ShaderProgram = program;
 		pDesc.Face = FrontFace::CounterClockwise;
 		//pDesc.MSAASamples = 4;
 		gPipeline = device->CreateGraphicsPipeline(pDesc, gRenderPass);

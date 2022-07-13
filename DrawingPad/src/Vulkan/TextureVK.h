@@ -16,7 +16,7 @@ namespace Vulkan
 
 		~TextureVK();
 
-		VkImage GetImage() { return m_Image; }
+		VkImage Get() { return m_Handle; }
 		VkSampler GetSampler() { return m_Sampler; }
 
 		virtual TextureView* CreateView(const TextureViewDesc& desc) override;
@@ -27,26 +27,27 @@ namespace Vulkan
 		void GenerateMipmaps(VkCommandBuffer cmd);
 	private:
 		GraphicsDeviceVK* m_Device = nullptr;
-		const void* m_Data = nullptr;
-		VkImage m_Image = VK_NULL_HANDLE;
+		VkImage m_Handle = VK_NULL_HANDLE;
 		VmaAllocation m_Alloc = VK_NULL_HANDLE;
 		VkDeviceMemory m_Mem = VK_NULL_HANDLE;
 		VkSampler m_Sampler = VK_NULL_HANDLE;
+		const void* m_Data = nullptr;
 	};
 
 	class TextureViewVK : public TextureView
 	{
 	public:
 		TextureViewVK(GraphicsDeviceVK* device, const TextureViewDesc& desc, TextureVK* texture, VkImageAspectFlags aspectFlags);
-		VkImageView GetView() { return m_View; }
-
+		
 		~TextureViewVK();
 
+		VkImageView Get() { return m_Handle; }
+		
 		virtual TextureVK* GetTexture() override { return m_Texture; }
 
 	private:
 		GraphicsDeviceVK* m_Device = nullptr;
+		VkImageView m_Handle = VK_NULL_HANDLE;
 		TextureVK* m_Texture = nullptr;
-		VkImageView m_View = VK_NULL_HANDLE;
 	};
 }

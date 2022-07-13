@@ -8,7 +8,7 @@
 namespace Vulkan
 {
 	SwapchainVK::SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, VkSurfaceKHR surface)
-		: Swapchain(desc), m_Device(device), m_Swap(nullptr), m_Surface(surface)
+		: Swapchain(desc), m_Device(device), m_Handle(nullptr), m_Surface(surface)
 	{
 		m_PresentIndex = m_Device->FindQueueFamilies(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT).graphicsFamily.value();
 
@@ -23,7 +23,7 @@ namespace Vulkan
 	{
 		vkDeviceWaitIdle(m_Device->Get());
 		Cleanup();
-		vkDestroySwapchainKHR(m_Device->Get(), m_Swap, nullptr);
+		vkDestroySwapchainKHR(m_Device->Get(), m_Handle, nullptr);
 		vkDestroySurfaceKHR(m_Device->GetInstance(), m_Surface, nullptr);
 	}
 
@@ -33,34 +33,13 @@ namespace Vulkan
 		RecreateSwap(width, height);
 	}
 
-	void SwapchainVK::Present(uint32_t sync)
-	{
-		VkPresentInfoKHR presentInfo = {};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.pNext = nullptr;
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &m_Swap;
-		presentInfo.pImageIndices = &m_ImageIndex;
-		auto result = vkQueuePresentKHR(m_Present, &presentInfo);
-
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Resized)
-		{
-			m_Resized = false;
-			RecreateSwap(m_Desc.Width, m_Desc.Height);
-		}
-		else if (result != VK_SUCCESS)
-			throw std::runtime_error("Failed to present swap image!");
-
-		m_CurrFrame = (m_CurrFrame + 1) % m_BackBuffers.size();
-	}
-
 	bool SwapchainVK::AcquireNextImage(VkSemaphore acquired)
 	{
 		// We need the imageAcquired semaphores to be sent out for the command buffer submission
-		VkResult result = vkAcquireNextImageKHR(m_Device->Get(), m_Swap, ULONG_MAX, acquired, VK_NULL_HANDLE, &m_ImageIndex);
+		VkResult result = vkAcquireNextImageKHR(m_Device->Get(), m_Handle, ULONG_MAX, acquired, VK_NULL_HANDLE, &m_ImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
 			RecreateSwap(m_Desc.Width, m_Desc.Height);
-			result = vkAcquireNextImageKHR(m_Device->Get(), m_Swap, ULONG_MAX, acquired, VK_NULL_HANDLE, &m_ImageIndex);
+			result = vkAcquireNextImageKHR(m_Device->Get(), m_Handle, ULONG_MAX, acquired, VK_NULL_HANDLE, &m_ImageIndex);
 		}
 		if (result != VK_SUCCESS)
 			throw std::runtime_error("Could not get next image from the swapchain");
@@ -74,7 +53,7 @@ namespace Vulkan
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = &render;
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &m_Swap;
+		presentInfo.pSwapchains = &m_Handle;
 		presentInfo.pImageIndices = &m_ImageIndex;
 		auto result = vkQueuePresentKHR(queue, &presentInfo);
 
@@ -111,8 +90,8 @@ namespace Vulkan
 		if (m_Desc.DepthFormat != TextureFormat::None)
 			m_Desc.DepthFormat = ChooseDepthFormat();
 
-		auto old = m_Swap;
-		m_Swap = nullptr;
+		auto old = m_Handle;
+		m_Handle = nullptr;
 
 		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -133,13 +112,13 @@ namespace Vulkan
 		createInfo.clipped = true;
 		createInfo.oldSwapchain = old;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		m_Desc.ColorFormat = UtilsVK::Convert(surfaceFormat.format);
+		m_Desc.ColorFormat = UtilsVK::VkToTextureFormat(surfaceFormat.format);
 
-		if (vkCreateSwapchainKHR(m_Device->Get(), &createInfo, nullptr, &m_Swap) != VK_SUCCESS) {
+		if (vkCreateSwapchainKHR(m_Device->Get(), &createInfo, nullptr, &m_Handle) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create swapchain");
 		}
 
-		DebugMarker::SetName(m_Device->Get(), (uint64_t)m_Swap, VK_OBJECT_TYPE_SWAPCHAIN_KHR, "Main Swapchain");
+		DebugMarker::SetName(m_Device->Get(), (uint64_t)m_Handle, VK_OBJECT_TYPE_SWAPCHAIN_KHR, "Main Swapchain");
 
 		if (old != nullptr)
 		{
@@ -149,7 +128,7 @@ namespace Vulkan
 
 
 		uint32_t swapImageCount;
-		vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &swapImageCount, nullptr);
+		vkGetSwapchainImagesKHR(m_Device->Get(), m_Handle, &swapImageCount, nullptr);
 		if (swapImageCount != m_Desc.BufferCount)
 			m_Desc.BufferCount = swapImageCount;
 
@@ -200,7 +179,7 @@ namespace Vulkan
 		for (const auto& requestedFormat : requestedFormats) {
 			for (const auto& availableFormat : availableFormats)
 			{
-				if (availableFormat.colorSpace == UtilsVK::Convert(requestedFormat) && availableFormat.format == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+				if (availableFormat.colorSpace == UtilsVK::TextureFormatToVk(requestedFormat) && availableFormat.format == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
 					return availableFormat;
 				}
 			}
@@ -245,7 +224,7 @@ namespace Vulkan
 			vkGetPhysicalDeviceFormatProperties(m_Device->GetPhysical(), format, &props);
 
 			if ((props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
-				return UtilsVK::Convert(format);
+				return UtilsVK::VkToTextureFormat(format);
 		}
 		throw std::runtime_error("Fialed to find supported depth buffer format!");
 	}
@@ -253,10 +232,10 @@ namespace Vulkan
 	void SwapchainVK::CreatePresentResources(VkSurfaceFormatKHR surfaceFormat)
 	{
 		uint32_t imageCount;
-		vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &imageCount, nullptr);
+		vkGetSwapchainImagesKHR(m_Device->Get(), m_Handle, &imageCount, nullptr);
 		m_BackBuffers.resize(imageCount);
 		std::vector<VkImage> swapImages(imageCount);
-		if (vkGetSwapchainImagesKHR(m_Device->Get(), m_Swap, &imageCount, swapImages.data()) != VK_SUCCESS)
+		if (vkGetSwapchainImagesKHR(m_Device->Get(), m_Handle, &imageCount, swapImages.data()) != VK_SUCCESS)
 			throw new std::runtime_error("Failed to get swapchain images");
 		for (uint32_t i = 0; i < imageCount; i++)
 		{	
@@ -274,8 +253,8 @@ namespace Vulkan
 			tvDesc.Format = backDesc.Format;
 			m_BackBuffers[i].second = static_cast<TextureViewVK*>(m_BackBuffers[i].first->CreateView(tvDesc));
 
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_BackBuffers[i].first->GetImage(), VK_OBJECT_TYPE_IMAGE, string_format("Backbuffer Image {}", i));
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_BackBuffers[i].second->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, string_format("Backbuffer Image View {}", i));
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_BackBuffers[i].first->Get(), VK_OBJECT_TYPE_IMAGE, string_format("Backbuffer Image {}", i));
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_BackBuffers[i].second->Get(), VK_OBJECT_TYPE_IMAGE_VIEW, string_format("Backbuffer Image View {}", i));
 		}
 
 		if (m_Desc.DepthFormat != TextureFormat::None)
@@ -296,8 +275,8 @@ namespace Vulkan
 			tvDesc.Format = depthDesc.Format;
 			m_DepthTextureView = static_cast<TextureViewVK*>(m_DepthTexture->CreateView(tvDesc));
 
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthTexture->GetImage(), VK_OBJECT_TYPE_IMAGE, "DepthStencil Image");
-			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthTextureView->GetView(), VK_OBJECT_TYPE_IMAGE_VIEW, "DepthStencil Image View");
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthTexture->Get(), VK_OBJECT_TYPE_IMAGE, "DepthStencil Image");
+			DebugMarker::SetName(m_Device->Get(), (uint64_t)m_DepthTextureView->Get(), VK_OBJECT_TYPE_IMAGE_VIEW, "DepthStencil Image View");
 		}
 	}
 }

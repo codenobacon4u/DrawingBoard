@@ -10,15 +10,14 @@ namespace Vulkan
 	class UtilsVK
 	{
 	public:
-		static void Log(std::string path, std::string msg);
-		static VkFormat Convert(TextureFormat format);
-		static TextureFormat Convert(VkFormat format);
-		static VkAttachmentLoadOp Convert(AttachmentLoadOp format);
-		static VkAttachmentStoreOp Convert(AttachmentStoreOp format);
-		static VkImageLayout Convert(ImageLayout format);
-		static SampleCount Convert(uint8_t samples);
-		static VkFormat Convert(ElementDataType type, uint32_t num, bool normalized);
-		static VkPipelineBindPoint Convert(PipelineBindPoint bindPoint);
+		static VkFormat TextureFormatToVk(TextureFormat format);
+		static TextureFormat VkToTextureFormat(VkFormat format);
+		static VkAttachmentLoadOp LoadOpToVk(AttachmentLoadOp format);
+		static VkAttachmentStoreOp StoreOpToVk(AttachmentStoreOp format);
+		static VkImageLayout ImageLayoutToVk(ImageLayout format);
+		static SampleCount ToSampleCount(uint8_t samples);
+		static VkFormat AttribFormatToVk(ElementDataType type, uint32_t num, bool normalized);
+		static VkPipelineBindPoint PipelineBindPointToVk(PipelineBindPoint bindPoint);
 		static void PrintDeviceProps(VkPhysicalDeviceProperties props);
 	};
 }

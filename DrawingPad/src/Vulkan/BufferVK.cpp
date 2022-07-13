@@ -61,7 +61,7 @@ namespace Vulkan
 		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		VmaAllocationInfo allocInfo = {};
-		vmaCreateBuffer(m_Device->GetMemoryAllocator(), &createInfo, &memInfo, &m_Buffer, &m_Alloc, &allocInfo);
+		vmaCreateBuffer(m_Device->GetMemoryAllocator(), &createInfo, &memInfo, &m_Handle, &m_Alloc, &allocInfo);
 
 		m_Persist = memInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
@@ -75,17 +75,12 @@ namespace Vulkan
 			Update(0, m_Desc.Size, bufData);
 	}
 
-	BufferVK::BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, VkBuffer buffer)
-		: Buffer(desc), m_Device(device), m_Buffer(buffer)
-	{
-	}
-
 	BufferVK::~BufferVK()
 	{
-		if (m_Buffer != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE)
+		if (m_Handle != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE)
 		{
 			UnmapMemory();
-			vmaDestroyBuffer(m_Device->GetMemoryAllocator(), m_Buffer, m_Alloc);
+			vmaDestroyBuffer(m_Device->GetMemoryAllocator(), m_Handle, m_Alloc);
 		}
 	}
 
@@ -125,44 +120,5 @@ namespace Vulkan
 			FlushMemory();
 			UnmapMemory();
 		}
-	}
-
-	uint32_t BufferVK::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-		VkPhysicalDeviceMemoryProperties memProperties;
-		vkGetPhysicalDeviceMemoryProperties(m_Device->GetPhysical(), &memProperties);
-
-		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-				return i;
-			}
-		}
-
-		throw std::runtime_error("Failed to find suitable memory type!");
-	}
-
-	VkBuffer BufferVK::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props, VkDeviceMemory& bufferMemory)
-	{
-
-		return VK_NULL_HANDLE;
-	}
-
-	void BufferVK::CopyFrom(VkBuffer src, VkDeviceSize size)
-	{
-		VkQueue graphics = m_Device->GetGraphicsQueue();
-		VkCommandBuffer cmd = static_cast<CommandBufferVK*>(m_Device->GetTempCommandPool().RequestCommandBuffer())->Get();
-		VkBufferCopy copy{ 0, 0, size };
-		VkCommandBufferBeginInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		vkBeginCommandBuffer(cmd, &info);
-		vkCmdCopyBuffer(cmd, src, m_Buffer, 1, &copy);
-		vkEndCommandBuffer(cmd);
-		VkSubmitInfo submit = {};
-		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit.commandBufferCount = 1;
-		submit.pCommandBuffers = &cmd;
-		vkQueueSubmit(graphics, 1, &submit, VK_NULL_HANDLE);
-		vkQueueWaitIdle(graphics);
-		//m_Device->GetTempCommandPool().ReturnBuffer(std::move(cmd));
 	}
 }

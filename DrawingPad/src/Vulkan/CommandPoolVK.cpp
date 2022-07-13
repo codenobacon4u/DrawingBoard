@@ -33,7 +33,7 @@ namespace Vulkan
 				return m_PrimaryBuffers[m_ActivePrimaryCount++];
 			}
 			m_ActivePrimaryCount++;
-			m_PrimaryBuffers.push_back(new CommandBufferVK(m_Device, m_Pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
+			m_PrimaryBuffers.push_back(DBG_NEW CommandBufferVK(m_Device, m_Pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
 			return m_PrimaryBuffers.back();
 		}
 		else {
@@ -42,7 +42,7 @@ namespace Vulkan
 				return m_SecondaryBuffers[m_ActiveSecondaryCount++];
 			}
 			m_ActiveSecondaryCount++;
-			m_SecondaryBuffers.push_back(new CommandBufferVK(m_Device, m_Pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY));
+			m_SecondaryBuffers.push_back(DBG_NEW CommandBufferVK(m_Device, m_Pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY));
 			return m_SecondaryBuffers.back();
 		}
 	}

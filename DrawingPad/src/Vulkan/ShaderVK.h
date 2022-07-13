@@ -26,7 +26,7 @@ namespace Vulkan {
 
 	private:
 		GraphicsDeviceVK* m_Device;
-		VkShaderModule m_Module = VK_NULL_HANDLE;
+		VkShaderModule m_Handle = VK_NULL_HANDLE;
 		VkPipelineShaderStageCreateInfo m_Stage = {};
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 	};
@@ -34,7 +34,8 @@ namespace Vulkan {
 	class ShaderProgramVK : public ShaderProgram
 	{
 	public:
-		ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* vertShader, ShaderVK* fragShader);
+		ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* shader);
+		ShaderProgramVK(GraphicsDeviceVK* device, std::vector<ShaderVK*> shaders);
 		
 		~ShaderProgramVK();
 

@@ -13,10 +13,6 @@ namespace GlAPI
 	{
 	}
 
-	void GraphicsDeviceGL::Present()
-	{
-	}
-
 	Buffer* GraphicsDeviceGL::CreateBuffer(const BufferDesc& desc, void* data)
 	{
 		return nullptr;
@@ -28,11 +24,6 @@ namespace GlAPI
 	}
 	
 	RenderPass* GraphicsDeviceGL::CreateRenderPass(const RenderPassDesc& desc)
-	{
-		return nullptr;
-	}
-	
-	Framebuffer* GraphicsDeviceGL::CreateFramebuffer(const FramebufferDesc& desc)
 	{
 		return nullptr;
 	}
@@ -55,9 +46,5 @@ namespace GlAPI
 	Shader* GraphicsDeviceGL::CreateShader(const ShaderDesc& desc)
 	{
 		return nullptr;
-	}
-	
-	void GraphicsDeviceGL::SwapBuffers(Swapchain* swapchain) const
-	{
 	}
 }

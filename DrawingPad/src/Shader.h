@@ -142,11 +142,6 @@ protected:
 
 class ShaderProgram {
 public:
-	ShaderProgram(Shader* vertShader, Shader* fragShader)
-	{
-		m_Shaders[ShaderType::Vertex] = vertShader;
-		m_Shaders[ShaderType::Fragment] = fragShader;
-	}
 
 	virtual ~ShaderProgram() {}
 

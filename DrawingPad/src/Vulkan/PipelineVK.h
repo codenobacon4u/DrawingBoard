@@ -17,11 +17,22 @@ namespace Vulkan
         PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo);
         ~PipelineVK();
 
-        VkPipeline Get() { return m_Pipeline; }
-        ShaderProgramVK* GetProgram() { return static_cast<ShaderProgramVK*>(m_GraphicsDesc.Program); }
+        VkPipeline Get() { return m_Handle; }
+        ShaderProgramVK* GetShaderProgram() { 
+			switch (m_Type) {
+			case PipelineBindPoint::Graphics:
+				return static_cast<ShaderProgramVK*>(m_GraphicsDesc.ShaderProgram);
+			case PipelineBindPoint::Compute:
+				return static_cast<ShaderProgramVK*>(m_ComputeDesc.ShaderProgram);
+			case PipelineBindPoint::Raytracing:
+				return static_cast<ShaderProgramVK*>(m_RaytracingDesc.ShaderProgram);
+			default:
+				throw std::runtime_error("Unknown Bind Point!");
+			}
+		}
 
     private:
-        VkPipeline m_Pipeline = VK_NULL_HANDLE;
+        VkPipeline m_Handle = VK_NULL_HANDLE;
         GraphicsDeviceVK* m_Device = nullptr;
     };
 }

@@ -16,8 +16,7 @@ public:
 	virtual ~Swapchain() {}
 
 	virtual void Resize(uint32_t width, uint32_t height) = 0;
-	virtual void Present(uint32_t sync) = 0;
-	virtual void* GetNative() = 0;
+
 	virtual uint32_t GetImageIndex() = 0;
 	virtual TextureView* GetBackbuffer() = 0;
 	virtual TextureView* GetDepthBufferView() = 0;

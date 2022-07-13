@@ -192,7 +192,7 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 	};
 
 	GraphicsPipelineDesc pipeDesc = {};
-	pipeDesc.Program = bd->ShaderProgram;
+	pipeDesc.ShaderProgram = bd->ShaderProgram;
 	pipeDesc.InputLayout.NumElements = 3;
 	pipeDesc.InputLayout.Elements = vertInputs;
 	pipeDesc.NumViewports = 1;
@@ -297,7 +297,7 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 		sDesc.Path = "shaders/ui.frag";
 		sDesc.Type = ShaderType::Fragment;
 		bd->FragmentShader = bd->Device->CreateShader(sDesc);
-		bd->ShaderProgram = bd->Device->CreateShaderProgram(bd->VertexShader, bd->FragmentShader);
+		bd->ShaderProgram = bd->Device->CreateShaderProgram({ bd->VertexShader, bd->FragmentShader });
 
 		LayoutElement vertInputs[]{
 			{
@@ -326,7 +326,7 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 		};
 
 		GraphicsPipelineDesc pipeDesc = {};
-		pipeDesc.Program = bd->ShaderProgram;
+		pipeDesc.ShaderProgram = bd->ShaderProgram;
 		pipeDesc.InputLayout.NumElements = 3;
 		pipeDesc.InputLayout.Elements = vertInputs;
 		pipeDesc.NumViewports = 1;
@@ -358,7 +358,7 @@ void ImGui_ImplDrawingPad_CreateFontsTexture()
 	unsigned char* pixels;
 	int width, height;
 	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-	size_t upload_size = width * height * 4 * sizeof(char);
+	size_t upload_size = uint64_t(width * height) * 4 * sizeof(char);
 
 	TextureDesc desc = {};
 	desc.Type = TextureType::DimTex2D;

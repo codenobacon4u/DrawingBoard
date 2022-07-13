@@ -40,12 +40,12 @@ namespace Vulkan
 
 		void FlushDescriptorSets();
 
-		VkCommandBuffer Get() const { return m_Curr; }
+		VkCommandBuffer Get() const { return m_Handle; }
 
 	private:
 		GraphicsDeviceVK* m_Device;
 		VkCommandPool m_Pool = VK_NULL_HANDLE;
-		VkCommandBuffer m_Curr = VK_NULL_HANDLE;
+		VkCommandBuffer m_Handle = VK_NULL_HANDLE;
 
 		PipelineVK* m_Pipeline = nullptr;
 

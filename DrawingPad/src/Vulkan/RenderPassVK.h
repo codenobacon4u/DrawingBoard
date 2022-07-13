@@ -12,18 +12,18 @@ namespace Vulkan {
 		RenderPassVK(GraphicsDevice* device, const RenderPassDesc& desc);
 		~RenderPassVK();
 
-		VkRenderPass Get() const { return m_Pass; }
+		VkRenderPass Get() const { return m_Handle; }
 
 	private:
 		inline static std::vector<VkAttachmentReference> ConvertAttachments(const std::vector<AttachmentReference>& srcRefs) {
 			std::vector<VkAttachmentReference> res = {};
-			for (auto input : srcRefs) {
-				res.push_back({ input.Attachment, UtilsVK::Convert(input.Layout) });
+			for (auto& input : srcRefs) {
+				res.push_back({ input.Attachment, UtilsVK::ImageLayoutToVk(input.Layout) });
 			}
 			return res;
 		}
 
 	private:
-		VkRenderPass m_Pass = VK_NULL_HANDLE;
+		VkRenderPass m_Handle = VK_NULL_HANDLE;
 	};
 }

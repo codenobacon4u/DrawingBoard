@@ -8,14 +8,7 @@
 
 namespace Vulkan
 {
-	void UtilsVK::Log(std::string path, std::string msg)
-	{
-		std::ofstream ofs(path.c_str(), std::ios_base::out | std::ios_base::app);
-		ofs << msg << '\n';
-		ofs.close();
-	}
-
-	VkFormat Vulkan::UtilsVK::Convert(TextureFormat format)
+	VkFormat Vulkan::UtilsVK::TextureFormatToVk(TextureFormat format)
 	{
 		switch (format)
 		{
@@ -147,7 +140,7 @@ namespace Vulkan
 			return VK_FORMAT_UNDEFINED;
 		}
 	}
-	TextureFormat UtilsVK::Convert(VkFormat format)
+	TextureFormat UtilsVK::VkToTextureFormat(VkFormat format)
 	{
 		switch (format)
 		{
@@ -279,7 +272,7 @@ namespace Vulkan
 			return TextureFormat::Unknown;
 		}
 	}
-	VkAttachmentLoadOp UtilsVK::Convert(AttachmentLoadOp op)
+	VkAttachmentLoadOp UtilsVK::LoadOpToVk(AttachmentLoadOp op)
 	{
 		switch (op)
 		{
@@ -294,7 +287,7 @@ namespace Vulkan
 			throw DBG_NEW std::runtime_error("Failed to convert attachment load op");
 		}
 	}
-	VkAttachmentStoreOp UtilsVK::Convert(AttachmentStoreOp op)
+	VkAttachmentStoreOp UtilsVK::StoreOpToVk(AttachmentStoreOp op)
 	{
 		switch (op)
 		{
@@ -307,7 +300,7 @@ namespace Vulkan
 			throw DBG_NEW std::runtime_error("Failed to convert attachment store op");
 		}
 	}
-	VkImageLayout UtilsVK::Convert(ImageLayout layout)
+	VkImageLayout UtilsVK::ImageLayoutToVk(ImageLayout layout)
 	{
 		switch (layout)
 		{
@@ -339,7 +332,7 @@ namespace Vulkan
 			return VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 	}
-	SampleCount UtilsVK::Convert(uint8_t samples)
+	SampleCount UtilsVK::ToSampleCount(uint8_t samples)
 	{
 		switch (samples)
 		{
@@ -362,7 +355,7 @@ namespace Vulkan
 		}
 	}
 
-	VkFormat UtilsVK::Convert(ElementDataType type, uint32_t num, bool normalized)
+	VkFormat UtilsVK::AttribFormatToVk(ElementDataType type, uint32_t num, bool normalized)
 	{
 		switch (type)
 		{
@@ -512,7 +505,7 @@ namespace Vulkan
 		}
 	}
 
-	VkPipelineBindPoint UtilsVK::Convert(PipelineBindPoint bindPoint)
+	VkPipelineBindPoint UtilsVK::PipelineBindPointToVk(PipelineBindPoint bindPoint)
 	{
 		switch (bindPoint) 
 		{
