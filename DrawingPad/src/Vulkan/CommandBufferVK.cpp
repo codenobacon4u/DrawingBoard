@@ -64,9 +64,9 @@ namespace Vulkan {
 		std::vector<VkClearValue> values(clearValues.size());
 		for (uint32_t i = 0; i < clearValues.size(); i++)
 		{
-			if (renderpass->getDesc().Attachments[i].Format == TextureFormat::D32Float ||
-				renderpass->getDesc().Attachments[i].Format == TextureFormat::D32FloatS8Uint ||
-				renderpass->getDesc().Attachments[i].Format == TextureFormat::D24UnormS8Uint)
+			if (renderpass->GetDesc().Attachments[i].Format == TextureFormat::D32Float ||
+				renderpass->GetDesc().Attachments[i].Format == TextureFormat::D32FloatS8Uint ||
+				renderpass->GetDesc().Attachments[i].Format == TextureFormat::D24UnormS8Uint)
 			{
 				values[i].depthStencil = { clearValues[i].depthStencil.depth, clearValues[i].depthStencil.stencil };
 			}

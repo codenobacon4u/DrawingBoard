@@ -196,8 +196,7 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 	pipeDesc.InputLayout.NumElements = 3;
 	pipeDesc.InputLayout.Elements = vertInputs;
 	pipeDesc.NumViewports = 1;
-	pipeDesc.NumColors = 1;
-	pipeDesc.DepthFormat = TextureFormat::None;
+	pipeDesc.DepthEnable = false;
 
 	wd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc, wd->RenderPass);
 }
@@ -330,8 +329,7 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 		pipeDesc.InputLayout.NumElements = 3;
 		pipeDesc.InputLayout.Elements = vertInputs;
 		pipeDesc.NumViewports = 1;
-		pipeDesc.NumColors = 1;
-		pipeDesc.DepthFormat = TextureFormat::None;
+		pipeDesc.DepthEnable = false;
 
 		bd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc, bd->RenderPass);
 	}

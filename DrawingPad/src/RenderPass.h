@@ -154,7 +154,7 @@ public:
 
 	virtual ~RenderPass() {}
 
-	const RenderPassDesc& getDesc() { return m_Desc; }
+	const RenderPassDesc& GetDesc() { return m_Desc; }
 protected:
 	GraphicsDevice* m_Device;
 	RenderPassDesc m_Desc;

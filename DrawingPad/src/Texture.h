@@ -128,12 +128,6 @@ enum class TextureFormat : uint32_t {
 	BGRA8UnormSRGB,
 };
 
-static uint32_t FormatTypeSize(TextureFormat format) {
-	switch (format) {
-	case TextureFormat::R8Uint: return 1;
-	}
-}
-
 enum class TextureType {
 	Undefined,
 	Buffer,

@@ -77,11 +77,8 @@ namespace Vulkan
 
 	BufferVK::~BufferVK()
 	{
-		if (m_Handle != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE)
-		{
-			UnmapMemory();
-			vmaDestroyBuffer(m_Device->GetMemoryAllocator(), m_Handle, m_Alloc);
-		}
+		UnmapMemory();
+		vmaDestroyBuffer(m_Device->GetMemoryAllocator(), m_Handle, m_Alloc);
 	}
 
 	void* BufferVK::MapMemory()

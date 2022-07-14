@@ -70,6 +70,10 @@ static Texture* gSceneDepthTexture;
 static uint32_t gSceneWidth = 1280;
 static uint32_t gSceneHeight = 720;
 
+static Shader* gVertShader;
+static Shader* gFragShader;
+static ShaderProgram* gProgram;
+
 static std::vector<Vertex> gVertices;
 static std::vector<uint32_t> gIndices;
 static Texture* oldColor = nullptr;
@@ -429,12 +433,12 @@ int main() {
 		//sDesc.Src = vertSrc;
 		sDesc.Path = "shaders/ubo.vert";
 		sDesc.Type = ShaderType::Vertex;
-		auto* vertShader = device->CreateShader(sDesc);
+		gVertShader = device->CreateShader(sDesc);
 		sDesc.Name = "Basic Frag";
 		//sDesc.Src = fragSrc;
 		sDesc.Path = "shaders/ubo.frag";
 		sDesc.Type = ShaderType::Fragment;
-		auto* fragShader = device->CreateShader(sDesc);
+		gFragShader = device->CreateShader(sDesc);
 
 		LayoutElement vertInputs[]{
 			{
@@ -460,16 +464,14 @@ int main() {
 			}
 		};
 
-		auto* program = device->CreateShaderProgram({ vertShader, fragShader });
+		gProgram = device->CreateShaderProgram({ gVertShader, gFragShader });
 
 		GraphicsPipelineDesc pDesc = {};
 		pDesc.NumViewports = 1;
-		pDesc.NumColors = 1;
-		pDesc.ColorFormats[0] = wd->Swapchain->GetDesc().ColorFormat;
-		pDesc.DepthFormat = wd->Swapchain->GetDesc().DepthFormat;
+		pDesc.DepthEnable = true;
 		pDesc.InputLayout.NumElements = 3;
 		pDesc.InputLayout.Elements = vertInputs;
-		pDesc.ShaderProgram = program;
+		pDesc.ShaderProgram = gProgram;
 		pDesc.Face = FrontFace::CounterClockwise;
 		//pDesc.MSAASamples = 4;
 		gPipeline = device->CreateGraphicsPipeline(pDesc, gRenderPass);
@@ -650,10 +652,48 @@ int main() {
 		if (!main_is_minimized)
 			FramePresent(wd);
 	}
+	/*
+		static Swapchain* gSwapchain;
+		static Buffer* gVertexBuffer;
+		static Buffer* gIndexBuffer;
+		static Buffer* gGameUniformBuffer;
+		static Buffer* gSceneUniformBuffer;
+		static Pipeline* gPipeline;
+		static RenderPass* gRenderPass;
+		
+		static Texture* gTexture;
+		
+		static Texture* gGameColorTexture;
+		static Texture* gGameDepthTexture;
+		static uint32_t gGameWidth = 1280;
+		static uint32_t gGameHeight = 720;
+	*/
+
 	device->WaitForIdle();
 	ImGui_ImplDrawingPad_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+
+	delete gGameColorTexture;
+	delete gGameDepthTexture;
+	delete gGameUniformBuffer;
+	delete gSceneColorTexture;
+	delete gSceneDepthTexture;
+	delete gSceneUniformBuffer;
+
+	delete gTexture;
+
+	delete gRenderPass;
+	delete gVertShader;
+	delete gFragShader;
+	delete gProgram;
+	delete gPipeline;
+
+	delete gVertexBuffer;
+	delete gIndexBuffer;
+	delete wd->Context;
+	delete gSwapchain;
+	//delete device;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

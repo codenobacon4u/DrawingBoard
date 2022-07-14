@@ -42,9 +42,7 @@ typedef struct GraphicsPipelineDesc {
 	InputLayout InputLayout;
 	ShaderProgram* ShaderProgram = nullptr;
 	uint32_t NumViewports = 0;
-	uint8_t NumColors = 0;
-	TextureFormat ColorFormats[8];
-	TextureFormat DepthFormat;
+	bool DepthEnable = true;
 	FrontFace Face = FrontFace::CounterClockwise;
 	uint8_t MSAASamples = 0;
 	RenderPass* RenderPass = nullptr;

@@ -301,15 +301,13 @@ int main() {
 
 	std::vector<Shader*> shaders = { vertShader, fragShader };
 
+	ShaderProgram* program = gd->CreateShaderProgram(shaders);
+
 	GraphicsPipelineDesc pDesc = {};
 	pDesc.NumViewports = 1;
-	pDesc.NumColors = 1;
-	pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
-	pDesc.DepthFormat = swap->GetDesc().DepthFormat;
 	pDesc.InputLayout.NumElements = 3;
 	pDesc.InputLayout.Elements = vertInputs;
-	pDesc.ShaderCount = 2;
-	pDesc.Shaders = shaders.data();
+	pDesc.ShaderProgram = program;
 	pDesc.Face = FrontFace::CounterClockwise;
 	pipeline = gd->CreateGraphicsPipeline(pDesc, rp);
 
@@ -375,10 +373,7 @@ int main() {
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
 			ubo.proj[1][1] *= -1;
 			
-			void* data;
-			ub->MapMemory(swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &data);
-			memcpy(data, &ubo, sizeof(ubo));
-			ub->FlushMemory();
+			ub->Update(swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
 
 			cmd->BindBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), 0, 0);
 		}
@@ -396,6 +391,7 @@ int main() {
 
 	delete vertShader;
 	delete fragShader;
+	delete program;
 	delete pipeline;
 	delete rp;
 	delete swap;

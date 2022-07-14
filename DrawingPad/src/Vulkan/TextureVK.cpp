@@ -127,7 +127,7 @@ namespace Vulkan
 			vkDestroySampler(m_Device->Get(), m_Sampler, nullptr);
 		if (m_DefaultView != nullptr)
 			delete m_DefaultView;
-		if (m_Handle != VK_NULL_HANDLE && m_Alloc != VK_NULL_HANDLE && m_Desc.BindFlags != BindFlags::SwapChain)
+		if (m_Desc.BindFlags != BindFlags::SwapChain)
 			vmaDestroyImage(m_Device->GetMemoryAllocator(), m_Handle, m_Alloc);
 		if (m_Mem != VK_NULL_HANDLE)
 			vkFreeMemory(m_Device->Get(), m_Mem, nullptr);

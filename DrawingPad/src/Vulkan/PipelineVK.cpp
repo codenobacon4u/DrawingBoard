@@ -93,7 +93,7 @@ namespace Vulkan
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
 		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		if (desc.DepthFormat != TextureFormat::None)
+		if (desc.DepthEnable)
 		{
 			depthStencilState.depthTestEnable = VK_TRUE;
 			depthStencilState.depthWriteEnable = VK_TRUE;
