@@ -3,19 +3,11 @@
 
 #include "CommandPoolVK.h"
 #include "DescriptorSetVK.h"
+#include "StructsVK.h"
 #include "SwapchainVK.h"
 
-namespace Vulkan
+namespace Vulkan 
 {
-	typedef struct FrameData {
-		uint32_t Index = 0;
-		std::vector<std::map<uint32_t, CommandPoolVK*>> CommandPools = {};
-		DescriptorSetPoolVK* DescriptorPool = nullptr;
-		VkSemaphore ImageAcquired = VK_NULL_HANDLE;
-		VkSemaphore RenderFinished = VK_NULL_HANDLE;
-		VkFence FrameFence = VK_NULL_HANDLE;
-	} FrameData;
-
 	class GraphicsDeviceVK;
 	class GraphicsContextVK : public GraphicsContext
 	{

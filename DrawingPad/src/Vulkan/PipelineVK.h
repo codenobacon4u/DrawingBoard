@@ -6,7 +6,7 @@
 #include "RenderPassVK.h"
 #include "ShaderVK.h"
 
-namespace Vulkan
+namespace Vulkan 
 {
     class GraphicsDeviceVK;
     class PipelineVK : public Pipeline

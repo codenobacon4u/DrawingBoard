@@ -84,11 +84,13 @@ static bool sceneViewable = false;
 
 static bool vsync = false;
 
-static void glfw_error_callback(int error, const char* desc) {
+static void glfw_error_callback(int error, const char* desc) 
+{
 	std::cerr << "GLFW Error: [" << error << "] " << desc;
 }
 
-void RenderGame(CommandBuffer* cmd, TextureView* rtv) {
+void RenderGame(CommandBuffer* cmd, TextureView* rtv) 
+{
 	cmd->SetViewports(0, 1, { { 0, 0, (float)gGameWidth, (float)gGameHeight, 0.0f, 1.0f } });
 	cmd->SetScissors(0, 1, { { { 0, 0 }, { gGameWidth, gGameHeight } } });
 	cmd->BindPipeline(gPipeline);
@@ -114,7 +116,8 @@ void RenderGame(CommandBuffer* cmd, TextureView* rtv) {
 	cmd->DrawIndexed(static_cast<uint32_t>(gIndices.size()), 1, 0, 0, 1);
 }
 
-void RenderScene(CommandBuffer* cmd, TextureView* rtv) {
+void RenderScene(CommandBuffer* cmd, TextureView* rtv) 
+{
 	cmd->SetViewports(0, 1, { { 0, 0, (float)gSceneWidth, (float)gSceneHeight, 0.0f, 1.0f } });
 	cmd->SetScissors(0, 1, { { { 0, 0 }, { gSceneWidth, gSceneHeight } } });
 	cmd->BindPipeline(gPipeline);
@@ -200,7 +203,8 @@ void FramePresent(ImGui_ImplDrawingPad_Window* windowData)
 
 static ImGui_ImplDrawingPad_Window g_MainWindowData;
 
-int main() {
+int main() 
+{
 	remove("validation_layers.log");
 	glfwSetErrorCallback(glfw_error_callback);
 
@@ -440,7 +444,7 @@ int main() {
 		sDesc.Type = ShaderType::Fragment;
 		gFragShader = device->CreateShader(sDesc);
 
-		LayoutElement vertInputs[]{
+		std::vector<LayoutElement> vertInputs = {
 			{
 				0, // InputIndex Location
 				0, // BufferSlot Binding
@@ -466,14 +470,15 @@ int main() {
 
 		gProgram = device->CreateShaderProgram({ gVertShader, gFragShader });
 
-		GraphicsPipelineDesc pDesc = {};
-		pDesc.NumViewports = 1;
-		pDesc.DepthEnable = true;
-		pDesc.InputLayout.NumElements = 3;
-		pDesc.InputLayout.Elements = vertInputs;
-		pDesc.ShaderProgram = gProgram;
-		pDesc.Face = FrontFace::CounterClockwise;
-		//pDesc.MSAASamples = 4;
+		GraphicsPipelineDesc pDesc = {
+			vertInputs,
+			gProgram,
+			1,
+			true,
+			FrontFace::CounterClockwise,
+			//4
+		};
+
 		gPipeline = device->CreateGraphicsPipeline(pDesc, gRenderPass);
 
 		gSwapchain = wd->Swapchain;

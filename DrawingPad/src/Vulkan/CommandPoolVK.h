@@ -8,7 +8,7 @@
 
 #include "CommandBufferVK.h"
 
-namespace Vulkan
+namespace Vulkan 
 {
 	class GraphicsDeviceVK;
     class CommandPoolVK : public CommandPool

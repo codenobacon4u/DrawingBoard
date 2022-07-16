@@ -10,11 +10,7 @@ namespace Vulkan
 	SwapchainVK::SwapchainVK(GraphicsDeviceVK* device, SwapchainDesc desc, VkSurfaceKHR surface)
 		: Swapchain(desc), m_Device(device), m_Handle(nullptr), m_Surface(surface)
 	{
-		m_PresentIndex = m_Device->FindQueueFamilies(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT).graphicsFamily.value();
-
-		if (!m_Device->QueryPresentSupport(m_PresentIndex, m_Surface))
-			throw std::runtime_error("Physical Device does not support present capability");
-		vkGetDeviceQueue(m_Device->Get(), m_PresentIndex, 0, &m_Present);
+		m_PresentQueue = m_Device->GetQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0, m_Surface);
 
 		RecreateSwap(desc.Width, desc.Height);
 	}

@@ -7,6 +7,7 @@
 enum class API {
 	None = 0, OpenGL = 1, Vulkan = 2, DirectX = 3
 };
+
 struct GLFWwindow;
 class GraphicsContext;
 class GraphicsDevice 

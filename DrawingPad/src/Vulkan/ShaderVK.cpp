@@ -18,8 +18,8 @@
 #define realloc(p, s)      _realloc_dbg(p, s, _NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
-namespace Vulkan {
-
+namespace Vulkan 
+{
 	template<ResourceBindingType T>
 	inline void ReadResource(const spirv_cross::Compiler &compiler, ShaderType stage, std::map<uint32_t, std::map<uint32_t, ShaderResourceBinding>> &resources, uint32_t* maxSet) {
 		
@@ -573,31 +573,31 @@ namespace Vulkan {
 				{
 				case ResourceBindingType::ImageSampler:
 					type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, imageInfo) + sizeof(BindingInfo) * binding;
 					break;
 				case ResourceBindingType::ImageStorage:
 					type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, imageInfo) + sizeof(BindingInfo) * binding;
 					break;
 				case ResourceBindingType::UniformBuffer:
 					type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					offset = offsetof(BindingInfoVK, bufferInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, bufferInfo) + sizeof(BindingInfo) * binding;
 					break;
 				case ResourceBindingType::StorageBuffer:
 					type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-					offset = offsetof(BindingInfoVK, bufferInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, bufferInfo) + sizeof(BindingInfo) * binding;
 					break;
 				case ResourceBindingType::InputAttachment:
 					type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, imageInfo) + sizeof(BindingInfo) * binding;
 					break;
 				case ResourceBindingType::Sampler:
 					type = VK_DESCRIPTOR_TYPE_SAMPLER;
-					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, imageInfo) + sizeof(BindingInfo) * binding;
 					break;
 				case ResourceBindingType::Image:
 					type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-					offset = offsetof(BindingInfoVK, imageInfo) + sizeof(BindingInfoVK) * binding;
+					offset = offsetof(BindingInfo, imageInfo) + sizeof(BindingInfo) * binding;
 					break;
 				default:
 					throw std::runtime_error("Unknown Resource Binding Type");
@@ -609,7 +609,7 @@ namespace Vulkan {
 				entry.dstArrayElement = 0;
 				entry.descriptorCount = resource.ArraySize;
 				entry.offset = offset;
-				entry.stride = sizeof(BindingInfoVK);
+				entry.stride = sizeof(BindingInfo);
 
 				entries.push_back(entry);
 			}

@@ -33,13 +33,8 @@ typedef struct LayoutElement {
 	ElementDataType Type = ElementDataType::Float32;
 } LayoutElement;
 
-typedef struct InputLayout {
-	uint32_t NumElements = 0;
-	LayoutElement* Elements = nullptr;
-} InputLayout;
-
 typedef struct GraphicsPipelineDesc {
-	InputLayout InputLayout;
+	const std::vector<LayoutElement> InputLayout;
 	ShaderProgram* ShaderProgram = nullptr;
 	uint32_t NumViewports = 0;
 	bool DepthEnable = true;

@@ -5,15 +5,10 @@
 
 #include "DescriptorSetVK.h"
 #include "PipelineVK.h"
+#include "StructsVK.h"
 
 namespace Vulkan
 {
-	struct BindingInfoVK {
-		VkDescriptorBufferInfo bufferInfo;
-		VkDescriptorImageInfo imageInfo;
-		size_t hash;
-	};
-
 	class GraphicsDeviceVK;
 	class CommandBufferVK : public CommandBuffer
 	{
@@ -51,6 +46,6 @@ namespace Vulkan
 
 		DescriptorSetPoolVK* m_DescriptorPool;
 		std::map<uint32_t, bool> m_DirtySets;
-		std::map<uint32_t, std::map<uint32_t, BindingInfoVK>> m_BindingSets;
+		std::map<uint32_t, std::map<uint32_t, BindingInfo>> m_BindingSets;
 	};
 }

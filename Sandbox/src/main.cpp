@@ -112,7 +112,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		pos += 0.05f * glm::normalize(glm::cross(front, up));
 }
 
-int main() {
+int main() 
+{
 	remove("validation_layers.log");
 	GraphicsDevice* gd;
 	GraphicsContext* ctx;
@@ -275,7 +276,7 @@ int main() {
 	sDesc.Type = ShaderType::Fragment;
 	fragShader = gd->CreateShader(sDesc);
 
-	LayoutElement vertInputs[]{
+	std::vector<LayoutElement> vertInputs = {
 		{
 			0, // InputIndex Location
 			0, // BufferSlot Binding
@@ -303,12 +304,13 @@ int main() {
 
 	ShaderProgram* program = gd->CreateShaderProgram(shaders);
 
-	GraphicsPipelineDesc pDesc = {};
-	pDesc.NumViewports = 1;
-	pDesc.InputLayout.NumElements = 3;
-	pDesc.InputLayout.Elements = vertInputs;
-	pDesc.ShaderProgram = program;
-	pDesc.Face = FrontFace::CounterClockwise;
+	GraphicsPipelineDesc pDesc = {
+		vertInputs,
+		program,
+		1,
+		true,
+	};
+
 	pipeline = gd->CreateGraphicsPipeline(pDesc, rp);
 
 	//Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);

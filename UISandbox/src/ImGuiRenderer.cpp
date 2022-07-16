@@ -165,7 +165,7 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 
 	// bd->RenderPass, v->MSAA, &bd->Pipeline, bd->Subpass=
 
-	LayoutElement vertInputs[]{
+	std::vector<LayoutElement> vertInputs = {
 		{
 			0, // InputIndex Location
 			0, // BufferSlot Binding
@@ -191,12 +191,12 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 		}
 	};
 
-	GraphicsPipelineDesc pipeDesc = {};
-	pipeDesc.ShaderProgram = bd->ShaderProgram;
-	pipeDesc.InputLayout.NumElements = 3;
-	pipeDesc.InputLayout.Elements = vertInputs;
-	pipeDesc.NumViewports = 1;
-	pipeDesc.DepthEnable = false;
+	GraphicsPipelineDesc pipeDesc = {
+		vertInputs,
+		bd->ShaderProgram,
+		1,
+		false
+	};
 
 	wd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc, wd->RenderPass);
 }
@@ -298,7 +298,7 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 		bd->FragmentShader = bd->Device->CreateShader(sDesc);
 		bd->ShaderProgram = bd->Device->CreateShaderProgram({ bd->VertexShader, bd->FragmentShader });
 
-		LayoutElement vertInputs[]{
+		std::vector<LayoutElement> vertInputs = {
 			{
 				0, // InputIndex Location
 				0, // BufferSlot Binding
@@ -324,12 +324,12 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 			}
 		};
 
-		GraphicsPipelineDesc pipeDesc = {};
-		pipeDesc.ShaderProgram = bd->ShaderProgram;
-		pipeDesc.InputLayout.NumElements = 3;
-		pipeDesc.InputLayout.Elements = vertInputs;
-		pipeDesc.NumViewports = 1;
-		pipeDesc.DepthEnable = false;
+		GraphicsPipelineDesc pipeDesc = {
+			vertInputs,
+			bd->ShaderProgram,
+			1,
+			false
+		};
 
 		bd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc, bd->RenderPass);
 	}

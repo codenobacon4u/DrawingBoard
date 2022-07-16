@@ -6,7 +6,8 @@
 
 #include "DescriptorSetVK.h"
 
-namespace Vulkan {
+namespace Vulkan 
+{
 	class GraphicsDeviceVK;
 	class ShaderVK : public Shader
 	{

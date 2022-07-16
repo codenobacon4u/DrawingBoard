@@ -10,7 +10,8 @@ typedef struct SwapchainDesc {
 	uint32_t BufferCount = 2;
 } SwapchainDesc;
 
-class Swapchain {
+class Swapchain 
+{
 public:
 
 	virtual ~Swapchain() {}

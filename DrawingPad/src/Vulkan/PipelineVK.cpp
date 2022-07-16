@@ -12,14 +12,15 @@ namespace Vulkan
 
 		std::vector<VkVertexInputBindingDescription> bindingDesc;
 		std::vector<VkVertexInputAttributeDescription> attribDesc;
-		attribDesc.resize(desc.InputLayout.NumElements);
+		auto size = desc.InputLayout.size();
+		attribDesc.resize(size);
 		uint32_t bindingSize = 0;
 		// Pull vertex input and binding data from layout
 		std::vector<int> bindingMap;
-		bindingMap.resize(desc.InputLayout.NumElements, -1);
-		for (uint32_t i = 0; i < desc.InputLayout.NumElements; i++)
+		bindingMap.resize(size, -1);
+		for (uint32_t i = 0; i < size; i++)
 		{
-			auto& elem = desc.InputLayout.Elements[i];
+			auto& elem = desc.InputLayout[i];
 			auto& bindIdx = bindingMap[elem.BufferSlot];
 			if (bindIdx < 0)
 			{

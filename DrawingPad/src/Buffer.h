@@ -34,15 +34,6 @@ enum class BufferModeFlags {
 	Raw
 };
 
-//TODO: This might change to be similar to Paperworks BufferElements if there are no cases that
-//		can't be fit by defined elements
-typedef struct BufferData {
-	const void* Value = nullptr;
-	uint32_t Size = 0;
-
-	BufferData() = default;
-} BufferData;
-
 typedef struct BufferDesc {
 	uint32_t Size = 0;
 	BufferBindFlags BindFlags = BufferBindFlags::None;

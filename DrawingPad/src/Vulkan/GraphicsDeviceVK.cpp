@@ -186,13 +186,12 @@ namespace Vulkan
 			if (queue.presentSupport && queue.properties.queueCount > 0)
 			{
 				m_GraphicsIndex = i;
+				m_GraphicsQueue = queue.queue;
 				return m_GraphicsIndex;
 			}
 		}
 
-		GetGraphicsQueue();
-
-		return m_GraphicsIndex;
+		return GetQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0).familyIndex;
 	}
 
 	const VkQueue GraphicsDeviceVK::GetGraphicsQueue()
@@ -210,49 +209,35 @@ namespace Vulkan
 			}
 		}
 
-		return GetQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0);
+		return GetQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0).queue;
 	}
 
-	const VkQueue GraphicsDeviceVK::GetQueueByFlags(VkQueueFlags flags, uint32_t index)
+	const Queue GraphicsDeviceVK::GetQueueByFlags(VkQueueFlags flags, uint32_t index, VkSurfaceKHR surface)
 	{
 		for (auto i = 0; i < m_Queues.size(); i++) {
 			auto const& queue = m_Queues[i][0];
-			if (((queue.properties.queueCount & flags) == flags) && queue.properties.queueCount > index)
+			if ((queue.properties.queueFlags & flags) && queue.properties.queueCount > index)
 			{
-				m_GraphicsIndex = i;
-				m_GraphicsQueue = queue.queue;
-				return queue.queue;
+				if (flags & VK_QUEUE_GRAPHICS_BIT) {
+					m_GraphicsIndex = i;
+					m_GraphicsQueue = queue.queue;
+				}
+				if (flags & VK_QUEUE_COMPUTE_BIT) {
+					m_ComputeIndex = i;
+					m_ComputeQueue = queue.queue;
+				}
+				if (surface != VK_NULL_HANDLE) {
+					VkBool32 support = VK_FALSE;
+					vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, index, surface, &support);
+					if (!support) {
+						continue;
+					}
+				}
+				return queue;
 			}
 		}
 
 		throw std::runtime_error("Queue not found");
-	}
-
-	QueueFamilyIndices GraphicsDeviceVK::FindQueueFamilies(VkQueueFlags flags)
-	{
-		QueueFamilyIndices indices;
-
-		uint32_t queueCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueCount, nullptr);
-		std::vector<VkQueueFamilyProperties> queueFamilies(queueCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueCount, queueFamilies.data());
-
-		uint32_t i = 0;
-		for (const auto& queueFamily : queueFamilies) {
-			if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (flags & VK_QUEUE_GRAPHICS_BIT)) {
-				m_GraphicsIndex = i;
-				indices.graphicsFamily = i;
-			}
-			if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) && (flags & VK_QUEUE_COMPUTE_BIT)) {
-				m_ComputeIndex = i;
-				indices.computeFamily = i;
-			}
-			if (indices.isComplete()) {
-				break;
-			}
-			i++;
-		}
-		return indices;
 	}
 
 	bool GraphicsDeviceVK::QueryPresentSupport(uint32_t index, VkSurfaceKHR surface)

@@ -176,11 +176,6 @@ typedef struct TextureViewDesc {
 	uint32_t Slices = 0;
 } TextureViewDesc;
 
-//TODO Might also follow similar path as BufferData and BufferLayout in Paperworks
-typedef struct TextureData {
-	TextureData() = default;
-} TextureData;
-
 class TextureView;
 class Texture
 {

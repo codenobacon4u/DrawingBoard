@@ -6,7 +6,8 @@
 #include "Vulkan/PipelineVK.h"
 #include "Vulkan/RenderPassVK.h"
 
-namespace Vulkan {
+namespace Vulkan 
+{
 	CommandBufferVK::CommandBufferVK(GraphicsDeviceVK* device, VkCommandPool pool, VkCommandBufferLevel level)
 		: m_Device(device), m_Pool(pool)
 	{
@@ -50,7 +51,6 @@ namespace Vulkan {
 
 		FBKey key = {};
 		key.Pass = static_cast<RenderPassVK*>(renderpass)->Get();
-		key.AttachmentCount = static_cast<uint32_t>(views.size());
 		key.Attachments = views;
 
 		auto framebuffer = m_Device->GetFramebufferPool().GetFramebuffer(key, width, height, 1);
@@ -206,7 +206,7 @@ namespace Vulkan {
 			if (!cached)
 			{
 				auto& updateTemplate = m_Pipeline->GetShaderProgram()->GetUpdateTemplate(set);
-				std::vector<BindingInfoVK> bindings;
+				std::vector<BindingInfo> bindings;
 				for (auto it = m_BindingSets[set].begin(); it != m_BindingSets[set].end(); ++it)
 					bindings.push_back(it->second);
 				vkUpdateDescriptorSetWithTemplate(m_Device->Get(), descriptor, updateTemplate, bindings.data());

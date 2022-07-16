@@ -11,32 +11,14 @@
 #include "CommandPoolVK.h"
 #include "DescriptorSetVK.h"
 #include "FramebufferPoolVK.h"
+#include "StructsVK.h"
 #include "TextureVK.h"
 #include "UtilsVK.h"
 
-namespace Vulkan
+namespace Vulkan 
 {
-	struct QueueFamilyIndices {
-		// optional: may or may not have a value stored
-		std::optional<uint32_t> graphicsFamily; // Graphics Queue Family
-		std::optional<uint32_t> computeFamily; // Presentation Queue Family
-		// Does this family have both graphics and surface support?
-		bool isComplete() {
-			return graphicsFamily.has_value() && computeFamily.has_value();
-		}
-	};
-
 	class GraphicsDeviceVK : public GraphicsDevice
 	{
-	private:
-		struct Queue {
-			uint32_t familyIndex = 0;
-			uint32_t index = 0;
-			VkQueue queue = VK_NULL_HANDLE;
-			VkBool32 presentSupport = VK_FALSE;
-			VkQueueFamilyProperties properties = {};
-		};
-
 	public:
 		GraphicsDeviceVK(GLFWwindow* window);
 		~GraphicsDeviceVK();
@@ -75,9 +57,8 @@ namespace Vulkan
 
 		const uint32_t GetGraphicsIndex();
 		const VkQueue GetGraphicsQueue();
-		const VkQueue GetQueueByFlags(VkQueueFlags flags, uint32_t index);
+		const Queue GetQueueByFlags(VkQueueFlags flags, uint32_t index, VkSurfaceKHR surface = VK_NULL_HANDLE);
 
-		QueueFamilyIndices FindQueueFamilies(VkQueueFlags flags);
 		bool QueryPresentSupport(uint32_t index, VkSurfaceKHR surface);
 	private:
 		void CreateInstance();
@@ -101,6 +82,7 @@ namespace Vulkan
 		uint32_t m_GraphicsIndex = ~0U;
 		uint32_t m_ComputeIndex = ~0U;
 		VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
+		VkQueue m_ComputeQueue = VK_NULL_HANDLE;
 		std::vector<std::vector<Queue>> m_Queues = {};
 
 		CommandPoolVK* m_TempPool;

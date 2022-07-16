@@ -1,6 +1,8 @@
 #pragma once
 #include "Buffer.h"
 
+#include "StructsVK.h"
+
 #include <vulkan/vulkan.h>
 #include <vma_mem_alloc.h>
 

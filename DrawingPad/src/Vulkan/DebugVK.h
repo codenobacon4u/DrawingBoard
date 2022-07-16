@@ -2,7 +2,8 @@
 
 #include <vulkan/vulkan.h>
 
-namespace Vulkan {
+namespace Vulkan 
+{
 	class DebugMarker
 	{
 	public:

@@ -5,20 +5,10 @@
 
 #include <vulkan/vulkan.h>
 
-namespace Vulkan {
-	typedef struct FBKey {
-		VkRenderPass Pass = VK_NULL_HANDLE;
-		uint32_t AttachmentCount = 0;
-		std::vector<VkImageView> Attachments = {};
-		uint64_t CommandQueueMask = 0;
+#include "StructsVK.h"
 
-		bool operator==(const FBKey& rhs) const;
-		size_t GetHash() const;
-
-	private:
-		mutable size_t Hash = 0;
-	} FBKey;
-
+namespace Vulkan 
+{
 	class GraphicsDeviceVK;
 	class FramebufferPoolVK
 	{

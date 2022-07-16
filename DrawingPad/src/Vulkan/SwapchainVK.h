@@ -3,16 +3,11 @@
 
 #include <vulkan/vulkan.h>
 
+#include "StructsVK.h"
 #include "TextureVK.h"
 
 namespace Vulkan
 {
-	struct SwapSupportDetails {
-		VkSurfaceCapabilitiesKHR capabilities = {};
-		std::vector<VkSurfaceFormatKHR> formats = {};
-		std::vector<VkPresentModeKHR> presentModes = {};
-	};
-
 	class GraphicsDeviceVK;
 	class SwapchainVK : public Swapchain
 	{
@@ -27,7 +22,7 @@ namespace Vulkan
 		virtual TextureView* GetBackbuffer() override { return m_BackBuffers[m_ImageIndex].second; }
 		virtual TextureViewVK* GetDepthBufferView() override { return m_DepthTextureView; }
 
-		VkQueue GetPresentQueue() { return m_Present; }
+		VkQueue GetPresentQueue() { return m_PresentQueue.queue; }
 		size_t GetBackbufferCount() { return m_BackBuffers.size(); }
 
 		bool AcquireNextImage(VkSemaphore acquired);
@@ -53,8 +48,7 @@ namespace Vulkan
 		VkPresentModeKHR m_PresentMode;
 		VkSwapchainKHR m_Handle;
 
-		VkQueue m_Present;
-		uint32_t m_PresentIndex;
+		Queue m_PresentQueue;
 
 		uint32_t m_ImageIndex = 0;
 		uint32_t m_CurrFrame = 0;

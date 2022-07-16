@@ -3,7 +3,8 @@
 
 #include "GraphicsDeviceVK.h"
 
-namespace Vulkan {
+namespace Vulkan 
+{
 	GraphicsContextVK::GraphicsContextVK(GraphicsDevice* device, Swapchain* swap)
 		: GraphicsContext(device, swap), 
 		m_Device(static_cast<GraphicsDeviceVK*>(device)), 
