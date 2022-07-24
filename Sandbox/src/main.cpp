@@ -12,6 +12,19 @@
 #include <glm/glm/gtx/string_cast.hpp>
 #include <glm/glm/gtx/rotate_vector.hpp>
 
+#pragma warning(push, 0)
+#pragma warning( disable: 26451 )
+#pragma warning( disable: 6262 )
+#pragma warning( disable: 26498 )
+#pragma warning( disable: 26819 )
+#pragma warning( disable: 26495 )
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+#pragma warning(pop)
+
 API Curr_API = API::Vulkan;
 
 static std::string vertSrc = R"(
@@ -47,6 +60,10 @@ struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 tex;
+
+	bool operator==(const Vertex& other) const {
+		return pos == other.pos && color == other.color && tex == other.tex;
+	}
 };
 
 struct UniformBufferObject {
@@ -95,13 +112,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		pos += 0.05f * glm::normalize(glm::cross(front, up));
 }
 
-int main() {
+int main() 
+{
+	remove("validation_layers.log");
 	GraphicsDevice* gd;
 	GraphicsContext* ctx;
 	Swapchain* swap;
 	Buffer* vb;
 	Buffer* ib;
 	Buffer* ub;
+	RenderPass* rp;
 	Pipeline* pipeline;
 	Shader* vertShader;
 	Shader* fragShader;
@@ -117,31 +137,113 @@ int main() {
 	glfwSetKeyCallback(window, key_callback);
 
 	gd = GraphicsDevice::Create(window, Curr_API);
-	GraphicsContextDesc desc = {};
-	desc.ContextID = 0;
-	desc.Name = "Immediate";
-	ctx = gd->CreateContext(desc);
-	SwapchainDesc swapSpec;
-	swap = gd->CreateSwapchain(swapSpec, ctx, window);
 
-	const std::vector<Vertex> vertices = {
+	SwapchainDesc swapDesc;
+	swap = gd->CreateSwapchain(swapDesc, window);
+	ctx = gd->CreateGraphicsContext(swap);
+	
+	RenderPassDesc rpDesc = {};
+	std::vector<RenderPassAttachmentDesc> attachments = {
+		{
+			swap->GetDesc().ColorFormat,
+			1,
+			AttachmentLoadOp::Clear,
+			AttachmentStoreOp::Store,
+			AttachmentLoadOp::Discard,
+			AttachmentStoreOp::Discard,
+			ImageLayout::Undefined,
+			ImageLayout::PresentSrcKHR
+		},
+		{
+			swap->GetDesc().DepthFormat,
+			1,
+			AttachmentLoadOp::Clear,
+			AttachmentStoreOp::DontCare,
+			AttachmentLoadOp::DontCare,
+			AttachmentStoreOp::DontCare,
+			ImageLayout::Undefined,
+			ImageLayout::DepthStencilAttachOptimal
+		}, 
+	};
+
+	AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
+	SubpassDesc subpass = {};
+	subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+	subpass.DepthStencilAttachment = &depthAttach;
+	subpass.PreserveAttachments = {};
+
+	DependencyDesc dependency = {};
+	dependency.SrcSubpass = ~0U;
+	dependency.DstSubpass = 0;
+	dependency.SrcStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
+	dependency.DstStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
+	dependency.SrcAccess = SubpassAccess::NA;
+	dependency.DstAccess = (SubpassAccess)(SubpassAccess::ColorAttachWrite | SubpassAccess::DepthStencilAttachWrite);
+
+	rpDesc.Attachments = attachments;
+	rpDesc.Subpasses = { subpass };
+	rpDesc.SubpassDependencies = { dependency };
+	rp = gd->CreateRenderPass(rpDesc);
+	
+	std::vector<Vertex> vertices; /*= {
 		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}}, // BL
 		{{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}}, //BR
 		{{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}}, // TR
 		{{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}, // TL
-		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-		//{{0.f, -1.f, 6.f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-		//{{0.f,  5.f, 2.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		//{{3.f,  2.f, 1.f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
-	};
 
-	const std::vector<uint16_t> indices = {
+		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+		{{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+		{{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+		{{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},\
+	};*/
+
+	std::vector<uint32_t> indices; /*= {
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4
-	};
+	};*/
+	{
+		tinyobj::attrib_t attrib;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		std::string warn, err;
+
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models/viking_room.obj")) {
+			throw std::runtime_error(warn + err);
+		}
+
+		std::unordered_map<size_t, uint32_t> uniqueVertices{};
+
+		for (const auto& shape : shapes) {
+			for (const auto& index : shape.mesh.indices) {
+				Vertex vertex{};
+
+				vertex.pos = {
+					attrib.vertices[3 * index.vertex_index + 0],
+					attrib.vertices[3 * index.vertex_index + 1],
+					attrib.vertices[3 * index.vertex_index + 2]
+				};
+
+				vertex.tex = {
+					attrib.texcoords[2 * index.texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+				};
+
+				vertex.color = { 1.0f, 1.0f, 1.0f };
+
+				size_t hash = 0;
+				hash_combine(hash, vertex.pos);
+				hash_combine(hash, vertex.color);
+				hash_combine(hash, vertex.tex);
+
+				if (uniqueVertices.count(hash) == 0) {
+					uniqueVertices[hash] = static_cast<uint32_t>(vertices.size());
+					vertices.push_back(vertex);
+				}
+
+				indices.push_back(uniqueVertices[hash]);
+			}
+		}
+	}
 
 	BufferDesc bufDesc = {};
 	bufDesc.Usage = BufferUsageFlags::Default;
@@ -158,7 +260,6 @@ int main() {
 	// ======== Create Uniform Buffer ========
 	bufDesc.BindFlags = BufferBindFlags::Uniform;
 	bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
-	bufDesc.Buffered = true;
 	ub = gd->CreateBuffer(bufDesc, nullptr);
 
 	// ======== Create Shaders ========
@@ -166,16 +267,16 @@ int main() {
 	sDesc.EntryPoint = "main";
 	sDesc.Name = "Basic Vert";
 	//sDesc.Src = vertSrc;
-	sDesc.Path = "shaders/textured.vert";
+	sDesc.Path = "shaders/ubo.vert";
 	sDesc.Type = ShaderType::Vertex;
 	vertShader = gd->CreateShader(sDesc);
 	sDesc.Name = "Basic Frag";
 	//sDesc.Src = fragSrc;
-	sDesc.Path = "shaders/textured.frag";
+	sDesc.Path = "shaders/ubo.frag";
 	sDesc.Type = ShaderType::Fragment;
 	fragShader = gd->CreateShader(sDesc);
 
-	LayoutElement vertInputs[]{
+	std::vector<LayoutElement> vertInputs = {
 		{
 			0, // InputIndex Location
 			0, // BufferSlot Binding
@@ -189,8 +290,8 @@ int main() {
 			3, // Num Components
 			offsetof(Vertex, color),  // Offset
 			sizeof(Vertex) // Stride
-		},
-		{
+		}
+		,{
 			2,
 			0,
 			2,
@@ -201,28 +302,30 @@ int main() {
 
 	std::vector<Shader*> shaders = { vertShader, fragShader };
 
-	GraphicsPipelineDesc pDesc = {};
-	pDesc.NumViewports = 1;
-	pDesc.NumColors = 1;
-	pDesc.ColorFormats[0] = swap->GetDesc().ColorFormat;
-	pDesc.DepthFormat = swap->GetDesc().DepthFormat;
-	pDesc.InputLayout.NumElements = 3;
-	pDesc.InputLayout.Elements = vertInputs;
-	pDesc.ShaderCount = 2;
-	pDesc.Shaders = shaders.data();
-	pipeline = gd->CreateGraphicsPipeline(pDesc);
+	ShaderProgram* program = gd->CreateShaderProgram(shaders);
+
+	GraphicsPipelineDesc pDesc = {
+		vertInputs,
+		program,
+		1,
+		true,
+	};
+
+	pipeline = gd->CreateGraphicsPipeline(pDesc, rp);
 
 	//Texture* texture = gd->GetTextureManager()->GetTexture("textures/texture.jpg", TextureFormat::RGBA8UnormSRGB);
-	const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
+	//const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
+	int width, height, channels;
+	stbi_uc* pixels = stbi_load("textures/viking_room.png", &width, &height, &channels, STBI_rgb_alpha);
 	TextureDesc texDesc = {};
 	texDesc.Type = TextureType::DimTex2D;
-	texDesc.Width = 256;
-	texDesc.Height = 256;
-	texDesc.MipLevels = 1;
-	texDesc.Format = TextureFormat::BGRA8Unorm;
+	texDesc.Width = static_cast<uint32_t>(width);
+	texDesc.Height = static_cast<uint32_t>(height);
+	texDesc.MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+	texDesc.Format = TextureFormat::RGBA8UnormSRGB;
 	texDesc.ArraySize = 1;
 	texDesc.BindFlags = BindFlags::ShaderResource;
-	Texture* texture = gd->CreateTexture(texDesc, data);
+	Texture* texture = gd->CreateTexture(texDesc, pixels);
 
 	auto glfwVersion = glfwGetVersionString();
 	if (Curr_API == API::OpenGL) {
@@ -234,11 +337,11 @@ int main() {
 		printf("GLFW Version: %s\nGL Version: %s\nGL Renderer: %s\nGL Vendor: %s\n", glfwVersion, glVersion, glRenderer, glVendor);
 	}
 
-	DrawIndexAttribs drawAttribs = {};
+	/*DrawIndexAttribs drawAttribs = {};
 	drawAttribs.IndexCount = static_cast<uint32_t>(indices.size());
 	drawAttribs.InstanceCount = 1;
 	drawAttribs.FirstIndex = 0;
-	drawAttribs.FirstInstance = 0;
+	drawAttribs.FirstInstance = 0;*/
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -246,17 +349,21 @@ int main() {
 		glfwPollEvents();
 
 		//====RENDER====
-		TextureView* rtv = swap->GetNextBackbuffer();
+		auto cmd = ctx->Begin();
+		TextureView* rtv = swap->GetBackbuffer();
 		TextureView* dsv = swap->GetDepthBufferView();
 		float color[4] = { 0.f, 0.f, 0.f, 1.0f };
-		ctx->Begin(swap->GetImageIndex());
-		ctx->SetRenderTargets(1, &rtv, dsv, true);
-		ctx->ClearColor(rtv, color);
-		ctx->SetPipeline(pipeline);
-		Buffer* vertexBuffs[] = { vb };
-		uint64_t offsets[] = { 0 };
-		ctx->SetVertexBuffers(0, 1, vertexBuffs, offsets);
-		ctx->SetIndexBuffer(ib, 0);
+		Viewport vp = { 0, 0, static_cast<float>(rtv->GetTexture()->GetDesc().Width), static_cast<float>(rtv->GetTexture()->GetDesc().Height), 0.0f, 1.0f };
+		Rect2D sc = { { 0, 0 }, { rtv->GetTexture()->GetDesc().Width, rtv->GetTexture()->GetDesc().Height } };
+		cmd->Begin();
+		cmd->BeginRenderPass(rp, { rtv, dsv }, { { 0.0f, 0.0f, 0.0f, 1.0f }, { 1.0f, 0 } });
+		cmd->SetViewports(0, 1, { vp });
+		cmd->SetScissors(0, 1, { sc });
+		cmd->BindPipeline(pipeline);
+		std::vector<Buffer*> vertexBuffs = { vb };
+		std::vector<uint64_t> offsets = { 0 };
+		cmd->BindVertexBuffer(0, 1, vertexBuffs, offsets);
+		cmd->BindIndexBuffer(ib, 0, 1);
 		
 		{
 			static auto startTime = std::chrono::high_resolution_clock::now();
@@ -264,34 +371,41 @@ int main() {
 			float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 			UniformBufferObject ubo = {};
 			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
-			//ubo.view = glm::inverse(glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
-			//ubo.view = glm::lookAt(pos, pos+front, up);
 			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			ubo.proj = glm::perspective(glm::radians(45.0f), 16.0f / 9.0f, 0.1f, 10.0f);
 			ubo.proj[1][1] *= -1;
-			//ubo.proj = cor * glm::ortho(-1.6f, 1.6f, -0.9f, 0.9f, -1.0f, 1.0f);
-			ctx->UploadBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
+			
+			ub->Update(swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), &ubo);
+
+			cmd->BindBuffer(ub, swap->GetImageIndex() * sizeof(ubo), sizeof(ubo), 0, 0);
 		}
-		ctx->SetShaderResource(ResourceBindingType::UniformBuffer, 0, 0, ub);
-		ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 1, texture);
-		ctx->DrawIndexed(drawAttribs);
-		ctx->Flush();
+
+		cmd->BindImage(texture, 0, 1);
+		cmd->DrawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		cmd->EndRenderPass();
+		cmd->End();
+		ctx->Submit({ cmd });
 
 		//====PRESENT====
-		swap->Present(0);
+		ctx->Present();
 	}
 	gd->WaitForIdle();
-	//delete texture;
-	//delete pipeline;
-	//delete swap;
-	//delete ctx;
-	//delete ib;
-	//delete vb;
-	//delete ub;
-	//delete fragShader;
-	//delete vertShader;
-	//delete gd;
+
+	delete vertShader;
+	delete fragShader;
+	delete program;
+	delete pipeline;
+	delete rp;
+	delete swap;
+	delete ub;
+	delete texture;
+	delete ib;
+	delete vb;
+	delete ctx;
+	delete gd;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+	_CrtDumpMemoryLeaks();
 }

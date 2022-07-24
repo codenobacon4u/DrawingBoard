@@ -16,8 +16,27 @@ enum class BindFlags : uint32_t
 	UnorderedAccess		= 0x80,
 	IndirectDrawArgs	= 0x100,
 	InputAttachment		= 0x200,
-	RayTracing			= 0x400
+	RayTracing			= 0x400,
+	SwapChain			= 0x600
 };
+
+inline constexpr BindFlags operator&(BindFlags x, BindFlags y) {
+	return static_cast<BindFlags>(static_cast<uint32_t>(x) & static_cast<uint32_t>(y));
+}
+
+inline constexpr BindFlags operator|(BindFlags x, BindFlags y) {
+	return static_cast<BindFlags>(static_cast<uint32_t>(x) | static_cast<uint32_t>(y));
+}
+
+inline constexpr BindFlags& operator&=(BindFlags& x, BindFlags y) {
+	x = x & y;
+	return x;
+}
+
+inline constexpr BindFlags& operator|=(BindFlags& x, BindFlags y) {
+	x = x | y;
+	return x;
+}
 
 enum class Usage
 {
@@ -109,12 +128,6 @@ enum class TextureFormat : uint32_t {
 	BGRA8UnormSRGB,
 };
 
-static uint32_t FormatTypeSize(TextureFormat format) {
-	switch (format) {
-	case TextureFormat::R8Uint: return 1;
-	}
-}
-
 enum class TextureType {
 	Undefined,
 	Buffer,
@@ -162,11 +175,6 @@ typedef struct TextureViewDesc {
 	uint32_t FirstSlice = 0;
 	uint32_t Slices = 0;
 } TextureViewDesc;
-
-//TODO Might also follow similar path as BufferData and BufferLayout in Paperworks
-typedef struct TextureData {
-	TextureData() = default;
-} TextureData;
 
 class TextureView;
 class Texture

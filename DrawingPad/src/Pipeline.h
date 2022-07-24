@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Texture.h"
-#include "Shader.h"
 #include "RenderPass.h"
+#include "Shader.h"
+#include "Texture.h"
 
 enum class ElementDataType : uint8_t
 {
@@ -17,6 +17,12 @@ enum class ElementDataType : uint8_t
 	Uint32,
 };
 
+enum class FrontFace : uint8_t
+{
+	CounterClockwise = 0,
+	Clockwise = 1
+};
+
 typedef struct LayoutElement {
 	uint32_t InputIndex = 0;
 	uint32_t BufferSlot = 0;
@@ -27,48 +33,47 @@ typedef struct LayoutElement {
 	ElementDataType Type = ElementDataType::Float32;
 } LayoutElement;
 
-typedef struct InputLayout {
-	uint32_t NumElements = 0;
-	LayoutElement* Elements = nullptr;
-} InputLayout;
-
 typedef struct GraphicsPipelineDesc {
-	InputLayout InputLayout;
-	uint32_t ShaderCount = 0;
-	Shader** Shaders = nullptr;
+	const std::vector<LayoutElement> InputLayout;
+	ShaderProgram* ShaderProgram = nullptr;
 	uint32_t NumViewports = 0;
-	uint8_t NumColors = 0;
-	TextureFormat ColorFormats[8];
-	TextureFormat DepthFormat;
-	uint8_t SampleCount = 1;
+	bool DepthEnable = true;
+	FrontFace Face = FrontFace::CounterClockwise;
+	uint8_t MSAASamples = 0;
 	RenderPass* RenderPass = nullptr;
 } GraphicsPipelineDesc;
 
 typedef struct ComputePipelineDesc {
-	void* Rasterizer = nullptr;
+	ShaderProgram* ShaderProgram = nullptr;
 } ComputePipelineDesc;
 
 typedef struct RaytracingPipelineDesc {
-	void* Rasterizer = nullptr;
+	ShaderProgram* ShaderProgram = nullptr;
+	uint32_t MaxRecursion = 0;
 } RaytracingPipelineDesc;
 
 class Pipeline
 {
 public:
 	Pipeline(const GraphicsPipelineDesc& desc)
-		: m_GraphicsDesc(desc) {}
+		: m_GraphicsDesc(desc) {
+		m_Type = PipelineBindPoint::Graphics;
+	}
 	Pipeline(const ComputePipelineDesc& desc)
-		: m_ComputeDesc(desc) {}
+		: m_ComputeDesc(desc) {
+		m_Type = PipelineBindPoint::Compute;
+	}
 	Pipeline(const RaytracingPipelineDesc& desc)
-		: m_RaytracingDesc(desc) {}
+		: m_RaytracingDesc(desc) {
+		m_Type = PipelineBindPoint::Raytracing;
+	}
 
 	virtual ~Pipeline() {}
 
-	const GraphicsPipelineDesc& GetGraphicsDesc() const { return m_GraphicsDesc; }
-	const ComputePipelineDesc& GetComputeDesc() const { return m_ComputeDesc; }
-	const RaytracingPipelineDesc& GetRaytracingDesc() const { return m_RaytracingDesc; }
+	const PipelineBindPoint& GetBindPoint() const { return m_Type; }
 
 protected:
+	PipelineBindPoint m_Type;
 	GraphicsPipelineDesc m_GraphicsDesc = {};
 	ComputePipelineDesc m_ComputeDesc = {};
 	RaytracingPipelineDesc m_RaytracingDesc = {};

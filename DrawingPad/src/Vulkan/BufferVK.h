@@ -1,38 +1,38 @@
 #pragma once
 #include "Buffer.h"
 
-#include <vulkan/vulkan.h>
+#include "StructsVK.h"
 
-namespace VkAPI 
+#include <vulkan/vulkan.h>
+#include <vma_mem_alloc.h>
+
+namespace Vulkan 
 {
 	class GraphicsDeviceVK;
 	class BufferVK : public Buffer
 	{
 	public:
-		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, const void* data = nullptr);
-		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, VkBuffer buffer);
+		BufferVK(GraphicsDeviceVK* device, const BufferDesc& desc, uint8_t* data = nullptr);
 
 		~BufferVK();
 
-		virtual void MapMemory(uint64_t offset, uint64_t size, void** data);
+		virtual void* MapMemory();
+		virtual void UnmapMemory();
 		virtual void FlushMemory();
 
-		VkBuffer Get() { return m_Buffer; }
-		VkDeviceMemory GetMemory() { return m_Memory; }
+		virtual void Update(uint64_t offset, uint64_t size, const void* data);
 
-	private:
-		VkBuffer CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props, VkDeviceMemory& bufferMemory);
-		void CopyFrom(VkBuffer src, VkDeviceSize size);
-		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+		VkBuffer Get() { return m_Handle; }
+		VkDeviceMemory GetMemory() { return m_Memory; }
 
 	private:
 		GraphicsDeviceVK* m_Device;
 
-		VkBuffer m_Buffer;
-		VkDeviceMemory m_Memory;
+		VkBuffer m_Handle = VK_NULL_HANDLE;
+		VmaAllocation m_Alloc = VK_NULL_HANDLE;
+		VkDeviceMemory m_Memory = VK_NULL_HANDLE;
 
-		VkDeviceSize m_Alignment = 256;
-
-		void* m_StageData = nullptr;
+		bool m_Mapped = false;
+		bool m_Persist = false;
 	};
 }

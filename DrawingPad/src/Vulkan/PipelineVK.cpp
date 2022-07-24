@@ -1,37 +1,26 @@
-#include "pwpch.h"
+#include "dppch.h"
 #include "PipelineVK.h"
 
 #include "GraphicsDeviceVK.h"
-#include "RenderPassPoolVK.h"
 
-namespace VkAPI
+namespace Vulkan
 {
 	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const GraphicsPipelineDesc& desc, RenderPass* renderPass)
-		: Pipeline(desc), m_Device(device), m_Pipeline(VK_NULL_HANDLE)
+		: Pipeline(desc), m_Device(device), m_Handle(VK_NULL_HANDLE)
 	{
-		if (renderPass == nullptr)
-		{
-
-			RPKey rKey = {};
-			rKey.NumColors = desc.NumColors;
-			rKey.SampleCount = desc.SampleCount;
-			for (uint32_t i = 0; i < rKey.NumColors; i++)
-				rKey.ColorFormats[i] = desc.ColorFormats[i];
-			rKey.DepthFormat = desc.DepthFormat != TextureFormat::None ? desc.DepthFormat : TextureFormat::Unknown;
-			renderPass = m_Device->GetRenderPassPool().GetRenderPass(rKey);
-		}
-		VkRenderPass renderpass = ((RenderPassVK*)renderPass)->GetRenderPass();
+		VkRenderPass renderpass = ((RenderPassVK*)renderPass)->Get();
 
 		std::vector<VkVertexInputBindingDescription> bindingDesc;
 		std::vector<VkVertexInputAttributeDescription> attribDesc;
-		attribDesc.resize(desc.InputLayout.NumElements);
+		auto size = desc.InputLayout.size();
+		attribDesc.resize(size);
 		uint32_t bindingSize = 0;
 		// Pull vertex input and binding data from layout
 		std::vector<int> bindingMap;
-		bindingMap.resize(desc.InputLayout.NumElements, -1);
-		for (uint32_t i = 0; i < desc.InputLayout.NumElements; i++)
+		bindingMap.resize(size, -1);
+		for (uint32_t i = 0; i < size; i++)
 		{
-			auto& elem = desc.InputLayout.Elements[i];
+			auto& elem = desc.InputLayout[i];
 			auto& bindIdx = bindingMap[elem.BufferSlot];
 			if (bindIdx < 0)
 			{
@@ -41,7 +30,7 @@ namespace VkAPI
 
 			attribDesc[i].binding = elem.BufferSlot;
 			attribDesc[i].location = elem.InputIndex;
-			attribDesc[i].format = UtilsVK::Convert(elem.Type, elem.NumComponents, elem.Normalized);
+			attribDesc[i].format = UtilsVK::AttribFormatToVk(elem.Type, elem.NumComponents, elem.Normalized);
 			attribDesc[i].offset = elem.Offset;
 		}
 
@@ -66,16 +55,23 @@ namespace VkAPI
 		// Potentially Modify
 		VkPipelineRasterizationStateCreateInfo rasterizationState = {};
 		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationState.depthClampEnable = VK_FALSE;
+		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizationState.lineWidth = 1.0f;
+		rasterizationState.cullMode = VK_CULL_MODE_NONE;
+		rasterizationState.frontFace = (VkFrontFace)desc.Face;
+		rasterizationState.depthBiasEnable = VK_FALSE;
+		rasterizationState.depthBiasConstantFactor = 0.0f;
+		rasterizationState.depthBiasClamp = 0.0f;
+		rasterizationState.depthBiasSlopeFactor = 0.0f;
 
 		VkPipelineMultisampleStateCreateInfo multisampleState = {};
 		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampleState.rasterizationSamples = (desc.MSAASamples != 0) ? (VkSampleCountFlagBits)desc.MSAASamples : VK_SAMPLE_COUNT_1_BIT;
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		colorBlendAttachment.blendEnable = VK_TRUE;
 		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -83,54 +79,47 @@ namespace VkAPI
 		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
 		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 		// Potentially Modify
 		VkPipelineColorBlendStateCreateInfo colorBlendState = {};
 		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendState.logicOpEnable = VK_FALSE;
+		colorBlendState.logicOp = VK_LOGIC_OP_COPY;
 		colorBlendState.attachmentCount = 1;
 		colorBlendState.pAttachments = &colorBlendAttachment;
+		colorBlendState.blendConstants[0] = 1.f;
+		colorBlendState.blendConstants[1] = 1.f;
+		colorBlendState.blendConstants[2] = 1.f;
+		colorBlendState.blendConstants[3] = 1.f;
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
 		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		if (desc.DepthFormat != TextureFormat::None)
+		if (desc.DepthEnable)
 		{
 			depthStencilState.depthTestEnable = VK_TRUE;
 			depthStencilState.depthWriteEnable = VK_TRUE;
 			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
 			depthStencilState.depthBoundsTestEnable = VK_FALSE;
-			depthStencilState.minDepthBounds = 0.0f;
+			depthStencilState.minDepthBounds = -1.0f;
 			depthStencilState.maxDepthBounds = 1.0f;
 			depthStencilState.stencilTestEnable = VK_FALSE;
 			depthStencilState.front = {};
 			depthStencilState.back = {};
 		}
 
-		// Potentially Modify
-		//VkPipelineLayout layout;
-		//VkPipelineLayoutCreateInfo layoutInfo = {};
-		//layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		//layoutInfo.setLayoutCount = 0;
-		//layoutInfo.pushConstantRangeCount = 0;
-		//
-		//vkCreatePipelineLayout(m_Device->Get(), &layoutInfo, nullptr, &layout);
-
-		VkPipelineDynamicStateCreateInfo dynamicState = {};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-			//VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-			//VK_DYNAMIC_STATE_STENCIL_REFERENCE
+			VK_DYNAMIC_STATE_SCISSOR
 		};
+		VkPipelineDynamicStateCreateInfo dynamicState = {};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicState.pDynamicStates = dynamicStates.data();
+		
 		std::vector<VkPipelineShaderStageCreateInfo> stages = {};
-		for (uint32_t i = 0; i < desc.ShaderCount; i++)
-			stages.emplace_back(static_cast<ShaderVK*>(desc.Shaders[i])->GetStage());
-
-		m_Program = DBG_NEW ShaderProgramVK(m_Device, static_cast<ShaderVK*>(desc.Shaders[0]), static_cast<ShaderVK*>(desc.Shaders[1]));
-		m_Program->Build();
+		for (auto& [type, shader] : desc.ShaderProgram->GetShaders())
+			stages.emplace_back(static_cast<ShaderVK*>(shader)->GetStage());
+		
 		VkGraphicsPipelineCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		createInfo.stageCount = static_cast<uint32_t>(stages.size());
@@ -142,30 +131,31 @@ namespace VkAPI
 		createInfo.pMultisampleState = &multisampleState;
 		createInfo.pColorBlendState = &colorBlendState;
 		createInfo.pDepthStencilState = &depthStencilState;
-		createInfo.layout = m_Program->GetPipelineLayout();
+		createInfo.layout = static_cast<ShaderProgramVK*>(desc.ShaderProgram)->GetPipelineLayout();
 		createInfo.renderPass = renderpass;
 		createInfo.subpass = 0;
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.basePipelineHandle = VK_NULL_HANDLE;
 		createInfo.basePipelineIndex = -1;
 
-		if (vkCreateGraphicsPipelines(m_Device->Get(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_Pipeline) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(m_Device->Get(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_Handle) != VK_SUCCESS)
 			throw std::runtime_error("Failed to create graphics pipeline");
 	}
 
-	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& createInfo)
-		: Pipeline(createInfo)
+	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const ComputePipelineDesc& desc)
+		: Pipeline(desc), m_Device(device), m_Handle(VK_NULL_HANDLE)
 	{
+		throw std::runtime_error("Compute shaders are not supported at the moment!");
 	}
 
-	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& createInfo)
-		: Pipeline(createInfo)
+	PipelineVK::PipelineVK(GraphicsDeviceVK* device, const RaytracingPipelineDesc& desc)
+		: Pipeline(desc), m_Device(device), m_Handle(VK_NULL_HANDLE)
 	{
+		throw std::runtime_error("Raytracing is not supported at the moment!");
 	}
 
 	PipelineVK::~PipelineVK()
 	{
-		vkDestroyPipeline(m_Device->Get(), m_Pipeline, nullptr);
-		delete m_Program;
+		vkDestroyPipeline(m_Device->Get(), m_Handle, nullptr);
 	}
 }

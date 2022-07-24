@@ -1,94 +1,51 @@
 #pragma once
+#include "CommandBuffer.h"
 
 #include <vulkan/vulkan.h>
 
-namespace VkAPI
+#include "DescriptorSetVK.h"
+#include "PipelineVK.h"
+#include "StructsVK.h"
+
+namespace Vulkan
 {
-	class CommandBufferVK
+	class GraphicsDeviceVK;
+	class CommandBufferVK : public CommandBuffer
 	{
 	public:
-		CommandBufferVK()
-		{}
+		CommandBufferVK(GraphicsDeviceVK* device, VkCommandPool pool, VkCommandBufferLevel level);
+		~CommandBufferVK();
 
-		CommandBufferVK(const CommandBufferVK&) = delete;
-		CommandBufferVK(CommandBufferVK&&) = delete;
-		CommandBufferVK& operator=(const CommandBufferVK&) = delete;
-		CommandBufferVK& operator=(CommandBufferVK&&) = delete;
+		virtual void Begin() override;
+		virtual void BeginRenderPass(RenderPass* renderpass, std::vector<TextureView*> renderTargets, std::vector<ClearValue> clearValues) override;
+		virtual void BindBuffer(Buffer* buffer, uint64_t offset, uint64_t range, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) override;
+		virtual void BindImage(Texture* texture, uint32_t set, uint32_t binding, uint32_t arrayIndex = 0) override;
+		virtual void BindIndexBuffer(Buffer* buffer, uint64_t offset, uint32_t indexType) override;
+		virtual void BindPipeline(Pipeline* pipeline) override;
+		virtual void BindVertexBuffer(uint32_t start, uint32_t num, std::vector<Buffer*> buffers, std::vector<uint64_t> offsets) override;
+		virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+		virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) override;
+		virtual void DrawIndexedIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
+		virtual void DrawIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
+		virtual void End() override;
+		virtual void EndRenderPass() override;
+		virtual void SetPushConstant(ShaderType type, uint32_t offset, uint32_t size, void* data) override;
+		virtual void SetScissors(uint32_t first, uint32_t count, std::vector<Rect2D> scissors) override;
+		virtual void SetViewports(uint32_t first, uint32_t count, std::vector<Viewport> viewports) override;
 
-		inline void BeginRenderPass(VkRenderPass pass, VkFramebuffer buffer, uint32_t width, uint32_t height, uint32_t clearCount = 0, const VkClearValue* clearValues = nullptr) 
-		{
-			if (m_State.RenderPass != pass || m_State.Framebuffer != buffer)
-			{
+		void FlushDescriptorSets();
 
-				VkRenderPassBeginInfo beginInfo = {};
-				beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-				beginInfo.clearValueCount = clearCount;
-				beginInfo.pClearValues = clearValues;
-				beginInfo.renderPass = pass;
-				beginInfo.framebuffer = buffer;
-				beginInfo.renderArea = { {0, 0}, {width, height} };
-				vkCmdBeginRenderPass(m_CmdBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
-				m_State.RenderPass = pass;
-				m_State.Framebuffer = buffer;
-				m_State.FramebufferWidth = width;
-				m_State.FramebufferHeight = height;
-			}
-		}
-
-		inline void EndRenderPass()
-		{
-			vkCmdEndRenderPass(m_CmdBuffer);
-			m_State.RenderPass = VK_NULL_HANDLE;
-			m_State.Framebuffer = VK_NULL_HANDLE;
-			m_State.FramebufferWidth = 0;
-			m_State.FramebufferHeight = 0;
-		}
-
-		inline void EndCommandBuffer()
-		{
-			vkEndCommandBuffer(m_CmdBuffer);
-		}
-
-		inline void Reset()
-		{
-			m_CmdBuffer = VK_NULL_HANDLE;
-			m_State = State{};
-		}
-
-		inline void SetViewports(uint32_t first, uint32_t count, const VkViewport* viewports)
-		{
-			vkCmdSetViewport(m_CmdBuffer, first, count, viewports);
-		}
-
-		inline void SetScissors(uint32_t first, uint32_t count, const VkRect2D* scissors)
-		{
-			vkCmdSetScissor(m_CmdBuffer, first, count, scissors);
-		}
-
-		inline void SetBuffer(VkCommandBuffer buffer)
-		{
-			m_CmdBuffer = buffer;
-		}
-		VkCommandBuffer Get() const { return m_CmdBuffer; }
-
-	public:
-		typedef struct State
-		{
-			VkRenderPass RenderPass = VK_NULL_HANDLE;
-			VkFramebuffer Framebuffer = VK_NULL_HANDLE;
-			VkPipeline GraphicsPipeline = VK_NULL_HANDLE;
-			VkPipeline ComputePipeline = VK_NULL_HANDLE;
-			VkPipeline RaytracingPipeline = VK_NULL_HANDLE;
-			VkBuffer IndexBuffer = VK_NULL_HANDLE;
-			VkDeviceSize IndexBufferOffset = 0;
-			uint32_t FramebufferWidth = 0;
-			uint32_t FramebufferHeight = 0;
-		} State;
-
-		const State GetState()& { return m_State; }
+		VkCommandBuffer Get() const { return m_Handle; }
 
 	private:
-		State m_State;
-		VkCommandBuffer m_CmdBuffer = VK_NULL_HANDLE;
+		GraphicsDeviceVK* m_Device;
+		VkCommandPool m_Pool = VK_NULL_HANDLE;
+		VkCommandBuffer m_Handle = VK_NULL_HANDLE;
+
+		PipelineVK* m_Pipeline = nullptr;
+
+		DescriptorSetPoolVK* m_DescriptorPool;
+		std::map<uint32_t, bool> m_DirtySets;
+		std::map<uint32_t, std::map<uint32_t, BindingInfo>> m_BindingSets;
 	};
 }

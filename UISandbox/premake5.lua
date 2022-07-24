@@ -14,13 +14,13 @@ project "UISandbox"
 
     includedirs {
         "%{wks.location}/DrawingPad/src",
-        "%{wks.location}/DrawingPad/vendor",
         "%{wks.location}/DrawingPad/vendor/spdlog/include",
         "%{IncludeDir.glad}",
         "%{IncludeDir.glm}",
         "%{IncludeDir.glfw}",
         "%{IncludeDir.imgui}",
-    	"%{IncludeDir.stb_image}"
+    	"%{IncludeDir.stb_image}",
+        "%{wks.location}/Sandbox/vendor/tiny_obj_loader"
     }
 
     links {
@@ -48,11 +48,6 @@ project "UISandbox"
         defines "PW_DEBUG"
         runtime "Debug"
         symbols "on"
-
-        postbuildcommands
-        {
-			"{COPYDIR} \"%{LibraryDir.VulkanSDK_DebugDLL}\" \"%{cfg.targetdir}\""
-        }
 
     filter "configurations:Release"
         defines "PW_RELEASE"

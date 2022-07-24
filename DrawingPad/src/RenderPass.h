@@ -1,4 +1,7 @@
 #pragma once
+
+#include <vector>
+
 #include "Texture.h"
 
 enum SampleCount : uint8_t{
@@ -108,50 +111,16 @@ typedef struct RenderPassAttachmentDesc {
 	ImageLayout InitialLayout = ImageLayout::Undefined;
 	ImageLayout FinalLayout = ImageLayout::Undefined;
 
-	RenderPassAttachmentDesc()
-	{
-		Format = TextureFormat::Unknown;
-		Samples = SampleCount::e1Bit;
-		LoadOp = AttachmentLoadOp::Load;
-		StoreOp = AttachmentStoreOp::Store;
-		StencilLoadOp = AttachmentLoadOp::Load;
-		StencilStoreOp = AttachmentStoreOp::Store;
-		InitialLayout = ImageLayout::Undefined;
-		FinalLayout = ImageLayout::Undefined;
-	}
-
-	RenderPassAttachmentDesc(
-		TextureFormat format, 
-		uint32_t sampleCount, 
-		AttachmentLoadOp loadOp, 
-		AttachmentStoreOp storeOp, 
-		AttachmentLoadOp stencilLoad, 
-		AttachmentStoreOp stencilStore, 
-		ImageLayout initialLayout, 
-		ImageLayout finalLayout
-	)
-	{
-		Format = format;
-		Samples = sampleCount;
-		LoadOp = loadOp;
-		StoreOp = storeOp;
-		StencilLoadOp =  stencilLoad;
-		StencilStoreOp = stencilStore;
-		InitialLayout = initialLayout;
-		FinalLayout = finalLayout;
-	}
+	RenderPassAttachmentDesc() = default;
 } RenderPassAttachmentDesc;
 
 typedef struct SubpassDesc {
 	PipelineBindPoint BindPoint = PipelineBindPoint::Graphics;
-	uint32_t InputAttachmentCount = 0;
-	const AttachmentReference* InputAttachments = nullptr;
-	uint32_t ColorAttachmentCount = 0;
-	const AttachmentReference* ColorAttachments = nullptr;
-	const AttachmentReference* ResolveAttachments = nullptr;
+	std::vector<AttachmentReference> InputAttachments = {};
+	std::vector<AttachmentReference> ColorAttachments = {};
+	std::vector<AttachmentReference> ResolveAttachments = {};
 	const AttachmentReference* DepthStencilAttachment = nullptr;
-	uint32_t PreserveAttachmentCount = 0;
-	const uint32_t* PreserveAttachments = nullptr;
+	std::vector<uint32_t> PreserveAttachments = {};
 
 	SubpassDesc() = default;
 } SubpassDesc;
@@ -168,22 +137,11 @@ typedef struct DependencyDesc {
 } DependencyDesc;
 
 typedef struct RenderPassDesc {
-	uint32_t AttachmentCount = 0;
-	RenderPassAttachmentDesc* Attachments = nullptr;
-	uint32_t SubpassCount = 0;
-	SubpassDesc* Subpasses = nullptr;
-	uint32_t DependencyCount = 0;
-	DependencyDesc* Dependencies = nullptr;
+	std::vector<RenderPassAttachmentDesc> Attachments = {};
+	std::vector<SubpassDesc> Subpasses = {};
+	std::vector<DependencyDesc> SubpassDependencies = {};
 
-	RenderPassDesc()
-	{
-		AttachmentCount = 0;
-		Attachments = nullptr;
-		SubpassCount = 0;
-		Subpasses = nullptr;
-		DependencyCount = 0;
-		Dependencies = nullptr;
-	}
+	RenderPassDesc() = default;
 } RenderPassDesc;
 
 class GraphicsDevice;
@@ -196,7 +154,7 @@ public:
 
 	virtual ~RenderPass() {}
 
-	const RenderPassDesc& getDesc() { return m_Desc; }
+	const RenderPassDesc& GetDesc() { return m_Desc; }
 protected:
 	GraphicsDevice* m_Device;
 	RenderPassDesc m_Desc;

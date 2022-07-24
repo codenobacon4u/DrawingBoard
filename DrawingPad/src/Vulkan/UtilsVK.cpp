@@ -1,18 +1,14 @@
-#include "pwpch.h"
+#include "dppch.h"
 #include "UtilsVK.h"
 
 #include <fstream>
 
-namespace VkAPI
-{
-	void UtilsVK::Log(std::string path, std::string msg)
-	{
-		std::ofstream ofs(path.c_str(), std::ios_base::out | std::ios_base::app);
-		ofs << msg << '\n';
-		ofs.close();
-	}
+#define VMA_IMPLEMENTATION
+#include <vma_mem_alloc.h>
 
-	VkFormat VkAPI::UtilsVK::Convert(TextureFormat format)
+namespace Vulkan
+{
+	VkFormat Vulkan::UtilsVK::TextureFormatToVk(TextureFormat format)
 	{
 		switch (format)
 		{
@@ -144,7 +140,7 @@ namespace VkAPI
 			return VK_FORMAT_UNDEFINED;
 		}
 	}
-	TextureFormat UtilsVK::Convert(VkFormat format)
+	TextureFormat UtilsVK::VkToTextureFormat(VkFormat format)
 	{
 		switch (format)
 		{
@@ -276,7 +272,7 @@ namespace VkAPI
 			return TextureFormat::Unknown;
 		}
 	}
-	VkAttachmentLoadOp UtilsVK::Convert(AttachmentLoadOp op)
+	VkAttachmentLoadOp UtilsVK::LoadOpToVk(AttachmentLoadOp op)
 	{
 		switch (op)
 		{
@@ -291,7 +287,7 @@ namespace VkAPI
 			throw DBG_NEW std::runtime_error("Failed to convert attachment load op");
 		}
 	}
-	VkAttachmentStoreOp UtilsVK::Convert(AttachmentStoreOp op)
+	VkAttachmentStoreOp UtilsVK::StoreOpToVk(AttachmentStoreOp op)
 	{
 		switch (op)
 		{
@@ -304,7 +300,7 @@ namespace VkAPI
 			throw DBG_NEW std::runtime_error("Failed to convert attachment store op");
 		}
 	}
-	VkImageLayout UtilsVK::Convert(ImageLayout layout)
+	VkImageLayout UtilsVK::ImageLayoutToVk(ImageLayout layout)
 	{
 		switch (layout)
 		{
@@ -336,7 +332,7 @@ namespace VkAPI
 			return VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 	}
-	SampleCount UtilsVK::Convert(uint8_t samples)
+	SampleCount UtilsVK::ToSampleCount(uint8_t samples)
 	{
 		switch (samples)
 		{
@@ -359,7 +355,7 @@ namespace VkAPI
 		}
 	}
 
-	VkFormat UtilsVK::Convert(ElementDataType type, uint32_t num, bool normalized)
+	VkFormat UtilsVK::AttribFormatToVk(ElementDataType type, uint32_t num, bool normalized)
 	{
 		switch (type)
 		{
@@ -507,5 +503,90 @@ namespace VkAPI
 			}
 		default: return VK_FORMAT_UNDEFINED;
 		}
+	}
+
+	VkPipelineBindPoint UtilsVK::PipelineBindPointToVk(PipelineBindPoint bindPoint)
+	{
+		switch (bindPoint) 
+		{
+		case PipelineBindPoint::Graphics:
+			return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		case PipelineBindPoint::Compute:
+			return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		default:
+			return VK_PIPELINE_BIND_POINT_MAX_ENUM;
+		}
+	}
+
+	void UtilsVK::PrintDeviceProps(VkPhysicalDeviceProperties props)
+	{
+		std::string vendor, type, driver;
+		switch (props.vendorID) {
+		case 0x1002:
+			vendor = "AMD";
+			break;
+		case 0x1010:
+			vendor = "ImgTec";
+			break;
+		case 0x10DE:
+			vendor = "NVIDIA";
+			break;
+		case 0x13B5:
+			vendor = "ARM";
+			break;
+		case 0x5143:
+			vendor = "Qualcomm";
+			break;
+		case 0x8086:
+			vendor = "Intel";
+			break;
+		default:
+			vendor = "UNKOWN";
+			break;
+		}
+		switch (props.deviceType) {
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_CPU:
+			type = "CPU";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+			type = "Discrete";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+			type = "Integrated";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+			type = "Virtual";
+			break;
+		case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_OTHER:
+		default:
+			type = "Other";
+			break;
+		}
+		static std::string const values[] = {
+			"",
+			"AMD Proprietary",
+			"AMD Open Source",
+			"MESA RADV",
+			"NVIDIA Proprietary",
+			"INTEL Proprietary Windows",
+			"INTEL Open Source MESA",
+			"Imagination Proprietary",
+			"Qualcomm Proprietary",
+			"ARM Proprietary",
+			"Google SWIFTSHADER",
+			"GGP Proprietary",
+			"BROADCOM Proprietary",
+			"MESA LLVMPIPE",
+			"MOLTENVK",
+		};
+		driver = props.driverVersion < values->size() ? values[props.driverVersion] : "UNKOWN";
+		std::string api = string_format("%d.%d.%d", props.apiVersion >> 22, (props.apiVersion >> 12) & 0x3ff, props.apiVersion & 0xfff);
+		std::cout
+			<< "Device Name: " << props.deviceName << "\n"
+			<< "Device Type: " << type << "\n"
+			<< "Driver Version: " << driver << "\n"
+			<< "Vulkan Version: " << api << "\n"
+			<< "Vender ID: " << vendor << "\n"
+			<< "Device ID: " << props.deviceID << "\n";
 	}
 }

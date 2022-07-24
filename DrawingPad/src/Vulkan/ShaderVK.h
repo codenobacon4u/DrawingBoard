@@ -3,11 +3,11 @@
 #include "Shader.h"
 
 #include <vulkan/vulkan.h>
-#include <spirv_cross/spirv_cross.hpp>
 
 #include "DescriptorSetVK.h"
 
-namespace VkAPI {
+namespace Vulkan 
+{
 	class GraphicsDeviceVK;
 	class ShaderVK : public Shader
 	{
@@ -16,17 +16,19 @@ namespace VkAPI {
 
 		~ShaderVK();
 
-		VkPipelineShaderStageCreateInfo& GetStage() { return m_Stage; }
-
 		bool LoadShaderFromFile(const std::string& path);
 		bool LoadShaderFromSrc(const std::string& src);
+		bool LoadShaderFromBin(const std::vector<uint32_t>& src);
+
+		VkPipelineShaderStageCreateInfo GetStage();
 
 	private:
+		std::vector<uint32_t> Compile(std::string code);
 		void Reflect(std::vector<uint32_t> spirv);
 
 	private:
 		GraphicsDeviceVK* m_Device;
-		VkShaderModule m_Module = VK_NULL_HANDLE;
+		VkShaderModule m_Handle = VK_NULL_HANDLE;
 		VkPipelineShaderStageCreateInfo m_Stage = {};
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 	};
@@ -34,16 +36,23 @@ namespace VkAPI {
 	class ShaderProgramVK : public ShaderProgram
 	{
 	public:
-		ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* vertShader, ShaderVK* fragShader);
+		ShaderProgramVK(GraphicsDeviceVK* device, ShaderVK* shader);
+		ShaderProgramVK(GraphicsDeviceVK* device, std::vector<ShaderVK*> shaders);
 		
 		~ShaderProgramVK();
 
 		virtual void AddShader(Shader* shader) override;
 		virtual void Build() override;
 
-		DescriptorSetLayoutCacheVK* GetCache() { return m_DescCache; }
+
+		virtual size_t GetHash() override;
+
 		VkPipelineLayout GetPipelineLayout() { return m_PipeLayout; }
-		ShaderLayout GetLayout() { return m_Layout; }
+		VkDescriptorSetLayout& GetSetLayout(uint32_t set) { return m_SetLayouts[set]; }
+		VkDescriptorUpdateTemplate& GetUpdateTemplate(uint32_t set) { return m_UpdateTemplates[set]; }
+
+	private:
+		void CreateUpdateTemplate();
 
 	private:
 		GraphicsDeviceVK* m_Device;
@@ -51,5 +60,9 @@ namespace VkAPI {
 
 		VkPipelineLayout m_PipeLayout = VK_NULL_HANDLE;
 		DescriptorSetLayoutCacheVK* m_DescCache;
+		std::vector<VkDescriptorSetLayout> m_SetLayouts = {};
+		std::vector<VkDescriptorUpdateTemplate> m_UpdateTemplates = {};
+
+		size_t m_Hash = 0;
 	};
 }

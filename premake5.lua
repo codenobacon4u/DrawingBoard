@@ -1,3 +1,4 @@
+include "./vendor/premake/premake_customization/solution_items.lua"
 include "dependencies.lua"
 
 workspace "DrawingPad"
@@ -10,6 +11,10 @@ workspace "DrawingPad"
         "Dist"
     }
 
+    solution_items {
+        ".editorconfig"
+    }
+
     flags {
         "MultiProcessorCompile"
     }
@@ -17,6 +22,7 @@ workspace "DrawingPad"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 group "Dependencies"
+    include "vendor/premake"
     include "DrawingPad/vendor/glfw"
     include "DrawingPad/vendor/glad"
     include "DrawingPad/vendor/imgui"

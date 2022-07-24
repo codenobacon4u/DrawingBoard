@@ -1,777 +1,707 @@
 #include <stdio.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <DrawingPad.h>
+#include <thread>
 #include <fstream>
-#include <iomanip>
 #include <chrono>
 #include <iostream>
-#include <glm/glm/gtx/string_cast.hpp>
-#include <glm/glm/gtx/rotate_vector.hpp>
-#include <imgui/imgui.h>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+
+#pragma warning(push, 0)
+#pragma warning( disable: 26451 )
+#pragma warning( disable: 6262 )
+#pragma warning( disable: 26498 )
+#pragma warning( disable: 26819 )
+#pragma warning( disable: 26495 )
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+#pragma warning(pop)
 
 #include "ImGuiWindow.h"
-
-API Curr_API = API::Vulkan;
+#include "ImGuiRenderer.h"
 
 struct Vertex {
-    glm::vec2 pos;
-    glm::vec2 tex;
-    uint8_t color[4];
+	glm::vec3 pos;
+	glm::vec3 color;
+	glm::vec2 tex;
+
+	bool operator==(const Vertex& other) const {
+		return pos == other.pos && color == other.color && tex == other.tex;
+	}
 };
 
 struct UniformBufferObject {
-    glm::vec2 scale;
-    glm::vec2 translate;
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 };
 
-struct FrameRenderBuffers {
-    Buffer* VertexBuffer;
-    Buffer* IndexBuffer;
-    Buffer* UploadBuffer;
-};
+API Curr_API = API::Vulkan;
 
-struct WindowBuffers
+static GraphicsDevice* device;
+
+static Swapchain* gSwapchain;
+static Buffer* gVertexBuffer;
+static Buffer* gIndexBuffer;
+static Buffer* gGameUniformBuffer;
+static Buffer* gSceneUniformBuffer;
+static Pipeline* gPipeline;
+static RenderPass* gRenderPass;
+
+static Texture* gTexture;
+
+static Texture* gGameColorTexture;
+static Texture* gGameDepthTexture;
+static uint32_t gGameWidth = 1280;
+static uint32_t gGameHeight = 720;
+
+
+static Texture* gSceneColorTexture;
+static Texture* gSceneDepthTexture;
+static uint32_t gSceneWidth = 1280;
+static uint32_t gSceneHeight = 720;
+
+static Shader* gVertShader;
+static Shader* gFragShader;
+static ShaderProgram* gProgram;
+
+static std::vector<Vertex> gVertices;
+static std::vector<uint32_t> gIndices;
+static Texture* oldColor = nullptr;
+static Texture* oldDepth = nullptr;
+
+static bool gameViewable = false;
+static bool sceneViewable = false;
+
+static bool vsync = false;
+
+static void glfw_error_callback(int error, const char* desc) 
 {
-    uint32_t Index;
-    uint32_t Count;
-    FrameRenderBuffers* FrameBuffers;
-};
-
-struct WindowData
-{
-    int Width;
-    int Height;
-    GraphicsContext* Context;
-    Swapchain* Swapchain;
-    RenderPass* RenderPass;
-    Pipeline* Pipeline;
-    bool ClearEnable;
-    glm::vec4 ClearValue;
-    uint32_t FrameIndex;
-    uint32_t ImageCount;
-
-    WindowData()
-    {
-        memset(this, 0, sizeof(*this));
-        ClearEnable = true;
-    }
-};
-
-struct ViewportData
-{
-    bool WindowOwned;
-    WindowData Window;
-    WindowBuffers RenderBuffers;
-
-    ViewportData() {
-        WindowOwned = false;
-        memset(&RenderBuffers, 0, sizeof(RenderBuffers));
-    }
-    ~ViewportData() {}
-};
-
-struct RenderData
-{
-    GraphicsDevice* Device;
-    RenderPass* RenderPass;
-    size_t BufferMemoryAlignment;
-    Pipeline* Pipeline;
-    uint32_t Subpass;
-
-    Texture* FontImage;
-    TextureView* FontView;
-    Buffer* UploadBuffer;
-
-    WindowBuffers MainWindowBuffers;
-
-    RenderData()
-    {
-        memset(this, 0, sizeof(*this));
-        BufferMemoryAlignment = 256;
-    }
-};
-
-static GraphicsDevice* device = nullptr;
-static WindowData mainWindowData;
-static bool rebuildSwap = false;
-
-static void _CreateWindow(ImGuiViewport* viewport)
-{
-    // Different from CreateVulkanWindow
-    RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
-    ViewportData* vd = new ViewportData();
-    WindowData* wd = &vd->Window;
-    ImGui_ImplGlfw_ViewportData* pvd = (ImGui_ImplGlfw_ViewportData*)viewport->PlatformUserData;
-    Swapchain* old = wd->Swapchain;
-
-    GraphicsContextDesc ctxDesc = {};
-    ctxDesc.Name = "ViewportContext";
-    wd->Context = bd->Device->CreateContext(ctxDesc);
-    viewport->RendererUserData = vd;
-
-
-    wd->ClearEnable = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? false : true;
-    vd->WindowOwned = true;
-    
-    // Same as CreateVulkanWindow
-    //CreaetWindowSwapChain
-    wd->Width = (int)viewport->Size.x;
-    wd->Height = (int)viewport->Size.y;
-
-    SwapchainDesc swapDesc = {};
-    swapDesc.Width = (uint32_t)viewport->Size.x;
-    swapDesc.Height = (uint32_t)viewport->Size.y;
-    swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
-    swapDesc.DepthFormat = TextureFormat::None;
-    wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, wd->Context, pvd->Window);
-
-    if (old)
-        delete old;
+	std::cerr << "GLFW Error: [" << error << "] " << desc;
 }
 
-static void _DestroyWindow(ImGuiViewport* viewport)
+void RenderGame(CommandBuffer* cmd, TextureView* rtv) 
 {
-    RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
-    if (ViewportData* vd = (ViewportData*)viewport->RendererUserData)
-    {
-        if (vd->WindowOwned)
-        {
-            WindowData wd = vd->Window;
-            delete wd.Pipeline;
-            delete wd.RenderPass;
-            delete wd.Swapchain;
-        }
-        for (uint32_t i = 0; i < vd->RenderBuffers.Count; i++)
-        {
-            delete vd->RenderBuffers.FrameBuffers[i].VertexBuffer;
-            delete vd->RenderBuffers.FrameBuffers[i].IndexBuffer;
-            delete vd->RenderBuffers.FrameBuffers[i].UploadBuffer;
-        }
-        delete vd->RenderBuffers.FrameBuffers;
-        vd->RenderBuffers.Index = 0;
-        vd->RenderBuffers.Count = 0;
+	cmd->SetViewports(0, 1, { { 0, 0, (float)gGameWidth, (float)gGameHeight, 0.0f, 1.0f } });
+	cmd->SetScissors(0, 1, { { { 0, 0 }, { gGameWidth, gGameHeight } } });
+	cmd->BindPipeline(gPipeline);
+	cmd->BindVertexBuffer(0, 1, { gVertexBuffer }, { 0 });
+	cmd->BindIndexBuffer(gIndexBuffer, 0, 1);
 
-        delete vd;
-    }
-    viewport->RendererUserData = nullptr;
+	{
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		UniformBufferObject ubo = {};
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(45.0f), (float)gGameWidth / (float)gGameHeight, 0.1f, 10.0f);
+		ubo.proj[1][1] *= -1;
+
+		gGameUniformBuffer->Update(gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), reinterpret_cast<uint8_t*>(&ubo));
+
+		cmd->BindBuffer(gGameUniformBuffer, gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), 0, 0);
+	}
+
+	cmd->BindImage(gTexture, 0, 1);
+	cmd->DrawIndexed(static_cast<uint32_t>(gIndices.size()), 1, 0, 0, 1);
 }
 
-static void _SetWindowSize(ImGuiViewport* viewport, ImVec2 size) {
-    RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
-    ViewportData* vd = (ViewportData*)viewport->RendererUserData;
-    ImGui_ImplGlfw_ViewportData* pvd = (ImGui_ImplGlfw_ViewportData*)viewport->PlatformUserData;
-    if (vd == nullptr)
-        return;
-    vd->Window.ClearEnable = (viewport->Flags & ImGuiViewportFlags_NoRendererClear) ? false : true;
-
-    WindowData* wd = &vd->Window;
-
-    Swapchain* old = wd->Swapchain;
-    wd->ImageCount = 0;
-    if (wd->RenderPass)
-        delete wd->RenderPass;
-    if (wd->Pipeline)
-        delete wd->Pipeline;
-
-    wd->Width = (int)viewport->Size.x;
-    wd->Height = (int)viewport->Size.y;
-
-    SwapchainDesc swapDesc = {};
-    swapDesc.Width = (uint32_t)viewport->Size.x;
-    swapDesc.Height = (uint32_t)viewport->Size.y;
-    swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
-    swapDesc.DepthFormat = TextureFormat::None;
-    wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, wd->Context, pvd->Window);
-
-    if (old)
-        delete old;
-}
-
-static void _RenderWindow(ImGuiViewport* viewport, void*)
+void RenderScene(CommandBuffer* cmd, TextureView* rtv) 
 {
-    RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
-    ViewportData* vd = (ViewportData*)viewport->RendererUserData;
-    WindowData* wd = &vd->Window;
-    GraphicsContext* ctx = wd->Context;
+	cmd->SetViewports(0, 1, { { 0, 0, (float)gSceneWidth, (float)gSceneHeight, 0.0f, 1.0f } });
+	cmd->SetScissors(0, 1, { { { 0, 0 }, { gSceneWidth, gSceneHeight } } });
+	cmd->BindPipeline(gPipeline);
+	cmd->BindVertexBuffer(0, 1, { gVertexBuffer }, { 0 });
+	cmd->BindIndexBuffer(gIndexBuffer, 0, 1);
 
-    auto* rtv = wd->Swapchain->GetNextBackbuffer();
-    ctx->Begin(wd->Swapchain->GetImageIndex());
-    ctx->SetRenderTargets(1, &rtv, nullptr, wd->ClearEnable);
-    auto clear = wd->ClearEnable ? glm::value_ptr(wd->ClearValue) : nullptr;
-    ctx->ClearColor(rtv, clear);
+	{
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		UniformBufferObject ubo = {};
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(-2.0f, -2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(45.0f), (float)gSceneWidth / (float)gSceneHeight, 0.1f, 10.0f);
+		ubo.proj[1][1] *= -1;
 
-    // RenderData
-    {
-        ImDrawData* drawData = viewport->DrawData;
-        int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
-        int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
-        if (fb_width <= 0 || fb_height <= 0)
-            return;
+		gSceneUniformBuffer->Update(gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), reinterpret_cast<uint8_t*>(&ubo));
 
-        Pipeline* pipeline = wd->Pipeline;
+		cmd->BindBuffer(gSceneUniformBuffer, gSwapchain->GetImageIndex() * sizeof(ubo), sizeof(ubo), 0, 0);
+	}
 
-        if (pipeline == nullptr)
-            pipeline = bd->Pipeline;
-
-        ViewportData* viewportData = (ViewportData*)viewport->DrawData->OwnerViewport->RendererUserData;
-        WindowBuffers* wrb = &viewportData->RenderBuffers;
-        if (wrb->FrameBuffers == nullptr)
-        {
-            wrb->Index = 0;
-            wrb->Count = wd->ImageCount;
-            wrb->FrameBuffers = (FrameRenderBuffers*)malloc(sizeof(FrameRenderBuffers) * 3);
-            memset(wrb->FrameBuffers, 0, sizeof(FrameRenderBuffers) * 3);
-        }
-
-        wrb->Index = wd->Swapchain->GetImageIndex();
-        auto rb = &wrb->FrameBuffers[wrb->Index];
-
-        if (drawData->TotalVtxCount > 0)
-        {
-            size_t vertex_size = drawData->TotalVtxCount * sizeof(ImDrawVert);
-            size_t index_size = drawData->TotalIdxCount * sizeof(ImDrawIdx);
-            if (rb->VertexBuffer == nullptr || rb->VertexBuffer->GetSize() < vertex_size)
-            {
-                if (rb->VertexBuffer != nullptr)
-                    delete rb->VertexBuffer;
-
-                size_t sizeAligned = ((vertex_size - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-                BufferDesc desc = {};
-                desc.Size = (uint32_t)sizeAligned;
-                desc.BindFlags = BufferBindFlags::Vertex;
-                rb->VertexBuffer = bd->Device->CreateBuffer(desc, nullptr);
-            }
-            if (rb->IndexBuffer == nullptr || rb->IndexBuffer->GetSize() < index_size)
-            {
-                if (rb->IndexBuffer != nullptr)
-                    delete rb->IndexBuffer;
-
-                size_t sizeAligned = ((index_size - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-                BufferDesc desc = {};
-                desc.Size = (uint32_t)sizeAligned;
-                desc.BindFlags = BufferBindFlags::Index;
-                rb->IndexBuffer = bd->Device->CreateBuffer(desc, nullptr);
-            }
-
-            ImDrawVert* vtx_dst = nullptr;
-            ImDrawIdx* idx_dst = nullptr;
-            rb->VertexBuffer->MapMemory(0, rb->VertexBuffer->GetSize(), (void**)(&vtx_dst));
-            rb->IndexBuffer->MapMemory(0, rb->IndexBuffer->GetSize(), (void**)(&idx_dst));
-            for (int n = 0; n < drawData->CmdListsCount; n++)
-            {
-                const ImDrawList* cmdList = drawData->CmdLists[n];
-                memcpy(vtx_dst, cmdList->VtxBuffer.Data, cmdList->VtxBuffer.Size * sizeof(ImDrawVert));
-                memcpy(idx_dst, cmdList->IdxBuffer.Data, cmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
-                vtx_dst += cmdList->VtxBuffer.Size;
-                idx_dst += cmdList->IdxBuffer.Size;
-            }
-            rb->VertexBuffer->FlushMemory();
-            rb->IndexBuffer->FlushMemory();
-        }
-        // Setup Render State
-        {
-            ctx->SetPipeline(pipeline);
-
-            if (drawData->TotalVtxCount > 0)
-            {
-                Buffer* vertexBuffers[1] = { rb->VertexBuffer };
-                uint64_t vertexOffset[1] = { 0 };
-                ctx->SetVertexBuffers(0, 1, vertexBuffers, vertexOffset);
-                ctx->SetIndexBuffer(rb->IndexBuffer, 0);
-            }
-
-            {
-                Viewport viewport;
-                viewport.X = 0;
-                viewport.Y = 0;
-                viewport.Width = (float)fb_width;
-                viewport.Height = (float)fb_height;
-                viewport.minDepth = 0.0f;
-                viewport.maxDepth = 1.0f;
-                ctx->SetViewports(1, &viewport, fb_width, fb_height);
-            }
-
-            if (drawData->TotalVtxCount > 0) {
-                float scale[2];
-                scale[0] = 2.0f / drawData->DisplaySize.x;
-                scale[1] = 2.0f / drawData->DisplaySize.y;
-                float translate[2];
-                translate[0] = -1.0f - drawData->DisplayPos.x * scale[0];
-                translate[1] = -1.0f - drawData->DisplayPos.y * scale[1];
-                UniformBufferObject ubo = {};
-                ubo.scale = glm::vec2(scale[0], scale[1]);
-                ubo.translate = glm::vec2(translate[0], translate[1]);
-
-                ctx->SetPushConstant(ShaderType::Vertex, sizeof(float) * 0, sizeof(float) * 2, scale);
-                ctx->SetPushConstant(ShaderType::Vertex, sizeof(float) * 2, sizeof(float) * 2, translate);
-
-                ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 0, bd->FontImage);
-            }
-        }
-
-        ImVec2 clipOff = drawData->DisplayPos;
-        ImVec2 clipScale = drawData->FramebufferScale;
-
-        int globalVtxOffset = 0;
-        int globalIdxOffset = 0;
-        for (int n = 0; n < drawData->CmdListsCount; n++)
-        {
-            const ImDrawList* cmdList = drawData->CmdLists[n];
-            for (int i = 0; i < cmdList->CmdBuffer.Size; i++)
-            {
-                const ImDrawCmd* cmd = &cmdList->CmdBuffer[i];
-                ImVec2 clipMin((cmd->ClipRect.x - clipOff.x) * clipScale.x, (cmd->ClipRect.y - clipOff.y) * clipScale.y);
-                ImVec2 clipMax((cmd->ClipRect.z - clipOff.x) * clipScale.x, (cmd->ClipRect.w - clipOff.y) * clipScale.y);
-
-                if (clipMin.x < 0.0f) { clipMin.x = 0.0f; }
-                if (clipMin.y < 0.0f) { clipMin.y = 0.0f; }
-                if (clipMax.x > fb_width) { clipMax.x = (float)fb_width; }
-                if (clipMax.y > fb_height) { clipMax.x = (float)fb_height; }
-                if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
-                    continue;
-
-                ctx->SetScissors(1, (uint32_t)clipMin.x, (uint32_t)clipMin.y, (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y));
-
-                DrawIndexAttribs attribs = {};
-                attribs.IndexCount = cmd->ElemCount;
-                attribs.InstanceCount = 1;
-                attribs.FirstIndex = cmd->IdxOffset + globalIdxOffset;
-                attribs.VertexOffset = cmd->VtxOffset + globalVtxOffset;
-                attribs.FirstInstance = 0;
-                ctx->DrawIndexed(attribs);
-            }
-            globalIdxOffset += cmdList->IdxBuffer.Size;
-            globalVtxOffset += cmdList->VtxBuffer.Size;
-        }
-
-        ctx->SetScissors(1, 0, 0, fb_width, fb_height);
-    }
-
-    ctx->Flush();
-
+	cmd->BindImage(gTexture, 0, 1);
+	cmd->DrawIndexed(static_cast<uint32_t>(gIndices.size()), 1, 0, 0, 1);
 }
 
-static void _SwapBuffers(ImGuiViewport* viewport, void*)
+void FrameRender(ImGui_ImplDrawingPad_Window* windowData, ImDrawData* drawData)
 {
-    RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
-    ViewportData* vd = (ViewportData*)viewport->RendererUserData;
-    WindowData* wd = &vd->Window;
-    wd->Swapchain->Present(0);
+	// Acquire Next Image
+	auto cmd = windowData->Context->Begin();
+	auto rtv = windowData->Swapchain->GetBackbuffer();
+	auto dsv = windowData->Swapchain->GetDepthBufferView();
+
+	// Begin CommandBuffer
+	cmd->Begin();
+	
+	if (gameViewable) {
+		// Record Game pass
+		cmd->BeginRenderPass(gRenderPass, { gGameColorTexture->GetDefaultView(), gGameDepthTexture->GetDefaultView() }, { {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0} });
+		RenderGame(cmd, gGameColorTexture->GetDefaultView());
+		cmd->EndRenderPass();
+	}
+
+	if (sceneViewable) {
+		// Resize Scene viewport
+		if (gSceneColorTexture->GetDesc().Width != gSceneWidth || gSceneColorTexture->GetDesc().Height != gSceneHeight) {
+			if (oldColor) {
+				device->WaitForIdle();
+				delete oldColor;
+				delete oldDepth;
+			}
+
+			TextureDesc modColor = gSceneColorTexture->GetDesc();
+			TextureDesc modDepth = gSceneDepthTexture->GetDesc();
+			modColor.Width = gSceneWidth;
+			modColor.Height = gSceneHeight;
+			modDepth.Width = gSceneWidth;
+			modDepth.Height = gSceneHeight;
+			oldColor = gSceneColorTexture;
+			oldDepth = gSceneDepthTexture;
+
+			gSceneColorTexture = device->CreateTexture(modColor, nullptr);
+			gSceneDepthTexture = device->CreateTexture(modDepth, nullptr);
+		}
+		// Record Scene pass
+		cmd->BeginRenderPass(gRenderPass, { gSceneColorTexture->GetDefaultView(), gSceneDepthTexture->GetDefaultView() }, { {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0} });
+		RenderScene(cmd, gSceneColorTexture->GetDefaultView());
+		cmd->EndRenderPass();
+	}
+	// Record ImGui primitives
+	cmd->BeginRenderPass(windowData->RenderPass, { rtv, dsv }, { windowData->ClearValue, { 1.0f, 0 } });
+	ImGui_ImplDrawingPad_RenderDrawData(drawData, cmd);
+	cmd->EndRenderPass();
+
+	// End & Submit CommandBuffer
+	cmd->End();
+	windowData->Context->Submit({ cmd });
 }
 
-static void FrameRender(WindowData* wd, ImDrawData* drawData)
+void FramePresent(ImGui_ImplDrawingPad_Window* windowData)
 {
-    RenderData* bd = (RenderData*)ImGui::GetIO().BackendRendererUserData;
-    auto ctx = wd->Context;
-    auto rt = wd->Swapchain->GetNextBackbuffer();
-    ctx->Begin(wd->Swapchain->GetImageIndex());
-    ctx->SetRenderTargets(1, &rt, nullptr, true);
-    ctx->ClearColor(rt, glm::value_ptr(wd->ClearValue));
-
-    //RenderData
-    {
-        int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
-        int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
-        if (fb_width <= 0 || fb_height <= 0)
-            return;
-
-        ViewportData* vrd = (ViewportData*)drawData->OwnerViewport->RendererUserData;
-        auto wrb = &vrd->RenderBuffers;
-        if (wrb->FrameBuffers == nullptr)
-        {
-            wrb->Index = 0;
-            wrb->Count = wd->ImageCount;
-            wrb->FrameBuffers = (FrameRenderBuffers*)malloc(sizeof(FrameRenderBuffers) * wrb->Count);
-            memset(wrb->FrameBuffers, 0, sizeof(FrameRenderBuffers) * wrb->Count);
-        }
-
-        wrb->Index = wd->Swapchain->GetImageIndex();
-        auto rb = &wrb->FrameBuffers[wrb->Index];
-
-        if (drawData->TotalVtxCount > 0)
-        {
-            size_t vertex_size = drawData->TotalVtxCount * sizeof(ImDrawVert);
-            size_t index_size = drawData->TotalIdxCount * sizeof(ImDrawIdx);
-            if (rb->VertexBuffer == nullptr || rb->VertexBuffer->GetSize() < vertex_size)
-            {
-                if (rb->VertexBuffer != nullptr)
-                    delete rb->VertexBuffer;
-
-                size_t sizeAligned = ((vertex_size - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-                BufferDesc desc = {};
-                desc.Size = (uint32_t)sizeAligned;
-                desc.BindFlags = BufferBindFlags::Vertex;
-                rb->VertexBuffer = bd->Device->CreateBuffer(desc, nullptr);
-            }
-            if (rb->IndexBuffer == nullptr || rb->IndexBuffer->GetSize() < index_size)
-            {
-                if (rb->IndexBuffer != nullptr)
-                    delete rb->IndexBuffer;
-
-                size_t sizeAligned = ((index_size - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-                BufferDesc desc = {};
-                desc.Size = (uint32_t)sizeAligned;
-                desc.BindFlags = BufferBindFlags::Index;
-                rb->IndexBuffer = bd->Device->CreateBuffer(desc, nullptr);
-            }
-
-            ImDrawVert* vtx_dst = nullptr;
-            ImDrawIdx* idx_dst = nullptr;
-            rb->VertexBuffer->MapMemory(0, rb->VertexBuffer->GetSize(), (void**)(&vtx_dst));
-            rb->IndexBuffer->MapMemory(0, rb->IndexBuffer->GetSize(), (void**)(&idx_dst));
-            for (int n = 0; n < drawData->CmdListsCount; n++)
-            {
-                const ImDrawList* cmdList = drawData->CmdLists[n];
-                memcpy(vtx_dst, cmdList->VtxBuffer.Data, cmdList->VtxBuffer.Size * sizeof(ImDrawVert));
-                memcpy(idx_dst, cmdList->IdxBuffer.Data, cmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
-                vtx_dst += cmdList->VtxBuffer.Size;
-                idx_dst += cmdList->IdxBuffer.Size;
-            }
-            rb->VertexBuffer->FlushMemory();
-            rb->IndexBuffer->FlushMemory();
-        }
-        // Setup Render State
-        {
-            ctx->SetPipeline(bd->Pipeline);
-
-            if (drawData->TotalVtxCount > 0)
-            {
-                Buffer* vertexBuffers[1] = { rb->VertexBuffer };
-                uint64_t vertexOffset[1] = { 0 };
-                ctx->SetVertexBuffers(0, 1, vertexBuffers, vertexOffset);
-                ctx->SetIndexBuffer(rb->IndexBuffer, 0);
-            }
-
-            {
-                Viewport viewport;
-                viewport.X = 0;
-                viewport.Y = 0;
-                viewport.Width = (float)fb_width;
-                viewport.Height = (float)fb_height;
-                viewport.minDepth = 0.0f;
-                viewport.maxDepth = 1.0f;
-                ctx->SetViewports(1, &viewport, fb_width, fb_height);
-            }
-
-            if (drawData->TotalVtxCount > 0) {
-                float scale[2];
-                scale[0] = 2.0f / drawData->DisplaySize.x;
-                scale[1] = 2.0f / drawData->DisplaySize.y;
-                float translate[2];
-                translate[0] = -1.0f - drawData->DisplayPos.x * scale[0];
-                translate[1] = -1.0f - drawData->DisplayPos.y * scale[1];
-                UniformBufferObject ubo = {};
-                ubo.scale = glm::vec2(scale[0], scale[1]);
-                ubo.translate = glm::vec2(translate[0], translate[1]);
-                
-                ctx->SetPushConstant(ShaderType::Vertex, sizeof(float) * 0, sizeof(float) * 2, scale);
-                ctx->SetPushConstant(ShaderType::Vertex, sizeof(float) * 2, sizeof(float) * 2, translate);
-
-                ctx->SetShaderResource(ResourceBindingType::ImageSampler, 0, 0, bd->FontImage);
-            }
-        }
-
-        ImVec2 clipOff = drawData->DisplayPos;
-        ImVec2 clipScale = drawData->FramebufferScale;
-
-        int globalVtxOffset = 0;
-        int globalIdxOffset = 0;
-        for (int n = 0; n < drawData->CmdListsCount; n++)
-        {
-            const ImDrawList* cmdList = drawData->CmdLists[n];
-            for (int i = 0; i < cmdList->CmdBuffer.Size; i++)
-            {
-                const ImDrawCmd* cmd = &cmdList->CmdBuffer[i];
-                ImVec2 clipMin((cmd->ClipRect.x - clipOff.x) * clipScale.x, (cmd->ClipRect.y - clipOff.y) * clipScale.y);
-                ImVec2 clipMax((cmd->ClipRect.z - clipOff.x) * clipScale.x, (cmd->ClipRect.w - clipOff.y) * clipScale.y);
-
-                if (clipMin.x < 0.0f) { clipMin.x = 0.0f; }
-                if (clipMin.y < 0.0f) { clipMin.y = 0.0f; }
-                if (clipMax.x > fb_width) { clipMax.x = (float)fb_width; }
-                if (clipMax.y > fb_height) { clipMax.x = (float)fb_height; }
-                if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
-                    continue;
-
-                ctx->SetScissors(1, (uint32_t)clipMin.x, (uint32_t)clipMin.y, (uint32_t)(clipMax.x - clipMin.x), (uint32_t)(clipMax.y - clipMin.y));
-
-                DrawIndexAttribs attribs = {};
-                attribs.IndexCount = cmd->ElemCount;
-                attribs.InstanceCount = 1;
-                attribs.FirstIndex = cmd->IdxOffset + globalIdxOffset;
-                attribs.VertexOffset = cmd->VtxOffset + globalVtxOffset;
-                attribs.FirstInstance = 0;
-                ctx->DrawIndexed(attribs);
-            }
-            globalIdxOffset += cmdList->IdxBuffer.Size;
-            globalVtxOffset += cmdList->VtxBuffer.Size;
-        }
-        
-        ctx->SetScissors(1, 0, 0, fb_width, fb_height);
-    }
-
-    ctx->Flush();
+	windowData->Context->Present();
 }
 
-static void FramePresent(WindowData* wd)
+static ImGui_ImplDrawingPad_Window g_MainWindowData;
+
+int main() 
 {
-    wd->Swapchain->Present(0);
-}
+	remove("validation_layers.log");
+	glfwSetErrorCallback(glfw_error_callback);
 
-static void glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
-
-int main() {
-    // Setup GLFW
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return 1;
+	if (!glfwInit())
+		printf("Failed");
 	if (Curr_API != API::OpenGL)
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "DrawingPad Test", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "DrawingPad Editor", NULL, NULL);
+	device = GraphicsDevice::Create(window, Curr_API);
 
-    {// Setup Vulkan
-        device = GraphicsDevice::Create(window, Curr_API);
-    }
+	int w, h;
+	glfwGetFramebufferSize(window, &w, &h);
+	ImGui_ImplDrawingPad_Window* wd = &g_MainWindowData;
 
-    GraphicsContextDesc ctxDesc = {};
-    ctxDesc.Name = "MainContext";
-    ctxDesc.ContextID = 0;
+	// Create Framebuffers
+	{
+		// CreateWindowSwapChain
+		SwapchainDesc swapDesc = {};
+		swapDesc.Width = w;
+		swapDesc.Height = h;
+		swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
+		//swapDesc.DepthFormat = TextureFormat::None;
+		wd->Width = w;
+		wd->Height = h;
+		wd->Swapchain = device->CreateSwapchain(swapDesc, window);
+		wd->Context = device->CreateGraphicsContext(wd->Swapchain);
 
-    int w, h;
-    glfwGetFramebufferSize(window, &w, &h);
-    WindowData* wd = &mainWindowData;
-    wd->Context = device->CreateContext(ctxDesc);
-    wd->Width = w;
-    wd->Height = h;
-    {//Setup Vulkan Window (wd, surface, w, h)
-        SwapchainDesc swapDesc = {};
-        swapDesc.Width = w;
-        swapDesc.Height = h;
-        swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
-        swapDesc.DepthFormat = TextureFormat::None;
 
-        // CreaetOrResizeWindow()
-        // CreateSwapChain
+		glfwSetWindowUserPointer(window, wd->Swapchain);
+		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int width, int height) {
+			Swapchain* swap = (Swapchain*)glfwGetWindowUserPointer(win);
+			swap->SetResized(width, height);
+		});
 
-        wd->Swapchain = device->CreateSwapchain(swapDesc, wd->Context, window);
-        wd->ImageCount = 3;
-    }
+		RenderPassDesc rpDesc = {};
+		std::vector<RenderPassAttachmentDesc> attachments = {
+			{
+				wd->Swapchain->GetDesc().ColorFormat,
+				1,
+				AttachmentLoadOp::Clear,
+				AttachmentStoreOp::Store,
+				AttachmentLoadOp::Discard,
+				AttachmentStoreOp::Discard,
+				ImageLayout::Undefined,
+				ImageLayout::PresentSrcKHR
+			},
+			{
+				wd->Swapchain->GetDesc().DepthFormat,
+				1,
+				AttachmentLoadOp::Clear,
+				AttachmentStoreOp::DontCare,
+				AttachmentLoadOp::DontCare,
+				AttachmentStoreOp::DontCare,
+				ImageLayout::Undefined,
+				ImageLayout::DepthStencilAttachOptimal
+			},
+		}; 
 
-    // Setup Dear ImGui
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    //io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
+		AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
+		SubpassDesc subpass = {};
+		subpass.BindPoint = PipelineBindPoint::Graphics;
+		subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+		subpass.DepthStencilAttachment = &depthAttach;
+		
+		DependencyDesc dependency = {};
+		dependency.SrcSubpass = ~0U;
+		dependency.DstSubpass = 0;
+		dependency.SrcStage = PipelineStage::ColorAttachOutput;
+		dependency.DstStage = PipelineStage::ColorAttachOutput;
+		dependency.SrcAccess = SubpassAccess::NA;
+		dependency.DstAccess = SubpassAccess::ColorAttachWrite;
+		
+		rpDesc.Attachments = attachments;
+		rpDesc.Subpasses = { subpass };
+		rpDesc.SubpassDependencies = { dependency };
+		wd->RenderPass = device->CreateRenderPass(rpDesc);
+	}
 
-    ImGui::StyleColorsDark();
+	// Create Scene Objects
+	{
 
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-    
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(window, true);
-    //Init Vulkan
-    RenderData* bd = new RenderData();
-    {
-        io.BackendRendererUserData = (void*)bd; // What do we need for rendering information
-        io.BackendRendererName = "DrawingPad";
-        io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
-        io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
-        
-        bd->Device = device;
+		{
+			tinyobj::attrib_t attrib;
+			std::vector<tinyobj::shape_t> shapes;
+			std::vector<tinyobj::material_t> materials;
+			std::string warn, err;
 
-        {// CreateDeviceObjects
-            // Upload Fonts
-            {
-                // Create Font Texture
-                unsigned char* pixels;
-                int width, height;
-                io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-                size_t upload_size = (size_t)width * (size_t)height * 4 * sizeof(char);
-                {
-                    TextureDesc desc = {};
-                    desc.Type = TextureType::DimTex2D;
-                    desc.Format = TextureFormat::RGBA8Unorm;
-                    desc.Width = width;
-                    desc.Height = height;
-                    desc.Depth = 1;
-                    desc.MipLevels = 1;
-                    desc.ArraySize = 1;
-                    desc.SampleCount = 1;
-                    desc.BindFlags = BindFlags::ShaderResource;
-                    bd->FontImage = bd->Device->CreateTexture(desc, pixels);
-                }
+			if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, "models/viking_room.obj")) {
+				throw std::runtime_error(warn + err);
+			}
 
-                {
-                    TextureViewDesc desc = {};
-                    desc.Format = TextureFormat::RGBA8Unorm;
-                    bd->FontView = bd->FontImage->CreateView(desc);
-                }
+			std::unordered_map<size_t, uint32_t> uniqueVertices{};
 
-                io.Fonts->TexID = (ImTextureID)bd->FontImage;
-            }
-            // CreatePipeline
-            {
-                // ======== Create Shaders ========
-                std::vector<Shader*> shaders = {};
-                ShaderDesc sDesc = {};
-                sDesc.EntryPoint = "main";
-                sDesc.Name = "UI Vert";
-                sDesc.Path = "shaders/ui.vert";
-                sDesc.Type = ShaderType::Vertex;
-                shaders.emplace_back(bd->Device->CreateShader(sDesc));
-                sDesc.Name = "UI Frag";
-                sDesc.Path = "shaders/ui.frag";
-                sDesc.Type = ShaderType::Fragment;
-                shaders.emplace_back(bd->Device->CreateShader(sDesc));
+			for (const auto& shape : shapes) {
+				for (const auto& index : shape.mesh.indices) {
+					Vertex vertex{};
 
-                LayoutElement vertInputs[]{
-                    {
-                        0, // InputIndex Location
-                        0, // BufferSlot Binding
-                        2, // Num Components
-                        offsetof(Vertex, pos), // Offset
-                        sizeof(Vertex) // Stride
-                    },
-                    {
-                        1, // InputIndex Location
-                        0, // BufferSlot Binding
-                        2, // Num Components
-                        offsetof(Vertex, tex),  // Offset
-                        sizeof(Vertex) // Stride
-                    },
-                    {
-                        2,
-                        0,
-                        4,
-                        offsetof(Vertex, color),
-                        sizeof(Vertex),
-                        true,
-                        ElementDataType::Uint8
-                    }
-                };
+					vertex.pos = {
+						attrib.vertices[3 * index.vertex_index + 0],
+						attrib.vertices[3 * index.vertex_index + 1],
+						attrib.vertices[3 * index.vertex_index + 2]
+					};
 
-                GraphicsPipelineDesc pipeDesc = {};
-                pipeDesc.ShaderCount = (uint32_t)shaders.size();
-                pipeDesc.Shaders = shaders.data();
-                pipeDesc.InputLayout.NumElements = 3;
-                pipeDesc.InputLayout.Elements = vertInputs;
-                pipeDesc.InputLayout.NumElements = 3;
-                pipeDesc.InputLayout.Elements = vertInputs;
-                pipeDesc.NumViewports = 1;
-                pipeDesc.NumColors = 1;
-                pipeDesc.ColorFormats[0] = wd->Swapchain->GetDesc().ColorFormat;
-                pipeDesc.DepthFormat = wd->Swapchain->GetDesc().DepthFormat;
+					vertex.tex = {
+						attrib.texcoords[2 * index.texcoord_index + 0],
+						1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+					};
 
-                bd->Pipeline = bd->Device->CreateGraphicsPipeline(pipeDesc);
-            }
-        }
+					vertex.color = { 1.0f, 1.0f, 1.0f };
 
-        ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-        mainViewport->RendererUserData = new ViewportData();
+					size_t hash = 0;
+					hash_combine(hash, vertex.pos);
+					hash_combine(hash, vertex.color);
+					hash_combine(hash, vertex.tex);
 
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {// InitPlatformInterface
-            ImGuiPlatformIO& platformIo = ImGui::GetPlatformIO();
-            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable && platformIo.Platform_CreateVkSurface == NULL)
-                std::cerr << "Platform needs to setup the CreateSurface handler." << std::endl;
-            platformIo.Renderer_CreateWindow = _CreateWindow;
-            platformIo.Renderer_DestroyWindow = _DestroyWindow;
-            platformIo.Renderer_SetWindowSize = _SetWindowSize;
-            platformIo.Renderer_RenderWindow = _RenderWindow;
-            platformIo.Renderer_SwapBuffers = _SwapBuffers;
-        }
-    }
+					if (uniqueVertices.count(hash) == 0) {
+						uniqueVertices[hash] = static_cast<uint32_t>(gVertices.size());
+						gVertices.push_back(vertex);
+					}
 
-    // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    while (!glfwWindowShouldClose(window))
-    {
-        glfwPollEvents();
+					gIndices.push_back(uniqueVertices[hash]);
+				}
+			}
 
-        // API NewFrame()
-        {/*Noting to do*/}
-        // GLFW NewFrame()
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+			{
+				RenderPassDesc rpDesc = {};
+				std::vector<RenderPassAttachmentDesc> attachments = {
+					{
+						TextureFormat::RGBA8Unorm,
+						1,
+						AttachmentLoadOp::Clear,
+						AttachmentStoreOp::Store,
+						AttachmentLoadOp::DontCare,
+						AttachmentStoreOp::DontCare,
+						ImageLayout::Undefined,
+						ImageLayout::ShaderReadOnlyOptimal
+					},
+					{
+						wd->Swapchain->GetDesc().DepthFormat,
+						1,
+						AttachmentLoadOp::Clear,
+						AttachmentStoreOp::DontCare,
+						AttachmentLoadOp::DontCare,
+						AttachmentStoreOp::DontCare,
+						ImageLayout::Undefined,
+						ImageLayout::DepthStencilAttachOptimal
+					},
+				};
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+				AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
+				SubpassDesc subpass = {};
+				subpass.BindPoint = PipelineBindPoint::Graphics;
+				subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+				subpass.DepthStencilAttachment = &depthAttach;
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
+				std::vector<DependencyDesc> dependencies = {
+					{
+						~0U,
+						0,
+						PipelineStage::FragmentShader,
+						PipelineStage::ColorAttachOutput,
+						SubpassAccess::ShaderRead,
+						SubpassAccess::ColorAttachWrite
+					},
+					{
+						0,
+						~0U,
+						PipelineStage::ColorAttachOutput,
+						PipelineStage::FragmentShader,
+						SubpassAccess::ColorAttachWrite,
+						SubpassAccess::ShaderRead
+					}
+				};
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+				rpDesc.Attachments = attachments;
+				rpDesc.Subpasses = { subpass };
+				rpDesc.SubpassDependencies = dependencies;
+				gRenderPass = device->CreateRenderPass(rpDesc);
+			}
+		}
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
+		BufferDesc bufDesc = {};
+		bufDesc.Usage = BufferUsageFlags::Default;
+		// ======== Create Vertex Buffer ========
+		bufDesc.BindFlags = BufferBindFlags::Vertex;
+		bufDesc.Size = static_cast<uint32_t>(sizeof(gVertices[0]) * gVertices.size());
+		gVertexBuffer = device->CreateBuffer(bufDesc, (void*)gVertices.data());
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+		// ======== Create Index Buffer ========
+		bufDesc.BindFlags = BufferBindFlags::Index;
+		bufDesc.Size = static_cast<uint32_t>(sizeof(gIndices[0]) * gIndices.size());
+		gIndexBuffer = device->CreateBuffer(bufDesc, (void*)gIndices.data());
 
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+		// ======== Create Uniform Buffer ========
+		bufDesc.BindFlags = BufferBindFlags::Uniform;
+		bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
+		gGameUniformBuffer = device->CreateBuffer(bufDesc, nullptr);
+		gSceneUniformBuffer = device->CreateBuffer(bufDesc, nullptr);
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
+		int width, height, channels;
+		stbi_uc* pixels = stbi_load("textures/viking_room.png", &width, &height, &channels, STBI_rgb_alpha);
+		TextureDesc texDesc = {};
+		texDesc.Type = TextureType::DimTex2D;
+		texDesc.Width = static_cast<uint32_t>(width);
+		texDesc.Height = static_cast<uint32_t>(height);
+		texDesc.MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+		texDesc.Format = TextureFormat::RGBA8UnormSRGB;
+		texDesc.ArraySize = 1;
+		texDesc.BindFlags = BindFlags::ShaderResource;
+		gTexture = device->CreateTexture(texDesc, pixels);
 
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
+		texDesc.Width = gGameWidth;
+		texDesc.Height = gGameHeight;
+		texDesc.MipLevels = 1;
+		texDesc.Format = TextureFormat::RGBA8Unorm;
+		texDesc.BindFlags = BindFlags::RenderTarget;
+		gGameColorTexture = device->CreateTexture(texDesc, nullptr);
+		gSceneColorTexture = device->CreateTexture(texDesc, nullptr);
 
-        ImGui::Render();
-        ImDrawData* drawData = ImGui::GetDrawData();
-        const bool mini = (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f);
-        wd->ClearValue = glm::vec4(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+		texDesc.Format = wd->Swapchain->GetDesc().DepthFormat;
+		texDesc.BindFlags = BindFlags::DepthStencil;
+		gGameDepthTexture = device->CreateTexture(texDesc, nullptr);
+		gSceneDepthTexture = device->CreateTexture(texDesc, nullptr);
 
-        if (!mini)
-            FrameRender(wd, drawData);
 
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-        }
+		// ======== Create Shaders ========
+		ShaderDesc sDesc = {};
+		sDesc.EntryPoint = "main";
+		sDesc.Name = "Basic Vert";
+		//sDesc.Src = vertSrc;
+		sDesc.Path = "shaders/ubo.vert";
+		sDesc.Type = ShaderType::Vertex;
+		gVertShader = device->CreateShader(sDesc);
+		sDesc.Name = "Basic Frag";
+		//sDesc.Src = fragSrc;
+		sDesc.Path = "shaders/ubo.frag";
+		sDesc.Type = ShaderType::Fragment;
+		gFragShader = device->CreateShader(sDesc);
 
-        if (!mini)
-            FramePresent(wd);
-    }
+		std::vector<LayoutElement> vertInputs = {
+			{
+				0, // InputIndex Location
+				0, // BufferSlot Binding
+				3, // Num Components
+				offsetof(Vertex, pos), // Offset
+				sizeof(Vertex) // Stride
+			},
+			{
+				1, // InputIndex Location
+				0, // BufferSlot Binding
+				3, // Num Components
+				offsetof(Vertex, color),  // Offset
+				sizeof(Vertex) // Stride
+			}
+			,{
+				2,
+				0,
+				2,
+				offsetof(Vertex, tex),
+				sizeof(Vertex)
+			}
+		};
 
-    ImGui::DestroyContext();
-    //Cleanup API
+		gProgram = device->CreateShaderProgram({ gVertShader, gFragShader });
 
-    glfwDestroyWindow(window);
-    glfwTerminate();
+		GraphicsPipelineDesc pDesc = {
+			vertInputs,
+			gProgram,
+			1,
+			true,
+			FrontFace::CounterClockwise,
+			//4
+		};
 
-    return 0;
+		gPipeline = device->CreateGraphicsPipeline(pDesc, gRenderPass);
+
+		gSwapchain = wd->Swapchain;
+	}
+
+	// Setup Dear ImGui Context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+	//io.ConfigViewportsNoAutoMerge = true;
+	//io.ConfigViewportsNoTaskBarIcon = true;
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle& style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplGlfw_InitForOther(window, true);
+	//	[Device, PipelineCache, Descriptors
+	ImGui_ImplDrawingPad_Init(device, wd->RenderPass, wd->Swapchain->GetDesc().BufferCount);
+
+	// Upload Fonts
+	{
+		// Create Fonts Texture
+		ImGui_ImplDrawingPad_CreateFontsTexture();
+	}
+
+	// Our state
+	bool show_demo_window = true;
+	bool show_another_window = false;
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	// Main Loop
+	while (!glfwWindowShouldClose(window)) 
+	{
+		glfwPollEvents();
+
+		// Start the Dear ImGui frame
+		// ImplDrawingPad_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// Rendering
+		
+		static bool dockspaceOpen = true;
+		static bool opt_fullscreen_p = true;
+		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+		bool opt_fullscreen = opt_fullscreen_p;
+
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		if (opt_fullscreen) {
+			ImGuiViewport* view = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(view->Pos);
+			ImGui::SetNextWindowSize(view->Size);
+			ImGui::SetNextWindowViewport(view->ID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavFocus;
+		}
+
+		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+			window_flags |= ImGuiWindowFlags_NoBackground;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+		ImGui::Begin("DockSpace", &dockspaceOpen, window_flags);
+		ImGui::PopStyleVar();
+
+		if (opt_fullscreen)
+			ImGui::PopStyleVar(2);
+
+		auto& io = ImGui::GetIO();
+		auto& style = ImGui::GetStyle();
+		float minWinX = style.WindowMinSize.x;
+		style.WindowMinSize.x = 370.0f;
+		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+			ImGuiID id = ImGui::GetID("DockSpace");
+			ImGui::DockSpace(id, ImVec2(0.0f, 0.0f), dockspace_flags);
+		}
+
+		style.WindowMinSize.x = minWinX;
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("File")) {
+				ImGui::MenuItem("New", "Ctrl+N");
+				ImGui::MenuItem("Open...", "Ctrl+O");
+				ImGui::MenuItem("Save", "Ctrl+S");
+				ImGui::MenuItem("Save As...", "Ctrl+Shift+S");
+				if(ImGui::MenuItem("Exit"))
+					glfwSetWindowShouldClose(window, 1);
+				ImGui::EndMenu();
+			}
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::EndMenuBar();
+		}
+		
+		{ //BEGIN Game viewport
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));
+			if (gameViewable = ImGui::Begin("Game")) {
+				ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+				// Get the scale image width and height relative to window size
+				float hScale = viewportSize.y / (float)gGameHeight;
+				float wScale = viewportSize.x / (float)gGameWidth;
+				float width = std::min(hScale, wScale) * (float)gGameWidth;
+				float height = std::min(hScale, wScale) * (float)gGameHeight;
+				// Clamp to original resolution
+				width = std::min(width, (float)gGameWidth);
+				height = std::min(height, (float)gGameHeight);
+
+				auto windowSize = ImGui::GetWindowSize();
+
+				ImGui::SetCursorPos(ImVec2((viewportSize.x - width) * 0.5f + windowSize.x - viewportSize.x, (viewportSize.y - height) * 0.5f + windowSize.y - viewportSize.y));
+				ImGui::Image((ImTextureID)gGameColorTexture, ImVec2(width, height));
+			}
+			ImGui::End();
+			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
+		} //END Game viewport
+
+		{ //BEGIN Scene viewport
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));
+			if (sceneViewable = ImGui::Begin("Scene")) {
+				ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+
+				gSceneWidth = (uint32_t)viewportSize.x;
+				gSceneHeight = (uint32_t)viewportSize.y;
+
+				ImGui::Image((ImTextureID)gSceneColorTexture, viewportSize);
+			}
+			ImGui::End();
+			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
+		} //END Game viewport
+
+		ImGui::Begin("Debug");
+		ImGui::Text("Game Resolution: %d x %d", gGameWidth, gGameHeight);
+		ImGui::Text("Game Visible: %s", gameViewable ? "True" : "False");
+		ImGui::Text("Scene Resolution: %d x %d", gSceneWidth, gSceneHeight);
+		ImGui::Text("Scene Visible: %s", sceneViewable ? "True" : "False");
+		ImGui::End();
+
+		ImGui::End();
+		
+		ImGui::Render();
+		ImDrawData* main_draw_data = ImGui::GetDrawData();
+		const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f || main_draw_data->DisplaySize.y <= 0.0f);
+		wd->ClearValue.color[0] = clear_color.x * clear_color.w;
+		wd->ClearValue.color[1] = clear_color.y * clear_color.w;
+		wd->ClearValue.color[2] = clear_color.z * clear_color.w;
+		wd->ClearValue.color[3] = clear_color.w;
+		if (!main_is_minimized)
+			FrameRender(wd, main_draw_data);
+
+		// Update and Render additional Platform Windows
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
+
+		// Present Main Platform Window
+		if (!main_is_minimized)
+			FramePresent(wd);
+	}
+	/*
+		static Swapchain* gSwapchain;
+		static Buffer* gVertexBuffer;
+		static Buffer* gIndexBuffer;
+		static Buffer* gGameUniformBuffer;
+		static Buffer* gSceneUniformBuffer;
+		static Pipeline* gPipeline;
+		static RenderPass* gRenderPass;
+		
+		static Texture* gTexture;
+		
+		static Texture* gGameColorTexture;
+		static Texture* gGameDepthTexture;
+		static uint32_t gGameWidth = 1280;
+		static uint32_t gGameHeight = 720;
+	*/
+
+	device->WaitForIdle();
+	ImGui_ImplDrawingPad_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	delete gGameColorTexture;
+	delete gGameDepthTexture;
+	delete gGameUniformBuffer;
+	delete gSceneColorTexture;
+	delete gSceneDepthTexture;
+	delete gSceneUniformBuffer;
+
+	delete gTexture;
+
+	delete gRenderPass;
+	delete gVertShader;
+	delete gFragShader;
+	delete gProgram;
+	delete gPipeline;
+
+	delete gVertexBuffer;
+	delete gIndexBuffer;
+	delete wd->Context;
+	delete gSwapchain;
+	//delete device;
+
+	glfwDestroyWindow(window);
+	glfwTerminate();
+
+	return 0;
 }
