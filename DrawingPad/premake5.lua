@@ -7,8 +7,8 @@ project "DrawingPad"
     targetdir("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
     objdir("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 
-    pchheader "pwpch.h"
-    pchsource "src/pwpch.cpp"
+    pchheader "dppch.h"
+    pchsource "src/dppch.cpp"
 
     files {
         "src/**.h",

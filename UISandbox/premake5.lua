@@ -14,7 +14,6 @@ project "UISandbox"
 
     includedirs {
         "%{wks.location}/DrawingPad/src",
-        "%{wks.location}/DrawingPad/vendor",
         "%{wks.location}/DrawingPad/vendor/spdlog/include",
         "%{IncludeDir.glad}",
         "%{IncludeDir.glm}",

@@ -50,6 +50,7 @@ struct ShaderDesc {
 	std::string EntryPoint = "main";
 	std::string Path;
 	std::string Src;
+	std::vector<uint32_t> Bin;
 };
 
 enum class ResourceBindingType

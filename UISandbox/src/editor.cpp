@@ -10,8 +10,8 @@
 #include <fstream>
 #include <chrono>
 #include <iostream>
-#include <glm/glm/gtx/string_cast.hpp>
-#include <glm/glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 #pragma warning(push, 0)
 #pragma warning( disable: 26451 )

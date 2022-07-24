@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <DrawingPad.h>
-#include <imgui/imgui.h>
+#include <imgui.h>
 
 struct ImGui_ImplDrawingPad_Window
 {

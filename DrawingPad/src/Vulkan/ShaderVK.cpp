@@ -1,4 +1,4 @@
-#include "pwpch.h"
+#include "dppch.h"
 #include "ShaderVK.h"
 
 #include "GraphicsDeviceVK.h"
@@ -246,14 +246,21 @@ namespace Vulkan
 	ShaderVK::ShaderVK(GraphicsDeviceVK* device, const ShaderDesc& desc)
 		: Shader(desc), m_Device(device)
 	{
-		if (!desc.Path.empty() && desc.Src.empty())
+		if (!desc.Path.empty() && desc.Src.empty() && desc.Bin.empty())
 		{
 			if (!LoadShaderFromFile(desc.Path))
 				throw std::runtime_error("Failed to load shader file");
 		}
-		else if (desc.Path.empty() && !desc.Src.empty())
+		else if (desc.Path.empty() && !desc.Src.empty() && desc.Bin.empty())
+		{
 			if (!LoadShaderFromSrc(desc.Src))
 				throw std::runtime_error("Failed to load shader from source");
+		}
+		else if (desc.Path.empty() && desc.Src.empty() && !desc.Bin.empty())
+		{
+			if (!LoadShaderFromBin(desc.Bin))
+				throw std::runtime_error("Failed to load shader from binary soruce");
+		}
 
 		hash_combine(m_Hash, m_Desc.Type);
 		hash_combine(m_Hash, m_Desc.Name);
@@ -297,28 +304,22 @@ namespace Vulkan
 			}
 		}
 
-		Reflect(spirv);
-
-		VkShaderModuleCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = spirv.size() * sizeof(uint32_t);
-		createInfo.pCode = spirv.data();
-
-		if (vkCreateShaderModule(m_Device->Get(), &createInfo, nullptr, &m_Handle))
-			return false;
-		return true;
+		return LoadShaderFromBin(spirv);
 	}
 
 	bool ShaderVK::LoadShaderFromSrc(const std::string& src)
 	{
-		std::vector<uint32_t> spirv = Compile(src);
+		return LoadShaderFromBin(Compile(src));
+	}
 
-		Reflect(spirv);
+	bool ShaderVK::LoadShaderFromBin(const std::vector<uint32_t>& src)
+	{
+		Reflect(src);
 
 		VkShaderModuleCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = spirv.size() * sizeof(uint32_t);
-		createInfo.pCode = spirv.data();
+		createInfo.codeSize = src.size() * sizeof(uint32_t);
+		createInfo.pCode = src.data();
 
 		if (vkCreateShaderModule(m_Device->Get(), &createInfo, nullptr, &m_Handle))
 			return false;
