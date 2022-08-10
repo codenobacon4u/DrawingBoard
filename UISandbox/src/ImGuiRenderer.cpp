@@ -129,43 +129,43 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 	wd->Width = (int)viewport->Size.x;
 	wd->Height = (int)viewport->Size.y;
 
-	SwapchainDesc swapDesc = {};
+	DrawingPad::SwapchainDesc swapDesc = {};
 	swapDesc.Width = (uint32_t)viewport->Size.x;
 	swapDesc.Height = (uint32_t)viewport->Size.y;
-	swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
-	swapDesc.DepthFormat = TextureFormat::None;
+	swapDesc.SurfaceFormats = { DrawingPad::TextureFormat::BGRA8Unorm, DrawingPad::TextureFormat::RGBA8Unorm, DrawingPad::TextureFormat::BGR8Unorm, DrawingPad::TextureFormat::RGB8Unorm };
+	swapDesc.DepthFormat = DrawingPad::TextureFormat::None;
 
 	wd->Swapchain = bd->Device->CreateSwapchain(swapDesc, pvd->Window);
 	wd->Context = bd->Device->CreateGraphicsContext(wd->Swapchain);
 
-	RenderPassDesc rpDesc = {};
-	RenderPassAttachmentDesc attach = {};
+	DrawingPad::RenderPassDesc rpDesc = {};
+	DrawingPad::RenderPassAttachmentDesc attach = {};
 	attach.Format = wd->Swapchain->GetDesc().ColorFormat;
-	attach.Samples = SampleCount::e1Bit;
-	attach.LoadOp = wd->ClearEnable ? AttachmentLoadOp::Clear : AttachmentLoadOp::DontCare;
-	attach.StoreOp = AttachmentStoreOp::Store;
-	attach.StencilLoadOp = AttachmentLoadOp::DontCare;
-	attach.StencilStoreOp = AttachmentStoreOp::DontCare;
-	attach.InitialLayout = ImageLayout::Undefined;
-	attach.FinalLayout = ImageLayout::PresentSrcKHR;
+	attach.Samples = DrawingPad::SampleCount::e1Bit;
+	attach.LoadOp = wd->ClearEnable ? DrawingPad::AttachmentLoadOp::Clear : DrawingPad::AttachmentLoadOp::DontCare;
+	attach.StoreOp = DrawingPad::AttachmentStoreOp::Store;
+	attach.StencilLoadOp = DrawingPad::AttachmentLoadOp::DontCare;
+	attach.StencilStoreOp = DrawingPad::AttachmentStoreOp::DontCare;
+	attach.InitialLayout = DrawingPad::ImageLayout::Undefined;
+	attach.FinalLayout = DrawingPad::ImageLayout::PresentSrcKHR;
 	rpDesc.Attachments = { attach };
-	SubpassDesc subpass = {};
-	subpass.BindPoint = PipelineBindPoint::Graphics;
-	subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+	DrawingPad::SubpassDesc subpass = {};
+	subpass.BindPoint = DrawingPad::PipelineBindPoint::Graphics;
+	subpass.ColorAttachments = { { 0, DrawingPad::ImageLayout::ColorAttachOptimal } };
 	rpDesc.Subpasses = { subpass };
-	DependencyDesc dependency = {};
+	DrawingPad::DependencyDesc dependency = {};
 	dependency.SrcSubpass = ~0U;
 	dependency.DstSubpass = 0;
-	dependency.SrcStage = PipelineStage::ColorAttachOutput;
-	dependency.DstStage = PipelineStage::ColorAttachOutput;
-	dependency.SrcAccess = SubpassAccess::NA;
-	dependency.DstAccess = SubpassAccess::ColorAttachWrite;
+	dependency.SrcStage = DrawingPad::PipelineStage::ColorAttachOutput;
+	dependency.DstStage = DrawingPad::PipelineStage::ColorAttachOutput;
+	dependency.SrcAccess = DrawingPad::SubpassAccess::NA;
+	dependency.DstAccess = DrawingPad::SubpassAccess::ColorAttachWrite;
 	rpDesc.SubpassDependencies = { dependency };
 	wd->RenderPass = bd->Device->CreateRenderPass(rpDesc);
 
 	// bd->RenderPass, v->MSAA, &bd->Pipeline, bd->Subpass=
 
-	std::vector<LayoutElement> vertInputs = {
+	std::vector<DrawingPad::LayoutElement> vertInputs = {
 		{
 			0, // InputIndex Location
 			0, // BufferSlot Binding
@@ -187,11 +187,11 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 			offsetof(ImDrawVert, col),
 			sizeof(ImDrawVert),
 			true,
-			ElementDataType::Uint8
+			DrawingPad::ElementDataType::Uint8
 		}
 	};
 
-	GraphicsPipelineDesc pipeDesc = {
+	DrawingPad::GraphicsPipelineDesc pipeDesc = {
 		vertInputs,
 		bd->ShaderProgram,
 		1,
@@ -246,7 +246,7 @@ static void ImGui_ImplDrawingPad_RenderWindow(ImGuiViewport* viewport, void*)
 {
 	ImGui_ImplDrawingPad_ViewportData* vd = (ImGui_ImplDrawingPad_ViewportData*)viewport->RendererUserData;
 	ImGui_ImplDrawingPad_Window* wd = &vd->Window;
-	std::vector<ClearValue> clearValues = {};
+	std::vector<DrawingPad::ClearValue> clearValues = {};
 	if (viewport->Flags & ImGuiViewportFlags_NoRendererClear)
 		clearValues.push_back(wd->ClearValue);
 	auto cmd = wd->Context->Begin();
@@ -269,7 +269,7 @@ static void ImGui_ImplDrawingPad_SwapBuffers(ImGuiViewport* viewport, void*)
 	wd->Context->Present();
 }
 
-void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, uint32_t imageCount)
+void ImGui_ImplDrawingPad_Init(DrawingPad::GraphicsDevice* device, DrawingPad::RenderPass* renderpass, uint32_t imageCount)
 {
 	ImGui_ImplDrawingPad_Data* bd = new ImGui_ImplDrawingPad_Data();
 	ImGuiIO& io = ImGui::GetIO();
@@ -286,19 +286,19 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 	//CreateDeviceObjects
 	{
 		// bd->RenderPass, v->MSAA, &bd->Pipeline, bd->Subpass
-		ShaderDesc sDesc = {};
+		DrawingPad::ShaderDesc sDesc = {};
 		sDesc.EntryPoint = "main";
 		sDesc.Name = "UI Vert";
 		sDesc.Bin = __glsl_shader_vert_spv;
-		sDesc.Type = ShaderType::Vertex;
+		sDesc.Type = DrawingPad::ShaderType::Vertex;
 		bd->VertexShader = bd->Device->CreateShader(sDesc);
 		sDesc.Name = "UI Frag";
 		sDesc.Bin = __glsl_shader_frag_spv;
-		sDesc.Type = ShaderType::Fragment;
+		sDesc.Type = DrawingPad::ShaderType::Fragment;
 		bd->FragmentShader = bd->Device->CreateShader(sDesc);
 		bd->ShaderProgram = bd->Device->CreateShaderProgram({ bd->VertexShader, bd->FragmentShader });
 
-		std::vector<LayoutElement> vertInputs = {
+		std::vector<DrawingPad::LayoutElement> vertInputs = {
 			{
 				0, // InputIndex Location
 				0, // BufferSlot Binding
@@ -320,11 +320,11 @@ void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, u
 				offsetof(ImDrawVert, col),
 				sizeof(ImDrawVert),
 				true,
-				ElementDataType::Uint8
+				DrawingPad::ElementDataType::Uint8
 			}
 		};
 
-		GraphicsPipelineDesc pipeDesc = {
+		DrawingPad::GraphicsPipelineDesc pipeDesc = {
 			vertInputs,
 			bd->ShaderProgram,
 			1,
@@ -358,22 +358,22 @@ void ImGui_ImplDrawingPad_CreateFontsTexture()
 	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 	size_t upload_size = uint64_t(width * height) * 4 * sizeof(char);
 
-	TextureDesc desc = {};
-	desc.Type = TextureType::DimTex2D;
-	desc.Format = TextureFormat::RGBA8Unorm;
+	DrawingPad::TextureDesc desc = {};
+	desc.Type = DrawingPad::TextureType::DimTex2D;
+	desc.Format = DrawingPad::TextureFormat::RGBA8Unorm;
 	desc.Width = width;
 	desc.Height = height;
 	desc.Depth = 1;
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
 	desc.SampleCount = 1;
-	desc.BindFlags = BindFlags::ShaderResource;
+	desc.BindFlags = DrawingPad::BindFlags::ShaderResource;
 	bd->FontTexture = bd->Device->CreateTexture(desc, pixels);
 
 	io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->FontTexture);
 }
 
-void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cmd, Pipeline* pipeline)
+void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, DrawingPad::CommandBuffer* cmd, DrawingPad::Pipeline* pipeline)
 {
 	int fb_width = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
 	int fb_height = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
@@ -403,9 +403,9 @@ void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cm
 				delete rb.VertexBuffer;
 
 			size_t sizeAligned = ((vertexSize - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-			BufferDesc desc = {};
+			DrawingPad::BufferDesc desc = {};
 			desc.Size = (uint32_t)sizeAligned * 2;
-			desc.BindFlags = BufferBindFlags::Vertex;
+			desc.BindFlags = DrawingPad::BufferBindFlags::Vertex;
 			rb.VertexBuffer = bd->Device->CreateBuffer(desc, nullptr);
 		}
 		if (rb.IndexBuffer == nullptr || indexSize > rb.IndexBuffer->GetSize())
@@ -414,9 +414,9 @@ void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cm
 				delete rb.IndexBuffer;
 
 			size_t sizeAligned = ((indexSize - 1) / bd->BufferMemoryAlignment + 1) * bd->BufferMemoryAlignment;
-			BufferDesc desc = {};
+			DrawingPad::BufferDesc desc = {};
 			desc.Size = (uint32_t)sizeAligned * 2;
-			desc.BindFlags = BufferBindFlags::Index;
+			desc.BindFlags = DrawingPad::BufferBindFlags::Index;
 			rb.IndexBuffer = bd->Device->CreateBuffer(desc, nullptr);
 		}
 
@@ -457,8 +457,8 @@ void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cm
 			float translate[2]{};
 			translate[0] = -1.0f - drawData->DisplayPos.x * scale[0];
 			translate[1] = -1.0f - drawData->DisplayPos.y * scale[1];
-			cmd->SetPushConstant(ShaderType::Vertex, sizeof(float) * 0, sizeof(float) * 2, scale);
-			cmd->SetPushConstant(ShaderType::Vertex, sizeof(float) * 2, sizeof(float) * 2, translate);
+			cmd->SetPushConstant(DrawingPad::ShaderType::Vertex, sizeof(float) * 0, sizeof(float) * 2, scale);
+			cmd->SetPushConstant(DrawingPad::ShaderType::Vertex, sizeof(float) * 2, sizeof(float) * 2, translate);
 		}
 	}
 	ImVec2 clip_off = drawData->DisplayPos;         // (0,0) unless using multi-viewports
@@ -483,14 +483,14 @@ void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cm
 				continue;
 
 			// Apply scissor/clipping rectangle
-			Rect2D scissor = {};
+			DrawingPad::Rect2D scissor = {};
 			scissor.offset.x = (int32_t)(clip_min.x);
 			scissor.offset.y = (int32_t)(clip_min.y);
 			scissor.extent.x = (uint32_t)(clip_max.x - clip_min.x);
 			scissor.extent.y = (uint32_t)(clip_max.y - clip_min.y);
 			cmd->SetScissors(0, 1, { scissor });
 
-			Texture* texture = (Texture*)pcmd->TextureId;
+			DrawingPad::Texture* texture = (DrawingPad::Texture*)pcmd->TextureId;
 			cmd->BindImage(texture, 0, 0);
 			cmd->DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + globalIdxOffset, pcmd->VtxOffset + globalVtxOffset, 0);
 		}

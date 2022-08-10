@@ -45,39 +45,39 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 proj;
 };
 
-API Curr_API = API::Vulkan;
+DrawingPad::API Curr_API = DrawingPad::API::Vulkan;
 
-static GraphicsDevice* device;
+static DrawingPad::GraphicsDevice* device;
 
-static Swapchain* gSwapchain;
-static Buffer* gVertexBuffer;
-static Buffer* gIndexBuffer;
-static Buffer* gGameUniformBuffer;
-static Buffer* gSceneUniformBuffer;
-static Pipeline* gPipeline;
-static RenderPass* gRenderPass;
+static DrawingPad::Swapchain* gSwapchain;
+static DrawingPad::Buffer* gVertexBuffer;
+static DrawingPad::Buffer* gIndexBuffer;
+static DrawingPad::Buffer* gGameUniformBuffer;
+static DrawingPad::Buffer* gSceneUniformBuffer;
+static DrawingPad::Pipeline* gPipeline;
+static DrawingPad::RenderPass* gRenderPass;
 
-static Texture* gTexture;
+static DrawingPad::Texture* gTexture;
 
-static Texture* gGameColorTexture;
-static Texture* gGameDepthTexture;
+static DrawingPad::Texture* gGameColorTexture;
+static DrawingPad::Texture* gGameDepthTexture;
 static uint32_t gGameWidth = 1280;
 static uint32_t gGameHeight = 720;
 
 
-static Texture* gSceneColorTexture;
-static Texture* gSceneDepthTexture;
+static DrawingPad::Texture* gSceneColorTexture;
+static DrawingPad::Texture* gSceneDepthTexture;
 static uint32_t gSceneWidth = 1280;
 static uint32_t gSceneHeight = 720;
 
-static Shader* gVertShader;
-static Shader* gFragShader;
-static ShaderProgram* gProgram;
+static DrawingPad::Shader* gVertShader;
+static DrawingPad::Shader* gFragShader;
+static DrawingPad::ShaderProgram* gProgram;
 
 static std::vector<Vertex> gVertices;
 static std::vector<uint32_t> gIndices;
-static Texture* oldColor = nullptr;
-static Texture* oldDepth = nullptr;
+static DrawingPad::Texture* oldColor = nullptr;
+static DrawingPad::Texture* oldDepth = nullptr;
 
 static bool gameViewable = false;
 static bool sceneViewable = false;
@@ -89,7 +89,7 @@ static void glfw_error_callback(int error, const char* desc)
 	std::cerr << "GLFW Error: [" << error << "] " << desc;
 }
 
-void RenderGame(CommandBuffer* cmd, TextureView* rtv) 
+void RenderGame(DrawingPad::CommandBuffer* cmd, DrawingPad::TextureView* rtv)
 {
 	cmd->SetViewports(0, 1, { { 0, 0, (float)gGameWidth, (float)gGameHeight, 0.0f, 1.0f } });
 	cmd->SetScissors(0, 1, { { { 0, 0 }, { gGameWidth, gGameHeight } } });
@@ -116,7 +116,7 @@ void RenderGame(CommandBuffer* cmd, TextureView* rtv)
 	cmd->DrawIndexed(static_cast<uint32_t>(gIndices.size()), 1, 0, 0, 1);
 }
 
-void RenderScene(CommandBuffer* cmd, TextureView* rtv) 
+void RenderScene(DrawingPad::CommandBuffer* cmd, DrawingPad::TextureView* rtv)
 {
 	cmd->SetViewports(0, 1, { { 0, 0, (float)gSceneWidth, (float)gSceneHeight, 0.0f, 1.0f } });
 	cmd->SetScissors(0, 1, { { { 0, 0 }, { gSceneWidth, gSceneHeight } } });
@@ -169,8 +169,8 @@ void FrameRender(ImGui_ImplDrawingPad_Window* windowData, ImDrawData* drawData)
 				delete oldDepth;
 			}
 
-			TextureDesc modColor = gSceneColorTexture->GetDesc();
-			TextureDesc modDepth = gSceneDepthTexture->GetDesc();
+			DrawingPad::TextureDesc modColor = gSceneColorTexture->GetDesc();
+			DrawingPad::TextureDesc modDepth = gSceneDepthTexture->GetDesc();
 			modColor.Width = gSceneWidth;
 			modColor.Height = gSceneHeight;
 			modDepth.Width = gSceneWidth;
@@ -210,10 +210,10 @@ int main()
 
 	if (!glfwInit())
 		printf("Failed");
-	if (Curr_API != API::OpenGL)
+	if (Curr_API != DrawingPad::API::OpenGL)
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(1280, 720, "DrawingPad Editor", NULL, NULL);
-	device = GraphicsDevice::Create(window, Curr_API);
+	device = DrawingPad::GraphicsDevice::Create(window, Curr_API);
 
 	int w, h;
 	glfwGetFramebufferSize(window, &w, &h);
@@ -222,10 +222,10 @@ int main()
 	// Create Framebuffers
 	{
 		// CreateWindowSwapChain
-		SwapchainDesc swapDesc = {};
+		DrawingPad::SwapchainDesc swapDesc = {};
 		swapDesc.Width = w;
 		swapDesc.Height = h;
-		swapDesc.SurfaceFormats = { TextureFormat::BGRA8Unorm, TextureFormat::RGBA8Unorm, TextureFormat::BGR8Unorm, TextureFormat::RGB8Unorm };
+		swapDesc.SurfaceFormats = { DrawingPad::TextureFormat::BGRA8Unorm, DrawingPad::TextureFormat::RGBA8Unorm, DrawingPad::TextureFormat::BGR8Unorm, DrawingPad::TextureFormat::RGB8Unorm };
 		//swapDesc.DepthFormat = TextureFormat::None;
 		wd->Width = w;
 		wd->Height = h;
@@ -235,47 +235,47 @@ int main()
 
 		glfwSetWindowUserPointer(window, wd->Swapchain);
 		glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int width, int height) {
-			Swapchain* swap = (Swapchain*)glfwGetWindowUserPointer(win);
+			DrawingPad::Swapchain* swap = (DrawingPad::Swapchain*)glfwGetWindowUserPointer(win);
 			swap->SetResized(width, height);
 		});
 
-		RenderPassDesc rpDesc = {};
-		std::vector<RenderPassAttachmentDesc> attachments = {
+		DrawingPad::RenderPassDesc rpDesc = {};
+		std::vector<DrawingPad::RenderPassAttachmentDesc> attachments = {
 			{
 				wd->Swapchain->GetDesc().ColorFormat,
 				1,
-				AttachmentLoadOp::Clear,
-				AttachmentStoreOp::Store,
-				AttachmentLoadOp::Discard,
-				AttachmentStoreOp::Discard,
-				ImageLayout::Undefined,
-				ImageLayout::PresentSrcKHR
+				DrawingPad::AttachmentLoadOp::Clear,
+				DrawingPad::AttachmentStoreOp::Store,
+				DrawingPad::AttachmentLoadOp::Discard,
+				DrawingPad::AttachmentStoreOp::Discard,
+				DrawingPad::ImageLayout::Undefined,
+				DrawingPad::ImageLayout::PresentSrcKHR
 			},
 			{
 				wd->Swapchain->GetDesc().DepthFormat,
 				1,
-				AttachmentLoadOp::Clear,
-				AttachmentStoreOp::DontCare,
-				AttachmentLoadOp::DontCare,
-				AttachmentStoreOp::DontCare,
-				ImageLayout::Undefined,
-				ImageLayout::DepthStencilAttachOptimal
+				DrawingPad::AttachmentLoadOp::Clear,
+				DrawingPad::AttachmentStoreOp::DontCare,
+				DrawingPad::AttachmentLoadOp::DontCare,
+				DrawingPad::AttachmentStoreOp::DontCare,
+				DrawingPad::ImageLayout::Undefined,
+				DrawingPad::ImageLayout::DepthStencilAttachOptimal
 			},
 		}; 
 
-		AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
-		SubpassDesc subpass = {};
-		subpass.BindPoint = PipelineBindPoint::Graphics;
-		subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+		DrawingPad::AttachmentReference depthAttach = { 1, DrawingPad::ImageLayout::DepthStencilAttachOptimal };
+		DrawingPad::SubpassDesc subpass = {};
+		subpass.BindPoint = DrawingPad::PipelineBindPoint::Graphics;
+		subpass.ColorAttachments = { { 0, DrawingPad::ImageLayout::ColorAttachOptimal } };
 		subpass.DepthStencilAttachment = &depthAttach;
 		
-		DependencyDesc dependency = {};
+		DrawingPad::DependencyDesc dependency = {};
 		dependency.SrcSubpass = ~0U;
 		dependency.DstSubpass = 0;
-		dependency.SrcStage = PipelineStage::ColorAttachOutput;
-		dependency.DstStage = PipelineStage::ColorAttachOutput;
-		dependency.SrcAccess = SubpassAccess::NA;
-		dependency.DstAccess = SubpassAccess::ColorAttachWrite;
+		dependency.SrcStage = DrawingPad::PipelineStage::ColorAttachOutput;
+		dependency.DstStage = DrawingPad::PipelineStage::ColorAttachOutput;
+		dependency.SrcAccess = DrawingPad::SubpassAccess::NA;
+		dependency.DstAccess = DrawingPad::SubpassAccess::ColorAttachWrite;
 		
 		rpDesc.Attachments = attachments;
 		rpDesc.Subpasses = { subpass };
@@ -316,9 +316,9 @@ int main()
 					vertex.color = { 1.0f, 1.0f, 1.0f };
 
 					size_t hash = 0;
-					hash_combine(hash, vertex.pos);
-					hash_combine(hash, vertex.color);
-					hash_combine(hash, vertex.tex);
+					DrawingPad::hash_combine(hash, vertex.pos);
+					DrawingPad::hash_combine(hash, vertex.color);
+					DrawingPad::hash_combine(hash, vertex.tex);
 
 					if (uniqueVertices.count(hash) == 0) {
 						uniqueVertices[hash] = static_cast<uint32_t>(gVertices.size());
@@ -330,52 +330,52 @@ int main()
 			}
 
 			{
-				RenderPassDesc rpDesc = {};
-				std::vector<RenderPassAttachmentDesc> attachments = {
+				DrawingPad::RenderPassDesc rpDesc = {};
+				std::vector<DrawingPad::RenderPassAttachmentDesc> attachments = {
 					{
-						TextureFormat::RGBA8Unorm,
+						DrawingPad::TextureFormat::RGBA8Unorm,
 						1,
-						AttachmentLoadOp::Clear,
-						AttachmentStoreOp::Store,
-						AttachmentLoadOp::DontCare,
-						AttachmentStoreOp::DontCare,
-						ImageLayout::Undefined,
-						ImageLayout::ShaderReadOnlyOptimal
+						DrawingPad::AttachmentLoadOp::Clear,
+						DrawingPad::AttachmentStoreOp::Store,
+						DrawingPad::AttachmentLoadOp::DontCare,
+						DrawingPad::AttachmentStoreOp::DontCare,
+						DrawingPad::ImageLayout::Undefined,
+						DrawingPad::ImageLayout::ShaderReadOnlyOptimal
 					},
 					{
 						wd->Swapchain->GetDesc().DepthFormat,
 						1,
-						AttachmentLoadOp::Clear,
-						AttachmentStoreOp::DontCare,
-						AttachmentLoadOp::DontCare,
-						AttachmentStoreOp::DontCare,
-						ImageLayout::Undefined,
-						ImageLayout::DepthStencilAttachOptimal
+						DrawingPad::AttachmentLoadOp::Clear,
+						DrawingPad::AttachmentStoreOp::DontCare,
+						DrawingPad::AttachmentLoadOp::DontCare,
+						DrawingPad::AttachmentStoreOp::DontCare,
+						DrawingPad::ImageLayout::Undefined,
+						DrawingPad::ImageLayout::DepthStencilAttachOptimal
 					},
 				};
 
-				AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
-				SubpassDesc subpass = {};
-				subpass.BindPoint = PipelineBindPoint::Graphics;
-				subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+				DrawingPad::AttachmentReference depthAttach = { 1, DrawingPad::ImageLayout::DepthStencilAttachOptimal };
+				DrawingPad::SubpassDesc subpass = {};
+				subpass.BindPoint = DrawingPad::PipelineBindPoint::Graphics;
+				subpass.ColorAttachments = { { 0, DrawingPad::ImageLayout::ColorAttachOptimal } };
 				subpass.DepthStencilAttachment = &depthAttach;
 
-				std::vector<DependencyDesc> dependencies = {
+				std::vector<DrawingPad::DependencyDesc> dependencies = {
 					{
 						~0U,
 						0,
-						PipelineStage::FragmentShader,
-						PipelineStage::ColorAttachOutput,
-						SubpassAccess::ShaderRead,
-						SubpassAccess::ColorAttachWrite
+						DrawingPad::PipelineStage::FragmentShader,
+						DrawingPad::PipelineStage::ColorAttachOutput,
+						DrawingPad::SubpassAccess::ShaderRead,
+						DrawingPad::SubpassAccess::ColorAttachWrite
 					},
 					{
 						0,
 						~0U,
-						PipelineStage::ColorAttachOutput,
-						PipelineStage::FragmentShader,
-						SubpassAccess::ColorAttachWrite,
-						SubpassAccess::ShaderRead
+						DrawingPad::PipelineStage::ColorAttachOutput,
+						DrawingPad::PipelineStage::FragmentShader,
+						DrawingPad::SubpassAccess::ColorAttachWrite,
+						DrawingPad::SubpassAccess::ShaderRead
 					}
 				};
 
@@ -386,65 +386,65 @@ int main()
 			}
 		}
 
-		BufferDesc bufDesc = {};
-		bufDesc.Usage = BufferUsageFlags::Default;
+		DrawingPad::BufferDesc bufDesc = {};
+		bufDesc.Usage = DrawingPad::BufferUsageFlags::Default;
 		// ======== Create Vertex Buffer ========
-		bufDesc.BindFlags = BufferBindFlags::Vertex;
+		bufDesc.BindFlags = DrawingPad::BufferBindFlags::Vertex;
 		bufDesc.Size = static_cast<uint32_t>(sizeof(gVertices[0]) * gVertices.size());
 		gVertexBuffer = device->CreateBuffer(bufDesc, (void*)gVertices.data());
 
 		// ======== Create Index Buffer ========
-		bufDesc.BindFlags = BufferBindFlags::Index;
+		bufDesc.BindFlags = DrawingPad::BufferBindFlags::Index;
 		bufDesc.Size = static_cast<uint32_t>(sizeof(gIndices[0]) * gIndices.size());
 		gIndexBuffer = device->CreateBuffer(bufDesc, (void*)gIndices.data());
 
 		// ======== Create Uniform Buffer ========
-		bufDesc.BindFlags = BufferBindFlags::Uniform;
+		bufDesc.BindFlags = DrawingPad::BufferBindFlags::Uniform;
 		bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
 		gGameUniformBuffer = device->CreateBuffer(bufDesc, nullptr);
 		gSceneUniformBuffer = device->CreateBuffer(bufDesc, nullptr);
 
 		int width, height, channels;
 		stbi_uc* pixels = stbi_load("textures/viking_room.png", &width, &height, &channels, STBI_rgb_alpha);
-		TextureDesc texDesc = {};
-		texDesc.Type = TextureType::DimTex2D;
+		DrawingPad::TextureDesc texDesc = {};
+		texDesc.Type = DrawingPad::TextureType::DimTex2D;
 		texDesc.Width = static_cast<uint32_t>(width);
 		texDesc.Height = static_cast<uint32_t>(height);
 		texDesc.MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-		texDesc.Format = TextureFormat::RGBA8UnormSRGB;
+		texDesc.Format = DrawingPad::TextureFormat::RGBA8UnormSRGB;
 		texDesc.ArraySize = 1;
-		texDesc.BindFlags = BindFlags::ShaderResource;
+		texDesc.BindFlags = DrawingPad::BindFlags::ShaderResource;
 		gTexture = device->CreateTexture(texDesc, pixels);
 
 		texDesc.Width = gGameWidth;
 		texDesc.Height = gGameHeight;
 		texDesc.MipLevels = 1;
-		texDesc.Format = TextureFormat::RGBA8Unorm;
-		texDesc.BindFlags = BindFlags::RenderTarget;
+		texDesc.Format = DrawingPad::TextureFormat::RGBA8Unorm;
+		texDesc.BindFlags = DrawingPad::BindFlags::RenderTarget;
 		gGameColorTexture = device->CreateTexture(texDesc, nullptr);
 		gSceneColorTexture = device->CreateTexture(texDesc, nullptr);
 
 		texDesc.Format = wd->Swapchain->GetDesc().DepthFormat;
-		texDesc.BindFlags = BindFlags::DepthStencil;
+		texDesc.BindFlags = DrawingPad::BindFlags::DepthStencil;
 		gGameDepthTexture = device->CreateTexture(texDesc, nullptr);
 		gSceneDepthTexture = device->CreateTexture(texDesc, nullptr);
 
 
 		// ======== Create Shaders ========
-		ShaderDesc sDesc = {};
+		DrawingPad::ShaderDesc sDesc = {};
 		sDesc.EntryPoint = "main";
 		sDesc.Name = "Basic Vert";
 		//sDesc.Src = vertSrc;
 		sDesc.Path = "shaders/ubo.vert";
-		sDesc.Type = ShaderType::Vertex;
+		sDesc.Type = DrawingPad::ShaderType::Vertex;
 		gVertShader = device->CreateShader(sDesc);
 		sDesc.Name = "Basic Frag";
 		//sDesc.Src = fragSrc;
 		sDesc.Path = "shaders/ubo.frag";
-		sDesc.Type = ShaderType::Fragment;
+		sDesc.Type = DrawingPad::ShaderType::Fragment;
 		gFragShader = device->CreateShader(sDesc);
 
-		std::vector<LayoutElement> vertInputs = {
+		std::vector<DrawingPad::LayoutElement> vertInputs = {
 			{
 				0, // InputIndex Location
 				0, // BufferSlot Binding
@@ -470,12 +470,12 @@ int main()
 
 		gProgram = device->CreateShaderProgram({ gVertShader, gFragShader });
 
-		GraphicsPipelineDesc pDesc = {
+		DrawingPad::GraphicsPipelineDesc pDesc = {
 			vertInputs,
 			gProgram,
 			1,
 			true,
-			FrontFace::CounterClockwise,
+			DrawingPad::FrontFace::CounterClockwise,
 			//4
 		};
 
@@ -524,7 +524,7 @@ int main()
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Main Loop
-	while (!glfwWindowShouldClose(window)) 
+	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
 
@@ -534,107 +534,108 @@ int main()
 		ImGui::NewFrame();
 
 		// Rendering
-		
+
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_p = true;
 		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 		bool opt_fullscreen = opt_fullscreen_p;
-
-		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-		if (opt_fullscreen) {
-			ImGuiViewport* view = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(view->Pos);
-			ImGui::SetNextWindowSize(view->Size);
-			ImGui::SetNextWindowViewport(view->ID);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
-			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavFocus;
-		}
-
-		if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-			window_flags |= ImGuiWindowFlags_NoBackground;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("DockSpace", &dockspaceOpen, window_flags);
-		ImGui::PopStyleVar();
-
-		if (opt_fullscreen)
-			ImGui::PopStyleVar(2);
-
-		auto& io = ImGui::GetIO();
-		auto& style = ImGui::GetStyle();
-		float minWinX = style.WindowMinSize.x;
-		style.WindowMinSize.x = 370.0f;
-		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-			ImGuiID id = ImGui::GetID("DockSpace");
-			ImGui::DockSpace(id, ImVec2(0.0f, 0.0f), dockspace_flags);
-		}
-
-		style.WindowMinSize.x = minWinX;
-
-		if (ImGui::BeginMenuBar()) {
-			if (ImGui::BeginMenu("File")) {
-				ImGui::MenuItem("New", "Ctrl+N");
-				ImGui::MenuItem("Open...", "Ctrl+O");
-				ImGui::MenuItem("Save", "Ctrl+S");
-				ImGui::MenuItem("Save As...", "Ctrl+Shift+S");
-				if(ImGui::MenuItem("Exit"))
-					glfwSetWindowShouldClose(window, 1);
-				ImGui::EndMenu();
+		{
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+			if (opt_fullscreen) {
+				ImGuiViewport* view = ImGui::GetMainViewport();
+				ImGui::SetNextWindowPos(view->Pos);
+				ImGui::SetNextWindowSize(view->Size);
+				ImGui::SetNextWindowViewport(view->ID);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+				window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize;
+				window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNavFocus;
 			}
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::EndMenuBar();
-		}
-		
-		{ //BEGIN Game viewport
+
+			if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+				window_flags |= ImGuiWindowFlags_NoBackground;
+
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));
-			if (gameViewable = ImGui::Begin("Game")) {
-				ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-				// Get the scale image width and height relative to window size
-				float hScale = viewportSize.y / (float)gGameHeight;
-				float wScale = viewportSize.x / (float)gGameWidth;
-				float width = std::min(hScale, wScale) * (float)gGameWidth;
-				float height = std::min(hScale, wScale) * (float)gGameHeight;
-				// Clamp to original resolution
-				width = std::min(width, (float)gGameWidth);
-				height = std::min(height, (float)gGameHeight);
-
-				auto windowSize = ImGui::GetWindowSize();
-
-				ImGui::SetCursorPos(ImVec2((viewportSize.x - width) * 0.5f + windowSize.x - viewportSize.x, (viewportSize.y - height) * 0.5f + windowSize.y - viewportSize.y));
-				ImGui::Image((ImTextureID)gGameColorTexture, ImVec2(width, height));
-			}
-			ImGui::End();
-			ImGui::PopStyleColor();
+			ImGui::Begin("DockSpace", &dockspaceOpen, window_flags);
 			ImGui::PopStyleVar();
-		} //END Game viewport
 
-		{ //BEGIN Scene viewport
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));
-			if (sceneViewable = ImGui::Begin("Scene")) {
-				ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+			if (opt_fullscreen)
+				ImGui::PopStyleVar(2);
 
-				gSceneWidth = (uint32_t)viewportSize.x;
-				gSceneHeight = (uint32_t)viewportSize.y;
-
-				ImGui::Image((ImTextureID)gSceneColorTexture, viewportSize);
+			auto& io = ImGui::GetIO();
+			auto& style = ImGui::GetStyle();
+			float minWinX = style.WindowMinSize.x;
+			style.WindowMinSize.x = 370.0f;
+			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+				ImGuiID id = ImGui::GetID("DockSpace");
+				ImGui::DockSpace(id, ImVec2(0.0f, 0.0f), dockspace_flags);
 			}
+
+			style.WindowMinSize.x = minWinX;
+
+			if (ImGui::BeginMenuBar()) {
+				if (ImGui::BeginMenu("File")) {
+					ImGui::MenuItem("New", "Ctrl+N");
+					ImGui::MenuItem("Open...", "Ctrl+O");
+					ImGui::MenuItem("Save", "Ctrl+S");
+					ImGui::MenuItem("Save As...", "Ctrl+Shift+S");
+					if (ImGui::MenuItem("Exit"))
+						glfwSetWindowShouldClose(window, 1);
+					ImGui::EndMenu();
+				}
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+				ImGui::EndMenuBar();
+			}
+
+			{ //BEGIN Game viewport
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));
+				if (gameViewable = ImGui::Begin("Game")) {
+					ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+					// Get the scale image width and height relative to window size
+					float hScale = viewportSize.y / (float)gGameHeight;
+					float wScale = viewportSize.x / (float)gGameWidth;
+					float width = std::min(hScale, wScale) * (float)gGameWidth;
+					float height = std::min(hScale, wScale) * (float)gGameHeight;
+					// Clamp to original resolution
+					width = std::min(width, (float)gGameWidth);
+					height = std::min(height, (float)gGameHeight);
+
+					auto windowSize = ImGui::GetWindowSize();
+
+					ImGui::SetCursorPos(ImVec2((viewportSize.x - width) * 0.5f + windowSize.x - viewportSize.x, (viewportSize.y - height) * 0.5f + windowSize.y - viewportSize.y));
+					ImGui::Image((ImTextureID)gGameColorTexture, ImVec2(width, height));
+				}
+				ImGui::End();
+				ImGui::PopStyleColor();
+				ImGui::PopStyleVar();
+			} //END Game viewport
+
+			{ //BEGIN Scene viewport
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+				ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));
+				if (sceneViewable = ImGui::Begin("Scene")) {
+					ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+
+					gSceneWidth = (uint32_t)viewportSize.x;
+					gSceneHeight = (uint32_t)viewportSize.y;
+
+					ImGui::Image((ImTextureID)gSceneColorTexture, viewportSize);
+				}
+				ImGui::End();
+				ImGui::PopStyleColor();
+				ImGui::PopStyleVar();
+			} //END Game viewport
+
+			ImGui::Begin("Debug");
+			ImGui::Text("Game Resolution: %d x %d", gGameWidth, gGameHeight);
+			ImGui::Text("Game Visible: %s", gameViewable ? "True" : "False");
+			ImGui::Text("Scene Resolution: %d x %d", gSceneWidth, gSceneHeight);
+			ImGui::Text("Scene Visible: %s", sceneViewable ? "True" : "False");
 			ImGui::End();
-			ImGui::PopStyleColor();
-			ImGui::PopStyleVar();
-		} //END Game viewport
 
-		ImGui::Begin("Debug");
-		ImGui::Text("Game Resolution: %d x %d", gGameWidth, gGameHeight);
-		ImGui::Text("Game Visible: %s", gameViewable ? "True" : "False");
-		ImGui::Text("Scene Resolution: %d x %d", gSceneWidth, gSceneHeight);
-		ImGui::Text("Scene Visible: %s", sceneViewable ? "True" : "False");
-		ImGui::End();
-
-		ImGui::End();
+			ImGui::End();
+		}
 		
 		ImGui::Render();
 		ImDrawData* main_draw_data = ImGui::GetDrawData();
