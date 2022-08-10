@@ -8,12 +8,12 @@ struct ImGui_ImplDrawingPad_Window
 {
 	int Width;
 	int Height;
-	GraphicsContext* Context;
-	Pipeline* Pipeline;
-	RenderPass* RenderPass;
-	Swapchain* Swapchain;
+	DrawingPad::GraphicsContext* Context;
+	DrawingPad::Pipeline* Pipeline;
+	DrawingPad::RenderPass* RenderPass;
+	DrawingPad::Swapchain* Swapchain;
 	bool ClearEnable;
-	ClearValue ClearValue;
+	DrawingPad::ClearValue ClearValue;
 
 	ImGui_ImplDrawingPad_Window() {
 		memset(this, 0, sizeof(*this));
@@ -23,9 +23,9 @@ struct ImGui_ImplDrawingPad_Window
 
 struct ImGui_ImplDrawingPad_FrameRenderBuffers 
 {
-	Buffer* VertexBuffer = nullptr;
-	Buffer* IndexBuffer = nullptr;
-	Buffer* UploadBuffer = nullptr;
+	DrawingPad::Buffer* VertexBuffer = nullptr;
+	DrawingPad::Buffer* IndexBuffer = nullptr;
+	DrawingPad::Buffer* UploadBuffer = nullptr;
 };
 
 struct ImGui_ImplDrawingPad_ViewportData
@@ -38,17 +38,17 @@ struct ImGui_ImplDrawingPad_ViewportData
 
 struct ImGui_ImplDrawingPad_Data
 {
-	GraphicsDevice* Device;
-	RenderPass* RenderPass;
+	DrawingPad::GraphicsDevice* Device;
+	DrawingPad::RenderPass* RenderPass;
 	uint64_t BufferMemoryAlignment;
-	Pipeline* Pipeline;
+	DrawingPad::Pipeline* Pipeline;
 	uint32_t Subpass;
-	ShaderProgram* ShaderProgram;
-	Shader* VertexShader;
-	Shader* FragmentShader;
+	DrawingPad::ShaderProgram* ShaderProgram;
+	DrawingPad::Shader* VertexShader;
+	DrawingPad::Shader* FragmentShader;
 
-	Texture* FontTexture;
-	Buffer* UploadBuffer;
+	DrawingPad::Texture* FontTexture;
+	DrawingPad::Buffer* UploadBuffer;
 
 	uint32_t ImageCount;
 	std::vector<ImGui_ImplDrawingPad_FrameRenderBuffers> MainWindowBuffers;
@@ -60,9 +60,9 @@ struct ImGui_ImplDrawingPad_Data
 	}
 };
 
-void ImGui_ImplDrawingPad_Init(GraphicsDevice* device, RenderPass* renderpass, uint32_t imageCount);
+void ImGui_ImplDrawingPad_Init(DrawingPad::GraphicsDevice* device, DrawingPad::RenderPass* renderpass, uint32_t imageCount);
 void ImGui_ImplDrawingPad_CreateFontsTexture();
-void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, CommandBuffer* cmd, Pipeline* pipeline = nullptr);
+void ImGui_ImplDrawingPad_RenderDrawData(ImDrawData* drawData, DrawingPad::CommandBuffer* cmd, DrawingPad::Pipeline* pipeline = nullptr);
 void ImGui_ImplDrawingPad_Shutdown();
 
 void ImGui_ImplDrawingPad_CreateOrResizeWindow();

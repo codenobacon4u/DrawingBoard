@@ -25,7 +25,7 @@
 #include <tiny_obj_loader.h>
 #pragma warning(pop)
 
-API Curr_API = API::Vulkan;
+DrawingPad::API Curr_API = DrawingPad::API::Vulkan;
 
 static std::string vertSrc = R"(
 #version 450
@@ -115,19 +115,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 int main() 
 {
 	remove("validation_layers.log");
-	GraphicsDevice* gd;
-	GraphicsContext* ctx;
-	Swapchain* swap;
-	Buffer* vb;
-	Buffer* ib;
-	Buffer* ub;
-	RenderPass* rp;
-	Pipeline* pipeline;
-	Shader* vertShader;
-	Shader* fragShader;
+	DrawingPad::GraphicsDevice* gd;
+	DrawingPad::GraphicsContext* ctx;
+	DrawingPad::Swapchain* swap;
+	DrawingPad::Buffer* vb;
+	DrawingPad::Buffer* ib;
+	DrawingPad::Buffer* ub;
+	DrawingPad::RenderPass* rp;
+	DrawingPad::Pipeline* pipeline;
+	DrawingPad::Shader* vertShader;
+	DrawingPad::Shader* fragShader;
 	if (!glfwInit())
 		printf("Failed");
-	if (Curr_API != API::OpenGL)
+	if (Curr_API != DrawingPad::API::OpenGL)
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(1920, 1080, "DrawingPad Test", NULL, NULL);
 	if (window == NULL) {
@@ -136,49 +136,49 @@ int main()
 	}
 	glfwSetKeyCallback(window, key_callback);
 
-	gd = GraphicsDevice::Create(window, Curr_API);
+	gd = DrawingPad::GraphicsDevice::Create(window, Curr_API);
 
-	SwapchainDesc swapDesc;
+	DrawingPad::SwapchainDesc swapDesc;
 	swap = gd->CreateSwapchain(swapDesc, window);
 	ctx = gd->CreateGraphicsContext(swap);
 	
-	RenderPassDesc rpDesc = {};
-	std::vector<RenderPassAttachmentDesc> attachments = {
+	DrawingPad::RenderPassDesc rpDesc = {};
+	std::vector<DrawingPad::RenderPassAttachmentDesc> attachments = {
 		{
 			swap->GetDesc().ColorFormat,
 			1,
-			AttachmentLoadOp::Clear,
-			AttachmentStoreOp::Store,
-			AttachmentLoadOp::Discard,
-			AttachmentStoreOp::Discard,
-			ImageLayout::Undefined,
-			ImageLayout::PresentSrcKHR
+			DrawingPad::AttachmentLoadOp::Clear,
+			DrawingPad::AttachmentStoreOp::Store,
+			DrawingPad::AttachmentLoadOp::Discard,
+			DrawingPad::AttachmentStoreOp::Discard,
+			DrawingPad::ImageLayout::Undefined,
+			DrawingPad::ImageLayout::PresentSrcKHR
 		},
 		{
 			swap->GetDesc().DepthFormat,
 			1,
-			AttachmentLoadOp::Clear,
-			AttachmentStoreOp::DontCare,
-			AttachmentLoadOp::DontCare,
-			AttachmentStoreOp::DontCare,
-			ImageLayout::Undefined,
-			ImageLayout::DepthStencilAttachOptimal
+			DrawingPad::AttachmentLoadOp::Clear,
+			DrawingPad::AttachmentStoreOp::DontCare,
+			DrawingPad::AttachmentLoadOp::DontCare,
+			DrawingPad::AttachmentStoreOp::DontCare,
+			DrawingPad::ImageLayout::Undefined,
+			DrawingPad::ImageLayout::DepthStencilAttachOptimal
 		}, 
 	};
 
-	AttachmentReference depthAttach = { 1, ImageLayout::DepthStencilAttachOptimal };
-	SubpassDesc subpass = {};
-	subpass.ColorAttachments = { { 0, ImageLayout::ColorAttachOptimal } };
+	DrawingPad::AttachmentReference depthAttach = { 1, DrawingPad::ImageLayout::DepthStencilAttachOptimal };
+	DrawingPad::SubpassDesc subpass = {};
+	subpass.ColorAttachments = { { 0, DrawingPad::ImageLayout::ColorAttachOptimal } };
 	subpass.DepthStencilAttachment = &depthAttach;
 	subpass.PreserveAttachments = {};
 
-	DependencyDesc dependency = {};
+	DrawingPad::DependencyDesc dependency = {};
 	dependency.SrcSubpass = ~0U;
 	dependency.DstSubpass = 0;
-	dependency.SrcStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
-	dependency.DstStage = (PipelineStage)(PipelineStage::ColorAttachOutput | PipelineStage::EarlyFragTests);
-	dependency.SrcAccess = SubpassAccess::NA;
-	dependency.DstAccess = (SubpassAccess)(SubpassAccess::ColorAttachWrite | SubpassAccess::DepthStencilAttachWrite);
+	dependency.SrcStage = (DrawingPad::PipelineStage)(DrawingPad::PipelineStage::ColorAttachOutput | DrawingPad::PipelineStage::EarlyFragTests);
+	dependency.DstStage = (DrawingPad::PipelineStage)(DrawingPad::PipelineStage::ColorAttachOutput | DrawingPad::PipelineStage::EarlyFragTests);
+	dependency.SrcAccess = DrawingPad::SubpassAccess::NA;
+	dependency.DstAccess = (DrawingPad::SubpassAccess)(DrawingPad::SubpassAccess::ColorAttachWrite | DrawingPad::SubpassAccess::DepthStencilAttachWrite);
 
 	rpDesc.Attachments = attachments;
 	rpDesc.Subpasses = { subpass };
@@ -231,9 +231,9 @@ int main()
 				vertex.color = { 1.0f, 1.0f, 1.0f };
 
 				size_t hash = 0;
-				hash_combine(hash, vertex.pos);
-				hash_combine(hash, vertex.color);
-				hash_combine(hash, vertex.tex);
+				DrawingPad::hash_combine(hash, vertex.pos);
+				DrawingPad::hash_combine(hash, vertex.color);
+				DrawingPad::hash_combine(hash, vertex.tex);
 
 				if (uniqueVertices.count(hash) == 0) {
 					uniqueVertices[hash] = static_cast<uint32_t>(vertices.size());
@@ -245,38 +245,38 @@ int main()
 		}
 	}
 
-	BufferDesc bufDesc = {};
-	bufDesc.Usage = BufferUsageFlags::Default;
+	DrawingPad::BufferDesc bufDesc = {};
+	bufDesc.Usage = DrawingPad::BufferUsageFlags::Default;
 	// ======== Create Vertex Buffer ========
-	bufDesc.BindFlags = BufferBindFlags::Vertex;
+	bufDesc.BindFlags = DrawingPad::BufferBindFlags::Vertex;
 	bufDesc.Size = static_cast<uint32_t>(sizeof(vertices[0]) * vertices.size());
 	vb = gd->CreateBuffer(bufDesc, (void*)vertices.data());
 
 	// ======== Create Index Buffer ========
-	bufDesc.BindFlags = BufferBindFlags::Index;
+	bufDesc.BindFlags = DrawingPad::BufferBindFlags::Index;
 	bufDesc.Size = static_cast<uint32_t>(sizeof(indices[0]) * indices.size());
 	ib = gd->CreateBuffer(bufDesc, (void*)indices.data());
 
 	// ======== Create Uniform Buffer ========
-	bufDesc.BindFlags = BufferBindFlags::Uniform;
+	bufDesc.BindFlags = DrawingPad::BufferBindFlags::Uniform;
 	bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
 	ub = gd->CreateBuffer(bufDesc, nullptr);
 
 	// ======== Create Shaders ========
-	ShaderDesc sDesc = {};
+	DrawingPad::ShaderDesc sDesc = {};
 	sDesc.EntryPoint = "main";
 	sDesc.Name = "Basic Vert";
 	//sDesc.Src = vertSrc;
 	sDesc.Path = "shaders/ubo.vert";
-	sDesc.Type = ShaderType::Vertex;
+	sDesc.Type = DrawingPad::ShaderType::Vertex;
 	vertShader = gd->CreateShader(sDesc);
 	sDesc.Name = "Basic Frag";
 	//sDesc.Src = fragSrc;
 	sDesc.Path = "shaders/ubo.frag";
-	sDesc.Type = ShaderType::Fragment;
+	sDesc.Type = DrawingPad::ShaderType::Fragment;
 	fragShader = gd->CreateShader(sDesc);
 
-	std::vector<LayoutElement> vertInputs = {
+	std::vector<DrawingPad::LayoutElement> vertInputs = {
 		{
 			0, // InputIndex Location
 			0, // BufferSlot Binding
@@ -300,11 +300,11 @@ int main()
 		}
 	};
 
-	std::vector<Shader*> shaders = { vertShader, fragShader };
+	std::vector<DrawingPad::Shader*> shaders = { vertShader, fragShader };
 
-	ShaderProgram* program = gd->CreateShaderProgram(shaders);
+	DrawingPad::ShaderProgram* program = gd->CreateShaderProgram(shaders);
 
-	GraphicsPipelineDesc pDesc = {
+	DrawingPad::GraphicsPipelineDesc pDesc = {
 		vertInputs,
 		program,
 		1,
@@ -317,18 +317,18 @@ int main()
 	//const unsigned char* data = (const unsigned char*)malloc(256 * 256 * 4);
 	int width, height, channels;
 	stbi_uc* pixels = stbi_load("textures/viking_room.png", &width, &height, &channels, STBI_rgb_alpha);
-	TextureDesc texDesc = {};
-	texDesc.Type = TextureType::DimTex2D;
+	DrawingPad::TextureDesc texDesc = {};
+	texDesc.Type = DrawingPad::TextureType::DimTex2D;
 	texDesc.Width = static_cast<uint32_t>(width);
 	texDesc.Height = static_cast<uint32_t>(height);
 	texDesc.MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-	texDesc.Format = TextureFormat::RGBA8UnormSRGB;
+	texDesc.Format = DrawingPad::TextureFormat::RGBA8UnormSRGB;
 	texDesc.ArraySize = 1;
-	texDesc.BindFlags = BindFlags::ShaderResource;
-	Texture* texture = gd->CreateTexture(texDesc, pixels);
+	texDesc.BindFlags = DrawingPad::BindFlags::ShaderResource;
+	DrawingPad::Texture* texture = gd->CreateTexture(texDesc, pixels);
 
 	auto glfwVersion = glfwGetVersionString();
-	if (Curr_API == API::OpenGL) {
+	if (Curr_API == DrawingPad::API::OpenGL) {
 		glfwMakeContextCurrent(window);
 		gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		auto glVersion = glGetString(GL_VERSION);
@@ -350,17 +350,17 @@ int main()
 
 		//====RENDER====
 		auto cmd = ctx->Begin();
-		TextureView* rtv = swap->GetBackbuffer();
-		TextureView* dsv = swap->GetDepthBufferView();
+		DrawingPad::TextureView* rtv = swap->GetBackbuffer();
+		DrawingPad::TextureView* dsv = swap->GetDepthBufferView();
 		float color[4] = { 0.f, 0.f, 0.f, 1.0f };
-		Viewport vp = { 0, 0, static_cast<float>(rtv->GetTexture()->GetDesc().Width), static_cast<float>(rtv->GetTexture()->GetDesc().Height), 0.0f, 1.0f };
-		Rect2D sc = { { 0, 0 }, { rtv->GetTexture()->GetDesc().Width, rtv->GetTexture()->GetDesc().Height } };
+		DrawingPad::Viewport vp = { 0, 0, static_cast<float>(rtv->GetTexture()->GetDesc().Width), static_cast<float>(rtv->GetTexture()->GetDesc().Height), 0.0f, 1.0f };
+		DrawingPad::Rect2D sc = { { 0, 0 }, { rtv->GetTexture()->GetDesc().Width, rtv->GetTexture()->GetDesc().Height } };
 		cmd->Begin();
 		cmd->BeginRenderPass(rp, { rtv, dsv }, { { 0.0f, 0.0f, 0.0f, 1.0f }, { 1.0f, 0 } });
 		cmd->SetViewports(0, 1, { vp });
 		cmd->SetScissors(0, 1, { sc });
 		cmd->BindPipeline(pipeline);
-		std::vector<Buffer*> vertexBuffs = { vb };
+		std::vector<DrawingPad::Buffer*> vertexBuffs = { vb };
 		std::vector<uint64_t> offsets = { 0 };
 		cmd->BindVertexBuffer(0, 1, vertexBuffs, offsets);
 		cmd->BindIndexBuffer(ib, 0, 1);
