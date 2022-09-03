@@ -41,8 +41,7 @@ namespace DrawingPad
 		}
 		else
 		{
-			std::cout << "Warning: " << VK_EXT_DEBUG_MARKER_EXTENSION_NAME << " not present, debug markers are disabled.";
-			std::cout << "Try running from inside a Vulkan graphics debugger (e.g. RenderDoc)" << std::endl;
+			DP_WARN("Warning: {} not present, debug markers are disabled. Try running from inside a Vulkan graphics debugger (e.g. RenderDoc)", VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 		}
 		SetDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
 		SetDebugUtilsObjectTagEXT = (PFN_vkSetDebugUtilsObjectTagEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectTagEXT");

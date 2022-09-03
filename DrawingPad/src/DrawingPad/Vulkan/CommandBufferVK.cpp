@@ -42,22 +42,36 @@ namespace DrawingPad
 
 		void CommandBufferVK::BeginRenderPass(RenderPass* renderpass, std::vector<TextureView*> renderTargets, std::vector<ClearValue> clearValues)
 		{
-			//assert(clearValues.size() == renderpass->getDesc().Attachments.size());
-			//assert(renderTargets.size() > 0);
-
 			uint32_t width = renderTargets[0]->GetTexture()->GetDesc().Width;
 			uint32_t height = renderTargets[0]->GetTexture()->GetDesc().Height;
 
 			std::vector<VkImageView> views(renderTargets.size(), VK_NULL_HANDLE);
 			std::transform(renderTargets.begin(), renderTargets.end(), views.begin(), [](TextureView* view) { return static_cast<TextureViewVK*>(view)->Get(); });
 
+			std::vector<VkFormat> formats(renderTargets.size());
+			std::transform(renderTargets.begin(), renderTargets.end(), formats.begin(), [](TextureView* view) { return UtilsVK::TextureFormatToVk(static_cast<TextureViewVK*>(view)->GetDesc().Format); });
+
 			FBKey key = {};
 			key.Pass = static_cast<RenderPassVK*>(renderpass)->Get();
-			key.Attachments = views;
+			key.Formats = formats;
+			for (auto& target : renderTargets) {
+				if (target->GetTexture()->GetDesc().BindFlags == BindFlags::SwapChain)
+					key.Usages.push_back(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+				else if (target->GetTexture()->GetDesc().BindFlags == BindFlags::RenderTarget)
+					key.Usages.push_back(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+				else if (target->GetTexture()->GetDesc().BindFlags == BindFlags::DepthStencil)
+					key.Usages.push_back(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+			}
 
 			auto framebuffer = m_Device->GetFramebufferPool().GetFramebuffer(key, width, height, 1);
 
+			VkRenderPassAttachmentBeginInfo attachBeginInfo = {};
+			attachBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO;
+			attachBeginInfo.attachmentCount = static_cast<uint32_t>(views.size());
+			attachBeginInfo.pAttachments = views.data();
+
 			VkRenderPassBeginInfo beginInfo = {};
+			beginInfo.pNext = &attachBeginInfo;
 			beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			beginInfo.renderPass = static_cast<RenderPassVK*>(renderpass)->Get();
 			beginInfo.framebuffer = framebuffer;

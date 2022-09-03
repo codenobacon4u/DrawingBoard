@@ -31,11 +31,24 @@ namespace DrawingPad
 		static PFN_vkCreateDebugUtilsMessengerEXT  CreateDebugUtilsMessengerEXT = nullptr;
 		static PFN_vkDestroyDebugUtilsMessengerEXT DestroyDebugUtilsMessengerEXT = nullptr;
 
-		static std::ofstream debugLog("debug.log", std::ios_base::out | std::ios_base::app);
-
 		VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-			std::cerr << pCallbackData->pMessage << "\n";
-			debugLog << pCallbackData->pMessage << "\n";
+			switch (messageSeverity) {
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+				DP_TRACE(pCallbackData->pMessage);
+				break;
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+				DP_INFO(pCallbackData->pMessage);
+				break;
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+				DP_WARN(pCallbackData->pMessage);
+				break;
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+				DP_ERROR(pCallbackData->pMessage);
+				break;
+			default:
+				DP_TRACE(pCallbackData->pMessage);
+				break;
+			}
 			return VK_FALSE;
 		}
 
@@ -63,7 +76,7 @@ namespace DrawingPad
 
 			CreatePhysicalDevice();
 			CreateDevice();
-			if (enableValidation) {
+			if (enableValidation && 0) {
 				DebugMarker::Setup(m_Device, m_PhysicalDevice);
 			}
 			m_TempPool = DBG_NEW CommandPoolVK(this, 0, 0);
@@ -90,7 +103,6 @@ namespace DrawingPad
 				DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 
 			vkDestroyInstance(m_Instance, nullptr);
-			debugLog.close();
 		}
 
 		void GraphicsDeviceVK::SubmitCommandBuffer(const VkSubmitInfo& info, VkFence* fence)
@@ -98,6 +110,7 @@ namespace DrawingPad
 			auto result = vkQueueSubmit(m_GraphicsQueue, 1, &info, *fence);
 			if (result != VK_SUCCESS)
 			{
+				DP_ERROR("Failed to submit commandbuffer!");
 				throw std::runtime_error("Failed to submit commandbuffer!");
 			}
 		}
@@ -136,6 +149,7 @@ namespace DrawingPad
 				if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties) == properties)
 					return i;
 
+			DP_ERROR("Failed to find suitable memory type!");
 			throw std::runtime_error("Failed to find suitable memory type!");
 		}
 
@@ -239,6 +253,7 @@ namespace DrawingPad
 				}
 			}
 
+			DP_ERROR("Queue not found");
 			throw std::runtime_error("Queue not found");
 		}
 
@@ -300,7 +315,8 @@ namespace DrawingPad
 			}
 
 			if (vkCreateInstance(&instInfo, nullptr, &m_Instance) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create instance");
+				DP_CRITICAL("Failed to create VkInstance");
+				throw std::runtime_error("Failed to create instance");
 			}
 
 
@@ -308,6 +324,7 @@ namespace DrawingPad
 			CreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkCreateDebugUtilsMessengerEXT"));
 			DestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT"));
 			if (CreateDebugUtilsMessengerEXT(m_Instance, &debugCreateInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS) {
+				DP_ERROR("Failed to create debug messenger"); 
 				throw std::runtime_error("failed to set up debug messenger");
 			}
 		}
@@ -317,22 +334,22 @@ namespace DrawingPad
 			uint32_t deviceCount;
 			vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
 			if (deviceCount == 0) {
+				DP_CRITICAL("Failed to find a GPU with Vulkan support");
 				throw std::runtime_error("failed to find a GPU with Vulkan support");
 			}
 
 			std::vector<VkPhysicalDevice> devices(deviceCount);
 			vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
 
-			std::cout
-				<< "========================================\n"
-				<< "Enumerating Graphics Devices:\n"
-				<< "========================================\n";
+			DP_INFO("========================================");
+			DP_INFO("Enumerating Graphics Devices:");
+			DP_INFO("========================================");
 			for (const auto& device : devices)
 			{
 				auto props = VkPhysicalDeviceProperties{};
 				vkGetPhysicalDeviceProperties(device, &props);
 				UtilsVK::PrintDeviceProps(props);
-				std::cout << "========================================\n";
+				DP_INFO("========================================");
 			}
 			for (const auto& device : devices)
 			{
@@ -358,10 +375,10 @@ namespace DrawingPad
 
 			VkPhysicalDeviceProperties props;
 			vkGetPhysicalDeviceProperties(m_PhysicalDevice, &props);
-			std::cout
-				<< "Chosen Graphics Device:\n"
-				<< "========================================\n";
+			DP_INFO("Chosen Graphics Device:");
+			DP_INFO("========================================");
 			UtilsVK::PrintDeviceProps(props);
+			DP_INFO("========================================");
 
 			m_PhysicalLimits = props.limits;
 
@@ -504,7 +521,7 @@ namespace DrawingPad
 			for (uint32_t i = 0; i < glfwExtensionCount; i++) {
 				if (!IsExtensionAvailable(glfwExtensions[i]))
 				{
-					debugLog << "ERROR: Required extension not found!\n";
+					DP_ERROR("Required extension not found!");
 					throw std::runtime_error("Required extension not found!");
 				}
 				extns.emplace_back(glfwExtensions[i]);
@@ -521,7 +538,7 @@ namespace DrawingPad
 					extns.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				else
 				{
-					debugLog << "ERROR: Extension VK_EXT_debug_utils not available\n";
+					DP_CRITICAL("Extension VK_EXT_debug_utils not available");
 					throw std::runtime_error("Extension VK_EXT_debug_utils not available");
 				}
 			}
@@ -550,7 +567,7 @@ namespace DrawingPad
 					}
 					if (!found)
 					{
-						debugLog << "ERROR: Vulkan validation layer not found\n";
+						DP_CRITICAL("Vulkan validation layer not found");
 						throw std::runtime_error("Vulkan validation layer not found");
 					}
 					lyrs.emplace_back(name);
@@ -560,7 +577,7 @@ namespace DrawingPad
 				if (IsLayerAvailable("VK_LAYER_KHRONOS_validation"))
 					lyrs.emplace_back("VK_LAYER_KHRONOS_validation");
 				else {
-					debugLog << "ERROR: Layer VK_LAYER_KHRONOS_validation not found";
+					DP_CRITICAL("Layer VK_LAYER_KHRONOS_validation not found");
 					throw std::runtime_error("Layer VK_LAYER_KHRONOS_validation not found");
 				}
 			}

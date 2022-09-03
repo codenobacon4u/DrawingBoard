@@ -543,7 +543,7 @@ namespace DrawingPad
 				vendor = "Intel";
 				break;
 			default:
-				vendor = "UNKOWN";
+				vendor = "UNKNOWN";
 				break;
 			}
 			switch (props.deviceType) {
@@ -583,13 +583,12 @@ namespace DrawingPad
 			};
 			driver = props.driverVersion < values->size() ? values[props.driverVersion] : "UNKOWN";
 			std::string api = string_format("%d.%d.%d", props.apiVersion >> 22, (props.apiVersion >> 12) & 0x3ff, props.apiVersion & 0xfff);
-			std::cout
-				<< "Device Name: " << props.deviceName << "\n"
-				<< "Device Type: " << type << "\n"
-				<< "Driver Version: " << driver << "\n"
-				<< "Vulkan Version: " << api << "\n"
-				<< "Vender ID: " << vendor << "\n"
-				<< "Device ID: " << props.deviceID << "\n";
+			DP_INFO("Device Name: {}", props.deviceName);
+			DP_INFO("Device Type: {}", type);
+			DP_INFO("Driver Version: {}", driver);
+			DP_INFO("Vulkan Version: {}", api);
+			DP_INFO("Vender ID: {}", vendor);
+			DP_INFO("Device ID: {}", props.deviceID);
 		}
 	}
 }

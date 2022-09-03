@@ -2,9 +2,10 @@ VULKAN_SDK = os.getenv("VULKAN_SDK")
 
 IncludeDir = {}
 IncludeDir["glad"] = "%{wks.location}/DrawingPad/vendor/glad/include"
-IncludeDir["glfw"] = "%{wks.location}/DrawingPad/vendor/glfw/include"
+IncludeDir["GLFW"] = "%{wks.location}/DrawingPad/vendor/glfw/include"
 IncludeDir["glm"] = "%{wks.location}/DrawingPad/vendor/glm"
-IncludeDir["imgui"] = "%{wks.location}/DrawingPad/vendor/imgui"
+IncludeDir["ImGui"] = "%{wks.location}/DrawingPad/vendor/imgui"
+IncludeDir["spdlog"] = "%{wks.location}/DrawingPad/vendor/spdlog/include"
 IncludeDir["stb_image"] = "%{wks.location}/DrawingPad/vendor/stb_image"
 IncludeDir["shaderc"] = "%{wks.location}/DrawingPad/vendor/shaderc/include"
 IncludeDir["SPIRV_Cross"] = "%{wks.location}/DrawingPad/vendor/SPIRV-Cross"

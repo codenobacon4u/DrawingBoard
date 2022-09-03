@@ -20,8 +20,6 @@ namespace DrawingPad
 
 			~FramebufferPoolVK();
 
-			void DeleteViewEntry(VkImageView view);
-
 			VkFramebuffer GetFramebuffer(const FBKey& key, uint32_t width, uint32_t height, uint32_t layers);
 
 		private:
@@ -32,7 +30,6 @@ namespace DrawingPad
 			};
 
 			std::unordered_map<FBKey, VkFramebuffer, FBKeyHash> m_Map = {};
-			std::unordered_multimap<VkImageView, FBKey> m_VTKMap = {};
 		};
 	}
 }

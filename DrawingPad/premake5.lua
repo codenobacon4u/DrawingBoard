@@ -25,16 +25,16 @@ project "DrawingPad"
 
     includedirs {
         "src",
-        "vendor/spdlog/include",
 		"vendor/vma",
         "%{IncludeDir.glad}",
-        "%{IncludeDir.glfw}",
+        "%{IncludeDir.GLFW}",
         "%{IncludeDir.glm}",
+        "%{IncludeDir.spdlog}",
     	"%{IncludeDir.VulkanSDK}"
     }
 
     links {
-        "glfw",
+        "GLFW",
         "glad",
         "%{Library.Vulkan}"
     }

@@ -9,3 +9,6 @@
 [submodule "DrawingPad/vendor/glm"]
 	path = DrawingPad/vendor/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "DrawingPad/vendor/spdlog"]
+	path = DrawingPad/vendor/spdlog
+	url = https://github.com/gabime/spdlog.git

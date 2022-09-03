@@ -29,7 +29,8 @@ namespace DrawingPad
 
 		struct FBKey {
 			VkRenderPass Pass = VK_NULL_HANDLE;
-			std::vector<VkImageView> Attachments = {};
+			std::vector<VkFormat> Formats = {};
+			std::vector<VkImageUsageFlags> Usages = {};
 
 			bool operator==(const FBKey& rhs) const;
 			size_t GetHash() const;
