@@ -59,15 +59,16 @@ static DrawingPad::Pipeline* gPipeline2;
 
 static bool gameViewable = true;
 
-static std::vector<std::function<void(DrawingPad::CommandBuffer*)>> deferred = {};
+static std::vector<std::function<void(DrawingPad::CommandBuffer*)>> gDeferred = {};
 
 void Defer(std::function<void(DrawingPad::CommandBuffer*)> func) {
-	deferred.push_back(func);
+	gDeferred.push_back(func);
 }
 
 void ProcessDeferred(DrawingPad::CommandBuffer* cmd) {
-	for (auto& func : deferred)
+	for (auto& func : gDeferred)
 		func(cmd);
+	gDeferred.clear();
 }
 
 static void glfw_error_callback(int error, const char* desc) {
@@ -142,7 +143,7 @@ void FrameRender(ImGui_ImplDrawingPad_Window* windowData, ImDrawData* drawData)
 
 	RenderScene(cmd, rtv);
 
-	if (true) {
+	if (gameViewable) {
 		Defer([](DrawingPad::CommandBuffer* cmd) {
 			// Record Game pass
 			cmd->BeginRenderPass(gRenderPass, { gGameColorTexture->GetDefaultView(), gGameDepthTexture->GetDefaultView() }, { {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0} });
@@ -150,12 +151,12 @@ void FrameRender(ImGui_ImplDrawingPad_Window* windowData, ImDrawData* drawData)
 			cmd->EndRenderPass();
 		});
 	}
-	ProcessDeferred(cmd);
 	// Record Dear ImGui Primitives Into CommandBuffer
 	ImGui_ImplDrawingPad_RenderDrawData(drawData, cmd);
 
 	// Submit CommandBuffer
 	cmd->EndRenderPass();
+	ProcessDeferred(cmd);
 	cmd->End();
 	windowData->Context->Submit({ cmd });
 }
@@ -360,6 +361,7 @@ int main() {
 		bufDesc.BindFlags = DrawingPad::BufferBindFlags::Uniform;
 		bufDesc.Size = static_cast<uint32_t>(sizeof(UniformBufferObject) * 3);
 		gUniformBuffer = device->CreateBuffer(bufDesc, nullptr);
+		gGameUniformBuffer = device->CreateBuffer(bufDesc, nullptr);
 
 		int width, height, channels;
 		stbi_uc* pixels = stbi_load("textures/viking_room.png", &width, &height, &channels, STBI_rgb_alpha);
@@ -525,9 +527,11 @@ int main() {
 			resHeight = static_cast<int>((9.0f / 16.0f) * resWidth);
 			ImGui::SliderInt("Resolution Width: ", &resWidth, 16, 4096);
 			ImGui::SliderInt("Resolution Height: ", &resHeight, 9, 2304);
+			ImGui::Checkbox("Enable Game View", &gameViewable);
 			ImGui::End();
 		}
 
+		if (gameViewable) 
 		{ //BEGIN Game viewport
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(28.f / 255.f, 28.f / 255.f, 28.f / 255.f, 1.0f));

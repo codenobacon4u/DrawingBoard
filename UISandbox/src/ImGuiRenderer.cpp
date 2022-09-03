@@ -204,6 +204,7 @@ static void ImGui_ImplDrawingPad_CreateWindow(ImGuiViewport* viewport)
 static void ImGui_ImplDrawingPad_DestroyWindow(ImGuiViewport* viewport)
 {
 	ImGui_ImplDrawingPad_Data* bd = ImGui_ImplDrawingPad_GetBackendData();
+	bd->Device->WaitForIdle();
 	if (ImGui_ImplDrawingPad_ViewportData* vd = (ImGui_ImplDrawingPad_ViewportData*)viewport->RendererUserData)
 	{
 		if (vd->WindowOwned)
