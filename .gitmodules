@@ -1,4 +1,3 @@
-
 [submodule "DrawingPad/vendor/imgui"]
 	path = DrawingPad/vendor/imgui
 	url = https://github.com/codenobacon4u/imgui.git
