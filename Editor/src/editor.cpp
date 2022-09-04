@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <DrawingPad.h>
+#include <DrawingPad/Log.h>
 #include <thread>
 #include <fstream>
 #include <chrono>
@@ -205,6 +206,7 @@ static ImGui_ImplDrawingPad_Window g_MainWindowData;
 
 int main()
 {
+	DrawingPad::Log::Init();
 	remove("validation_layers.log");
 	glfwSetErrorCallback(glfw_error_callback);
 

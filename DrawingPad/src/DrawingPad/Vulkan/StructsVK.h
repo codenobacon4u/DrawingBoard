@@ -28,6 +28,8 @@ namespace DrawingPad
 		};
 
 		struct FBKey {
+			uint32_t Width = 0;
+			uint32_t Height = 0;
 			VkRenderPass Pass = VK_NULL_HANDLE;
 			std::vector<VkFormat> Formats = {};
 			std::vector<VkImageUsageFlags> Usages = {};

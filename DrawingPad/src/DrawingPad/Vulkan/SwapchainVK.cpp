@@ -237,13 +237,15 @@ namespace DrawingPad
 				throw new std::runtime_error("Failed to get swapchain images");
 			for (uint32_t i = 0; i < imageCount; i++)
 			{
-				TextureDesc backDesc;
+				TextureDesc backDesc = {};
 				backDesc.Type = TextureType::DimTex2D;
 				backDesc.Width = m_Desc.Width;
 				backDesc.Height = m_Desc.Height;
 				backDesc.Format = m_Desc.ColorFormat;
-				backDesc.BindFlags = BindFlags::SwapChain;
+				backDesc.SampleCount = 1;
 				backDesc.MipLevels = 1;
+				backDesc.Usage = Usage::Default;
+				backDesc.BindFlags = BindFlags::SwapChain;
 				m_BackBuffers[i].first = static_cast<TextureVK*>(m_Device->CreateTextureFromImage(backDesc, swapImages[i]));
 
 				TextureViewDesc tvDesc;
@@ -265,7 +267,7 @@ namespace DrawingPad
 				depthDesc.SampleCount = 1;
 				depthDesc.MipLevels = 1;
 				depthDesc.Usage = Usage::Default;
-				depthDesc.BindFlags = BindFlags::DepthStencil | BindFlags::SwapChain;
+				depthDesc.BindFlags = BindFlags::DepthStencil;
 				m_DepthTexture = static_cast<TextureVK*>(m_Device->CreateTexture(depthDesc, nullptr));
 
 				TextureViewDesc tvDesc;

@@ -522,7 +522,11 @@ namespace DrawingPad
 
 		void UtilsVK::PrintDeviceProps(VkPhysicalDeviceProperties props)
 		{
-			std::string vendor, type, driver;
+			std::string vendor, type;
+			std::string driver = string_format("%d.%d.%d",
+				(props.driverVersion >> 22),
+				(props.driverVersion >> 12) & 0x3ff,
+				(props.driverVersion) & 0xfff);
 			switch (props.vendorID) {
 			case 0x1002:
 				vendor = "AMD";
@@ -532,6 +536,11 @@ namespace DrawingPad
 				break;
 			case 0x10DE:
 				vendor = "NVIDIA";
+				driver = string_format("%d.%d.%d.%d", 
+					(props.driverVersion >> 22) & 0x3ff, 
+					(props.driverVersion >> 14) & 0x0ff,
+					(props.driverVersion >> 6) & 0x0ff,
+					(props.driverVersion) & 0x003f);
 				break;
 			case 0x13B5:
 				vendor = "ARM";
@@ -541,6 +550,9 @@ namespace DrawingPad
 				break;
 			case 0x8086:
 				vendor = "Intel";
+				driver = string_format("%d.%d",
+					(props.driverVersion >> 14),
+					(props.driverVersion) & 0x3fff);
 				break;
 			default:
 				vendor = "UNKNOWN";
@@ -564,24 +576,7 @@ namespace DrawingPad
 				type = "Other";
 				break;
 			}
-			static std::string const values[] = {
-				"",
-				"AMD Proprietary",
-				"AMD Open Source",
-				"MESA RADV",
-				"NVIDIA Proprietary",
-				"INTEL Proprietary Windows",
-				"INTEL Open Source MESA",
-				"Imagination Proprietary",
-				"Qualcomm Proprietary",
-				"ARM Proprietary",
-				"Google SWIFTSHADER",
-				"GGP Proprietary",
-				"BROADCOM Proprietary",
-				"MESA LLVMPIPE",
-				"MOLTENVK",
-			};
-			driver = props.driverVersion < values->size() ? values[props.driverVersion] : "UNKOWN";
+
 			std::string api = string_format("%d.%d.%d", props.apiVersion >> 22, (props.apiVersion >> 12) & 0x3ff, props.apiVersion & 0xfff);
 			DP_INFO("Device Name: {}", props.deviceName);
 			DP_INFO("Device Type: {}", type);

@@ -32,14 +32,12 @@ namespace DrawingPad
 			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageInfo.usage = 0;
-			if (m_Desc.BindFlags == BindFlags::SwapChain)
-				imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			if (m_Desc.BindFlags == BindFlags::RenderTarget)
-				imageInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			if ((uint32_t)m_Desc.BindFlags & (uint32_t)BindFlags::DepthStencil)
-				imageInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-			if (m_Desc.BindFlags == BindFlags::ShaderResource)
-				imageInfo.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			else if (m_Desc.BindFlags == BindFlags::DepthStencil)
+				imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			else if (m_Desc.BindFlags == BindFlags::ShaderResource)
+				imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 			imageInfo.samples = static_cast<VkSampleCountFlagBits>(m_Desc.SampleCount);
 			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;

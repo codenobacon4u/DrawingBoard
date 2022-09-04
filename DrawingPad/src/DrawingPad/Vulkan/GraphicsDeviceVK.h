@@ -92,6 +92,9 @@ namespace DrawingPad
 
 			VkPhysicalDeviceLimits m_PhysicalLimits;
 			VkPhysicalDeviceFeatures m_PhysicalFeats;
+			VkPhysicalDeviceFeatures2 m_PhysicalFeats2 = {};
+			VkPhysicalDeviceVulkan11Features m_PhysicalFeats11 = {};
+			VkPhysicalDeviceVulkan12Features m_PhysicalFeats12 = {};
 			VkPhysicalDeviceProperties m_PhysicalProps;
 			VkPhysicalDeviceMemoryProperties m_PhysicalMemProps;
 

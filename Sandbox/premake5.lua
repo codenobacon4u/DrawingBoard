@@ -14,11 +14,10 @@ project "Sandbox"
 
     includedirs {
         "%{wks.location}/DrawingPad/src",
-        "%{wks.location}/DrawingPad/vendor",
-        "%{wks.location}/DrawingPad/vendor/spdlog/include",
         "%{IncludeDir.glad}",
         "%{IncludeDir.glm}",
-        "%{IncludeDir.glfw}",
+        "%{IncludeDir.GLFW}",
+        "%{IncludeDir.spdlog}",
     	"%{IncludeDir.stb_image}",
         "%{wks.location}/Sandbox/vendor/tiny_obj_loader"
     }

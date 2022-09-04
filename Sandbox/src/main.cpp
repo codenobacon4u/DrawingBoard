@@ -6,11 +6,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <DrawingPad.h>
+#include <DrawingPad/Log.h>
 #include <fstream>
 #include <chrono>
 #include <iostream>
-#include <glm/glm/gtx/string_cast.hpp>
-#include <glm/glm/gtx/rotate_vector.hpp>
 
 #pragma warning(push, 0)
 #pragma warning( disable: 26451 )
@@ -114,6 +113,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 int main() 
 {
+
+	DrawingPad::Log::Init();
 	remove("validation_layers.log");
 	DrawingPad::GraphicsDevice* gd;
 	DrawingPad::GraphicsContext* ctx;

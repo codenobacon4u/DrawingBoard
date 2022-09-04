@@ -20,7 +20,7 @@ namespace DrawingPad
 
 			~FramebufferPoolVK();
 
-			VkFramebuffer GetFramebuffer(const FBKey& key, uint32_t width, uint32_t height, uint32_t layers);
+			VkFramebuffer GetFramebuffer(const FBKey& key, uint32_t layers);
 
 		private:
 			GraphicsDeviceVK* m_Device;

@@ -269,7 +269,7 @@ namespace DrawingPad
 			VkValidationFeatureEnableEXT enables[] = {
 				VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 				VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-				VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+				VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT
 			};
 			VkValidationFeaturesEXT features = {};
 			features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
@@ -282,7 +282,7 @@ namespace DrawingPad
 			VkInstanceCreateInfo instInfo = {};
 			VkApplicationInfo appInfo = {};
 			appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-			appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
+			appInfo.apiVersion = VK_MAKE_VERSION(1, 2, 0);
 			appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
 			appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
 			appInfo.pApplicationName = "DrawingPad-Test";
@@ -364,7 +364,14 @@ namespace DrawingPad
 				}
 			}
 
+			m_PhysicalFeats12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+			m_PhysicalFeats11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+			m_PhysicalFeats11.pNext = &m_PhysicalFeats12;
+			m_PhysicalFeats2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			m_PhysicalFeats2.pNext = &m_PhysicalFeats11;
+
 			vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_PhysicalFeats);
+			vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_PhysicalFeats2);
 			vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalProps);
 			vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_PhysicalMemProps);
 
@@ -411,10 +418,11 @@ namespace DrawingPad
 
 			VkDeviceCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+			createInfo.pNext = &m_PhysicalFeats2;
 			createInfo.flags = 0;
 			createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 			createInfo.pQueueCreateInfos = queueCreateInfos.data();
-			createInfo.pEnabledFeatures = &m_PhysicalFeats;
+			//createInfo.pEnabledFeatures = &m_PhysicalFeats;
 			createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 			createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 			createInfo.enabledLayerCount = 0;

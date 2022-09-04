@@ -32,7 +32,6 @@ namespace DrawingPad
 
 		void CommandBufferVK::Begin()
 		{
-			//m_DescriptorPool->ResetPools();
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			beginInfo.pNext = nullptr;
@@ -52,18 +51,36 @@ namespace DrawingPad
 			std::transform(renderTargets.begin(), renderTargets.end(), formats.begin(), [](TextureView* view) { return UtilsVK::TextureFormatToVk(static_cast<TextureViewVK*>(view)->GetDesc().Format); });
 
 			FBKey key = {};
+			key.Width = width;
+			key.Height = height;
 			key.Pass = static_cast<RenderPassVK*>(renderpass)->Get();
 			key.Formats = formats;
 			for (auto& target : renderTargets) {
 				if (target->GetTexture()->GetDesc().BindFlags == BindFlags::SwapChain)
-					key.Usages.push_back(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+					key.Usages.push_back(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 				else if (target->GetTexture()->GetDesc().BindFlags == BindFlags::RenderTarget)
 					key.Usages.push_back(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 				else if (target->GetTexture()->GetDesc().BindFlags == BindFlags::DepthStencil)
 					key.Usages.push_back(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 			}
 
-			auto framebuffer = m_Device->GetFramebufferPool().GetFramebuffer(key, width, height, 1);
+			auto framebuffer = m_Device->GetFramebufferPool().GetFramebuffer(key, 1);
+
+			std::vector<VkClearValue> values(clearValues.size());
+			for (auto i = 0; i < values.size(); i++) {
+				if (renderpass->GetDesc().Attachments[i].Format == TextureFormat::D32Float ||
+					renderpass->GetDesc().Attachments[i].Format == TextureFormat::D32FloatS8Uint ||
+					renderpass->GetDesc().Attachments[i].Format == TextureFormat::D24UnormS8Uint)
+				{
+					values[i].depthStencil = {clearValues[i].depthStencil.depth, clearValues[i].depthStencil.stencil};
+				}
+				else {
+					values[i].color.float32[0] = clearValues[i].color[0];
+					values[i].color.float32[1] = clearValues[i].color[1];
+					values[i].color.float32[2] = clearValues[i].color[2];
+					values[i].color.float32[3] = clearValues[i].color[3];
+				}
+			}
 
 			VkRenderPassAttachmentBeginInfo attachBeginInfo = {};
 			attachBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO;
@@ -77,22 +94,6 @@ namespace DrawingPad
 			beginInfo.framebuffer = framebuffer;
 			beginInfo.renderArea = { { 0, 0 }, { width, height } };
 			beginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			std::vector<VkClearValue> values(clearValues.size());
-			for (uint32_t i = 0; i < clearValues.size(); i++)
-			{
-				if (renderpass->GetDesc().Attachments[i].Format == TextureFormat::D32Float ||
-					renderpass->GetDesc().Attachments[i].Format == TextureFormat::D32FloatS8Uint ||
-					renderpass->GetDesc().Attachments[i].Format == TextureFormat::D24UnormS8Uint)
-				{
-					values[i].depthStencil = { clearValues[i].depthStencil.depth, clearValues[i].depthStencil.stencil };
-				}
-				else {
-					values[i].color.float32[0] = clearValues[i].color[0];
-					values[i].color.float32[1] = clearValues[i].color[1];
-					values[i].color.float32[2] = clearValues[i].color[2];
-					values[i].color.float32[3] = clearValues[i].color[3];
-				}
-			}
 			beginInfo.pClearValues = values.data();
 			vkCmdBeginRenderPass(m_Handle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		}
