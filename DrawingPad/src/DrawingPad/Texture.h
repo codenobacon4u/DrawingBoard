@@ -193,6 +193,10 @@ namespace DrawingPad
 
 		TextureView* GetDefaultView() { return m_DefaultView; }
 
+		virtual const size_t GetHash() const = 0;
+
+		virtual bool operator==(const Texture& rhs) { return GetHash() == rhs.GetHash(); }
+
 	protected:
 		TextureDesc m_Desc;
 		TextureView* m_DefaultView = nullptr;

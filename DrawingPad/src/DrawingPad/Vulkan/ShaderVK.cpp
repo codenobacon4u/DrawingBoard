@@ -381,7 +381,7 @@ namespace DrawingPad
 			shaderc::CompilationResult result = compiler.CompileGlslToSpv(code, type, m_Desc.EntryPoint.c_str(), options);
 			if (result.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				std::cerr << result.GetErrorMessage() << std::endl;
+				DP_ERROR("Shader Compilation Error for {}: {}", m_Desc.Name, result.GetErrorMessage());
 				return {};
 			}
 			return std::vector<uint32_t>(result.cbegin(), result.cend());

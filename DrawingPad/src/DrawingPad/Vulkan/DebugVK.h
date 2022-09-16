@@ -14,13 +14,13 @@ namespace DrawingPad
 			static void SetName(VkDevice device, uint64_t object, VkObjectType objectType, std::string name);
 
 			// Set the tag for an object
-			static void SetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, std::string tag);
+			static void SetObjectTag(VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, std::string& tag);
 
 			// Start a DBG_NEW debug marker region
-			static void BeginRegion(VkCommandBuffer cmdbuffer, const char* pMarkerName, float* color);
+			static void BeginRegion(VkCommandBuffer cmdbuffer, std::string& label, std::array<float, 4> color);
 
 			// Insert a DBG_NEW debug marker into the command buffer
-			static void Insert(VkCommandBuffer cmdbuffer, std::string markerName, float* color);
+			static void Insert(VkCommandBuffer cmdbuffer, std::string& label, std::array<float, 4> color);
 
 			// End the current debug marker region
 			static void EndRegion(VkCommandBuffer cmdBuffer);

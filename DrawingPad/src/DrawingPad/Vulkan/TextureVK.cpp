@@ -155,6 +155,26 @@ namespace DrawingPad
 			return DBG_NEW TextureViewVK(m_Device, updatedDesc, this, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 
+		const size_t TextureVK::GetHash() const
+		{
+			if (m_Hash == 0) {
+				hash_combine(m_Hash, m_Desc.Type);
+				hash_combine(m_Hash, m_Desc.Width);
+				hash_combine(m_Hash, m_Desc.Height);
+				hash_combine(m_Hash, m_Desc.ArraySize);
+				hash_combine(m_Hash, m_Desc.Format);
+				hash_combine(m_Hash, m_Desc.MipLevels);
+				hash_combine(m_Hash, m_Desc.SampleCount);
+				hash_combine(m_Hash, m_Desc.Usage);
+				hash_combine(m_Hash, m_Desc.BindFlags);
+				hash_combine(m_Hash, m_Desc.AccessFlags);
+				hash_combine(m_Hash, m_Handle);
+				hash_combine(m_Hash, m_Mem);
+				hash_combine(m_Hash, m_Data);
+			}
+			return m_Hash;
+		}
+
 		void TextureVK::TransistionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout)
 		{
 			VkImageMemoryBarrier barrier = {};

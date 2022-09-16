@@ -36,7 +36,7 @@ namespace DrawingPad
 	} LayoutElement;
 
 	typedef struct GraphicsPipelineDesc {
-		const std::vector<LayoutElement> InputLayout;
+		std::vector<LayoutElement> InputLayout;
 		ShaderProgram* ShaderProgram = nullptr;
 		uint32_t NumViewports = 0;
 		bool DepthEnable = true;

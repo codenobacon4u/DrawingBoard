@@ -23,6 +23,8 @@ namespace DrawingPad
 
 			virtual TextureView* CreateView(const TextureViewDesc& desc) override;
 
+			virtual const size_t GetHash() const override;
+
 		private:
 			void TransistionLayout(VkCommandBuffer cmd, VkImageLayout oldLayout, VkImageLayout newLayout);
 			void CopyFromBuffer(VkCommandBuffer cmd, VkBuffer buffer, uint32_t width, uint32_t height);
@@ -34,6 +36,8 @@ namespace DrawingPad
 			VkDeviceMemory m_Mem = VK_NULL_HANDLE;
 			VkSampler m_Sampler = VK_NULL_HANDLE;
 			const void* m_Data = nullptr;
+
+			mutable size_t m_Hash = 0;
 		};
 
 		class TextureViewVK : public TextureView
